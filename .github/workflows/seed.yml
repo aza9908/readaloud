@@ -32,7 +32,7 @@ jobs:
       - name: Seed books
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: readai-4f87b
         run: npm run seed "${{ inputs.file }}"
 
       - name: Cleanup credentials
