@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Parent account + everything under it (profiles, sessions, achievements)
+    // AUTH-04: strict isolation — a parent can only touch their own subtree.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // ── Books
+    // System books:  ownerId == null  → readable by any signed-in user.
+    // Custom books:  ownerId == uid   → readable/deletable only by owner.
+    match /books/{bookId} {
+      allow read: if request.auth != null
+        && (resource.data.ownerId == null
+            || resource.data.ownerId == request.auth.uid);
+
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.isCustom == true
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.language in ['en', 'ru', 'kk']
+        && request.resource.data.pages is list
+        && request.resource.data.pages.size() > 0
+        && request.resource.data.pages.size() <= 120;
+
+      // Books are immutable after creation (delete + re-create to edit).
+      allow update: if false;
+
+      allow delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+    }
+  }
+}

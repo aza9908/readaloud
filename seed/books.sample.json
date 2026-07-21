@@ -1,0 +1,29 @@
+[
+  {
+    "title": "Репка",
+    "language": "ru",
+    "coverEmoji": "🥕",
+    "difficulty": "easy",
+    "ageMin": 5,
+    "ageMax": 8,
+    "text": "Посадил дед репку. Выросла репка большая, пребольшая. Стал дед репку из земли тянуть. Тянет, потянет, а вытянуть не может.\n\nПозвал дед бабку. Бабка за дедку, дедка за репку. Тянут, потянут, а вытянуть не могут.\n\nПозвала бабка внучку. Внучка за бабку, бабка за дедку, дедка за репку. Тянут, потянут, а вытянуть не могут.\n\nПозвала внучка собачку Жучку. Жучка за внучку, внучка за бабку, бабка за дедку, дедка за репку. Тянут, потянут, а вытянуть не могут.\n\nПозвала Жучка кошку. Кошка за Жучку, Жучка за внучку, внучка за бабку, бабка за дедку, дедка за репку. Тянут, потянут, а вытянуть не могут.\n\nПозвала кошка мышку. Мышка за кошку, кошка за Жучку, Жучка за внучку, внучка за бабку, бабка за дедку, дедка за репку.\n\nТянут, потянут — и вытянули репку! Все вместе радовались и смеялись. Вот какая дружная семья!"
+  },
+  {
+    "title": "Батыл қоян",
+    "language": "kk",
+    "coverEmoji": "🐰",
+    "difficulty": "easy",
+    "ageMin": 5,
+    "ageMax": 8,
+    "text": "Орманда кішкентай қоян тұрды. Оның аты Ақжол еді. Ақжол өте қорқақ болатын. Ол желден де, көлеңкеден де қорқатын.\n\nБір күні орманға қатты жаңбыр жауды. Барлық аңдар үйлеріне тығылды. Кішкентай тиін ағаштан құлап қалды. Ол көмек сұрап айқайлады.\n\nАқжол оны естіді. Ол қатты қорықты. Бірақ досына көмектесу керек еді. Қоян жаңбырға қарамай жүгірді.\n\nАқжол тиінді тауып алды. Ол оны арқасына салды. Екеуі бірге қоянның үйіне келді. Тиін жылы үйде отырып қуанды.\n\nКелесі күні барлық аңдар Ақжолды мақтады. Енді ешкім оны қорқақ демейді. Ақжол — орманның ең батыл қояны!"
+  },
+  {
+    "title": "The Little Cloud",
+    "language": "en",
+    "coverEmoji": "☁️",
+    "difficulty": "easy",
+    "ageMin": 5,
+    "ageMax": 8,
+    "text": "Once there was a little cloud named Puff. Puff lived high in the blue sky. All day long, Puff floated over hills and rivers.\n\nOne hot summer day, Puff looked down and saw a small garden. The flowers were dry and sad. The little plants needed water very much.\n\nPuff wanted to help the garden. But Puff was only a tiny cloud. A small cloud cannot make much rain alone.\n\nSo Puff called all the cloud friends. Big clouds and small clouds came from far away. Together they turned gray and heavy.\n\nThen the rain began to fall. Drip, drop, drip, drop! The flowers drank the cool water and stood up tall.\n\nThe garden turned green and bright again. The flowers smiled up at the sky. Puff felt very happy. Even a little cloud can do big things with friends!"
+  }
+]
