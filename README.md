@@ -132,3 +132,20 @@ git push -u origin main
   Chrome; fuzzy-алгоритм (префикс + Левенштейн) компенсирует неточности.
   Если качество окажется недостаточным — план Б: серверный STT (Yandex
   SpeechKit / Google STT) через Cloud Run, но начинать стоит без него.
+
+## CI/CD — деплой через GitHub
+
+Каждый push в `main` автоматически: `npm ci` → typecheck + build → деплой
+Hosting + Firestore rules/indexes (`.github/workflows/deploy.yml`).
+Книги заливаются вручную из вкладки **Actions → Seed books into Firestore →
+Run workflow** (выбор файла: sample или exported).
+
+Необходимые **GitHub Secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Откуда |
+|--------|--------|
+| `VITE_FIREBASE_API_KEY` … `VITE_FIREBASE_APP_ID` (все 6) | Firebase Console → Project settings → Your apps → Web |
+| `FIREBASE_SERVICE_ACCOUNT` | Project settings → Service accounts → Generate new private key → вставить **весь JSON** |
+
+После добавления секретов: Actions → Deploy to Firebase → Run workflow →
+сайт живёт на `https://<project-id>.web.app`.
