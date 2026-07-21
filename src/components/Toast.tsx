@@ -1,4 +1,3 @@
-/** Minimal toast system (GAME-02 achievement notifications etc.). */
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 
 interface ToastItem { id: number; icon?: string; title: string; description?: string }
@@ -12,7 +11,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((t: Omit<ToastItem, "id">) => {
     const id = nextId.current++;
     setToasts((prev) => [...prev, { ...t, id }]);
-    setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 4000);
+    setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== id)), 4200);
   }, []);
 
   return (
@@ -22,13 +21,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 shadow-xl border border-amber-200 dark:border-amber-500/30 px-4 py-3 flex items-center gap-3 animate-toast-in"
+            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white dark:bg-[#241f31] shadow-card border-2 border-amber-400/40 px-4 py-3 flex items-center gap-3 animate-toast-in"
           >
-            {t.icon && <span className="text-3xl">{t.icon}</span>}
+            {t.icon && (
+              <span className="text-3xl grid place-items-center w-11 h-11 rounded-xl bg-amber-400/15 shrink-0">
+                {t.icon}
+              </span>
+            )}
             <div className="min-w-0">
-              <p className="font-bold text-slate-900 dark:text-white">{t.title}</p>
+              <p className="font-display font-bold text-ink dark:text-white leading-tight">{t.title}</p>
               {t.description && (
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t.description}</p>
+                <p className="text-sm text-ink-soft dark:text-ink-faint">{t.description}</p>
               )}
             </div>
           </div>

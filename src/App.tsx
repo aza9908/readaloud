@@ -12,8 +12,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <div className="text-5xl animate-bounce">📖</div>
+      <div className="min-h-dvh grid place-items-center">
+        <div className="text-6xl animate-float">📖</div>
       </div>
     );
   }

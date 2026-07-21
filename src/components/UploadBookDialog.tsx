@@ -86,25 +86,25 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white dark:bg-slate-800 p-5 space-y-4"
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white dark:bg-[#211d2e] p-5 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
+            <h2 className="text-xl font-display font-extrabold text-ink dark:text-white">
               📚 Добавить свою книгу
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-ink-faint dark:text-ink-faint">
               Вставьте текст — страницы соберутся сами.
             </p>
           </div>
-          <button onClick={onClose} className="text-2xl leading-none text-slate-400 hover:text-slate-600 p-1" aria-label="Закрыть">
+          <button onClick={onClose} className="text-2xl leading-none text-ink-faint hover:text-slate-600 p-1" aria-label="Закрыть">
             ×
           </button>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="cb-title">
+          <label className="text-sm font-semibold text-ink-soft dark:text-ink-faint" htmlFor="cb-title">
             Название
           </label>
           <input
@@ -118,7 +118,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Язык книги</span>
+          <span className="text-sm font-semibold text-ink-soft dark:text-ink-faint">Язык книги</span>
           <div className="flex gap-2">
             {LANGUAGES.map((l) => (
               <button
@@ -127,8 +127,8 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
                 onClick={() => setLanguage(l.value)}
                 className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
                   language === l.value
-                    ? "bg-primary text-white"
-                    : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-200"
+                    ? "bg-brand-500 text-white"
+                    : "bg-slate-100 dark:bg-slate-700 text-ink-soft dark:text-ink-faint hover:bg-slate-200"
                 }`}
               >
                 {l.flag} {l.label}
@@ -138,7 +138,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Обложка</span>
+          <span className="text-sm font-semibold text-ink-soft dark:text-ink-faint">Обложка</span>
           <div className="flex flex-wrap gap-1.5">
             {EMOJI_CHOICES.map((e) => (
               <button
@@ -147,7 +147,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
                 onClick={() => setCoverEmoji(e)}
                 className={`text-2xl w-10 h-10 rounded-xl transition-colors ${
                   coverEmoji === e
-                    ? "bg-primary-soft ring-2 ring-primary dark:bg-primary/20"
+                    ? "bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-500/20"
                     : "hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
                 aria-label={`Обложка ${e}`}
@@ -160,12 +160,12 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300" htmlFor="cb-text">
+            <label className="text-sm font-semibold text-ink-soft dark:text-ink-faint" htmlFor="cb-text">
               Текст книги
             </label>
             <button
               type="button"
-              className="text-sm font-semibold text-primary hover:underline"
+              className="text-sm font-semibold text-brand-500 hover:underline"
               onClick={() => fileInputRef.current?.click()}
             >
               📄 Загрузить .txt
@@ -189,7 +189,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-ink-faint dark:text-ink-faint">
             {wordCount} слов · ≈{estimatedPages} стр.
             {wordCount > 0 && wordCount < MIN_TOTAL_WORDS && ` · минимум ${MIN_TOTAL_WORDS} слов`}
             {wordCount > MAX_TOTAL_WORDS && ` · максимум ${MAX_TOTAL_WORDS} слов`}

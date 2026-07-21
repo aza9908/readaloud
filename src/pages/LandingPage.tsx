@@ -6,44 +6,57 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-dvh flex flex-col">
-      <header className="flex justify-end p-4">
+      <header className="flex justify-between items-center px-5 py-4">
+        <span className="font-display font-extrabold text-xl text-ink dark:text-white">
+          Read<span className="text-brand-500">Aloud</span>
+        </span>
         <ThemeToggle />
       </header>
-      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-6 pb-20">
-        <div className="text-7xl">📖</div>
-        <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white">
-          Read<span className="text-primary">Aloud</span>
-        </h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300 max-w-md">
-          Читаем вслух — слова подсвечиваются сами! Сказки на русском, казахском
-          и английском с наградами и фейерверками. 🎆
-        </p>
-        <div className="flex gap-3 text-3xl" aria-hidden="true">
-          <span>🇷🇺</span><span>🇰🇿</span><span>🇬🇧</span>
-        </div>
 
-        <div className="w-full max-w-xs space-y-3">
-          <button className="btn-primary w-full text-lg px-8 py-4" onClick={() => void login()}>
-            Войти через Google
-          </button>
-          <button
-            className="btn-outline w-full py-3"
-            onClick={() => void loginAsGuest()}
-          >
-            👋 Попробовать без регистрации
-          </button>
-        </div>
+      <main className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+        <div className="w-full max-w-sm animate-fade-up">
+          {/* Signature: a stack of storybook "pages" behind the icon */}
+          <div className="relative mx-auto mb-8 h-28 w-28">
+            <div className="absolute inset-0 rotate-[-8deg] rounded-3xl bg-amber-400/25" />
+            <div className="absolute inset-0 rotate-[5deg] rounded-3xl bg-brand-300/30" />
+            <div className="absolute inset-0 grid place-items-center rounded-3xl bg-white shadow-card border border-black/5 text-5xl animate-float dark:bg-[#211d2e] dark:border-white/10">
+              📖
+            </div>
+          </div>
 
-        {error && (
-          <p className="text-sm text-red-500 max-w-sm bg-red-50 dark:bg-red-500/10 rounded-2xl px-4 py-3">
-            {error}
+          <p className="eyebrow mb-3">Чтение вслух · 6–10 лет</p>
+          <h1 className="font-display font-extrabold text-[2.6rem] leading-[1.05] text-ink dark:text-white">
+            Слова, которые<br />зажигаются
+          </h1>
+          <p className="mt-4 text-lg text-ink-soft dark:text-ink-faint leading-relaxed">
+            Ребёнок читает вслух — слова подсвечиваются сами.
+            Сказки на трёх языках, награды и фейерверки за каждую книгу.
           </p>
-        )}
 
-        <p className="text-xs text-slate-400 max-w-xs">
-          Работает в Chrome и Edge — распознавание речи происходит прямо в
-          браузере, без записи на сервер.
-        </p>
+          <div className="mt-6 flex items-center justify-center gap-3 text-3xl" aria-hidden="true">
+            <span>🇷🇺</span><span>🇰🇿</span><span>🇬🇧</span>
+          </div>
+
+          <div className="mt-8 space-y-3">
+            <button className="btn-primary w-full" onClick={() => void login()}>
+              Войти через Google
+            </button>
+            <button className="btn-ghost w-full" onClick={() => void loginAsGuest()}>
+              Попробовать без входа
+            </button>
+          </div>
+
+          {error && (
+            <p className="mt-4 text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-2xl px-4 py-3 text-left">
+              {error}
+            </p>
+          )}
+
+          <p className="mt-6 text-xs text-ink-faint leading-relaxed">
+            Лучше всего работает в Chrome и Edge. Голос ребёнка
+            распознаётся прямо в браузере и никуда не отправляется.
+          </p>
+        </div>
       </main>
     </div>
   );

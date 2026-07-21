@@ -11,7 +11,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setDark((d) => !d)}
-      className="w-10 h-10 rounded-xl flex items-center justify-center text-xl hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors"
+      className="w-10 h-10 rounded-2xl grid place-items-center text-lg bg-white/70 dark:bg-white/10 border border-black/5 dark:border-white/10 shadow-soft hover:-translate-y-0.5 transition-all"
       aria-label={dark ? "Светлая тема" : "Тёмная тема"}
     >
       {dark ? "☀️" : "🌙"}

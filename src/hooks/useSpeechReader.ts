@@ -91,7 +91,7 @@ function wordsMatch(target: string, spoken: string): boolean {
   return withinDistanceOne(target, spoken);         // MATCH-05
 }
 
-const CASCADE_MS = 70;          // MATCH-07
+const CASCADE_MS = 130;         // MATCH-07 — slower, calmer highlight pace (was 70)
 const SYNC_INTERVAL_MS = 1000;
 const RESTART_BACKOFF_MS = 250;
 

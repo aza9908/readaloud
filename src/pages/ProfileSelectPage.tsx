@@ -5,7 +5,7 @@ import { createProfile, watchProfiles } from "@/lib/firestore";
 import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-const AVATARS = ["🦁", "🐬", "🦊", "🐼", "🦄", "🐸", "🦋", "🐯"];
+const AVATARS = ["🦁", "🐬", "🦊", "🐼", "🦄", "🐸", "🦋", "🐯", "🐨", "🦉"];
 
 export default function ProfileSelectPage() {
   const { user, logout } = useAuth();
@@ -29,12 +29,7 @@ export default function ProfileSelectPage() {
     if (!name.trim() || saving) return;
     setSaving(true);
     try {
-      await createProfile(user.uid, {
-        name: name.trim(),
-        age,
-        avatar,
-        defaultLanguage: language,
-      });
+      await createProfile(user.uid, { name: name.trim(), age, avatar, defaultLanguage: language });
       setCreating(false);
       setName("");
     } finally {
@@ -43,72 +38,100 @@ export default function ProfileSelectPage() {
   };
 
   return (
-    <div className="min-h-dvh px-4 py-6 max-w-3xl mx-auto">
-      <header className="flex items-center justify-between mb-8">
-        <button className="text-sm text-slate-500 hover:text-slate-700" onClick={() => void logout()}>
+    <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto">
+      <header className="flex items-center justify-between mb-10">
+        <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => void logout()}>
           Выйти
         </button>
+        <span className="font-display font-extrabold text-lg text-ink dark:text-white">
+          Read<span className="text-brand-500">Aloud</span>
+        </span>
         <ThemeToggle />
       </header>
 
-      <h1 className="text-3xl font-extrabold text-center text-slate-900 dark:text-white mb-1">
-        Кто читает сегодня?
-      </h1>
-      <p className="text-center text-slate-500 dark:text-slate-400 mb-8">
-        Выбери профиль или создай новый
-      </p>
+      <div className="text-center mb-8 animate-fade-up">
+        <p className="eyebrow mb-2">Профили</p>
+        <h1 className="font-display font-extrabold text-4xl text-ink dark:text-white">
+          Кто читает сегодня?
+        </h1>
+        <p className="mt-2 text-ink-soft dark:text-ink-faint">
+          Выбери свой профиль или добавь новый
+        </p>
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {(profiles ?? []).map((p) => (
+        {(profiles ?? []).map((p, i) => (
           <button
             key={p.id}
-            className="card flex flex-col items-center gap-2 py-6 hover:ring-2 hover:ring-primary transition-shadow"
+            className="card p-6 flex flex-col items-center gap-2 hover:-translate-y-1 hover:shadow-lift transition-all duration-200 animate-fade-up"
+            style={{ animationDelay: `${i * 60}ms` }}
             onClick={() => navigate(`/library?profile=${p.id}`)}
           >
-            <span className="text-5xl">{p.avatar}</span>
-            <span className="font-bold text-lg text-slate-900 dark:text-white">{p.name}</span>
-            <span className="text-sm text-slate-500">{p.age} лет</span>
-            <span className="text-xs text-slate-400">📖 {p.booksCompleted} сказок</span>
+            <span className="text-6xl mb-1 drop-shadow-sm">{p.avatar}</span>
+            <span className="font-display font-bold text-xl text-ink dark:text-white">{p.name}</span>
+            <span className="text-sm text-ink-faint">{p.age} лет</span>
+            <span className="chip chip-off !py-1 !px-3 text-xs mt-1">
+              📖 {p.booksCompleted} {p.booksCompleted === 1 ? "книга" : "книг"}
+            </span>
           </button>
         ))}
         <button
-          className="card flex flex-col items-center justify-center gap-2 py-6 border-2 border-dashed border-primary/40 bg-primary-soft/40 dark:bg-primary/10 text-primary font-semibold"
+          className="rounded-3xl p-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-brand-300 bg-brand-50/60 dark:bg-brand-500/10 text-brand-500 font-display font-bold hover:-translate-y-1 transition-all duration-200"
           onClick={() => setCreating(true)}
         >
-          <span className="w-12 h-12 rounded-full bg-primary-soft dark:bg-primary/20 flex items-center justify-center text-2xl">＋</span>
-          Добавить профиль
+          <span className="w-14 h-14 rounded-2xl bg-white dark:bg-brand-500/20 grid place-items-center text-3xl shadow-soft">＋</span>
+          Новый профиль
         </button>
       </div>
 
-      <div className="flex justify-center mt-8">
-        <button className="btn-outline" onClick={() => navigate("/dashboard")}>
+      <div className="flex justify-center mt-10">
+        <button className="btn-ghost" onClick={() => navigate("/dashboard")}>
           ⚙️ Родительский дашборд
         </button>
       </div>
 
       {creating && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4" onClick={() => setCreating(false)}>
-          <div className="w-full max-w-md rounded-t-3xl sm:rounded-3xl bg-white dark:bg-slate-800 p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Новый профиль</h2>
-            <input className="input" placeholder="Имя ребёнка" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-            <div>
-              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Возраст: {age}</span>
-              <input type="range" min={5} max={12} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-primary" />
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setCreating(false)}>
+          <div className="sheet max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Новый профиль</h2>
+              <button className="text-2xl text-ink-faint w-8 h-8" onClick={() => setCreating(false)} aria-label="Закрыть">×</button>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+
+            <div className="text-center py-2">
+              <span className="text-7xl animate-pop inline-block" key={avatar}>{avatar}</span>
+            </div>
+
+            <div className="flex flex-wrap gap-2 justify-center">
               {AVATARS.map((a) => (
-                <button key={a} onClick={() => setAvatar(a)} className={`text-2xl w-10 h-10 rounded-xl ${avatar === a ? "bg-primary-soft ring-2 ring-primary dark:bg-primary/20" : "hover:bg-slate-100 dark:hover:bg-slate-700"}`}>
+                <button key={a} onClick={() => setAvatar(a)}
+                  className={`text-2xl w-11 h-11 rounded-2xl transition-all ${avatar === a ? "bg-brand-500/15 ring-2 ring-brand-500 scale-110" : "hover:bg-brand-50 dark:hover:bg-white/5"}`}>
                   {a}
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
-              {LANGUAGES.map((l) => (
-                <button key={l.value} onClick={() => setLanguage(l.value)} className={`px-3 py-2 rounded-xl text-sm font-semibold ${language === l.value ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200"}`}>
-                  {l.flag} {l.label}
-                </button>
-              ))}
+
+            <input className="input text-center font-semibold" placeholder="Имя ребёнка" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+
+            <div>
+              <div className="flex justify-between text-sm font-bold text-ink-soft dark:text-ink-faint mb-1">
+                <span>Возраст</span><span className="text-brand-500">{age} лет</span>
+              </div>
+              <input type="range" min={5} max={12} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-brand-500" />
             </div>
+
+            <div>
+              <p className="text-sm font-bold text-ink-soft dark:text-ink-faint mb-2">Основной язык</p>
+              <div className="flex gap-2">
+                {LANGUAGES.map((l) => (
+                  <button key={l.value} onClick={() => setLanguage(l.value)}
+                    className={`chip flex-1 ${language === l.value ? "chip-on" : "chip-off"}`}>
+                    {l.flag} {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <button className="btn-primary w-full" disabled={!name.trim() || saving} onClick={() => void submit()}>
               {saving ? "Создаём…" : "Создать профиль"}
             </button>

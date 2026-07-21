@@ -46,14 +46,16 @@ const ReadingSurface = memo(
     fontSizePx: number;
   }) {
     return (
-      <main className="flex-1 px-4 pt-4 pb-56 max-w-2xl mx-auto w-full">
+      <main className="flex-1 px-4 pt-5 pb-64 max-w-2xl mx-auto w-full">
         <PageIllustration src={illustrationSrc} />
-        <KaraokeText
-          words={words}
-          paragraphSizes={paragraphSizes}
-          registerWordEl={registerWordEl}
-          fontSizePx={fontSizePx}
-        />
+        <div className="reading-canvas rounded-3xl px-6 py-7 text-ink dark:text-[#e8e5f2]">
+          <KaraokeText
+            words={words}
+            paragraphSizes={paragraphSizes}
+            registerWordEl={registerWordEl}
+            fontSizePx={fontSizePx}
+          />
+        </div>
       </main>
     );
   },
@@ -332,26 +334,27 @@ export default function ReadingPage() {
   return (
     <div className="min-h-dvh flex flex-col">
       {/* Header — updates ≤1×/sec, cheap */}
-      <header className="sticky top-0 z-20 bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur px-4 pt-3 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <button className="text-2xl p-1" onClick={stopAndExit} aria-label="Назад">←</button>
-          <div className="min-w-0 text-center">
-            <p className="font-bold truncate text-slate-900 dark:text-white">{book.title}</p>
-            <p className="text-xs text-slate-500">Страница {pageIndex + 1} из {book.pages.length}</p>
+      <header className="sticky top-0 z-20 bg-[var(--canvas)]/90 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-black/[0.04] dark:border-white/[0.04]">
+        <div className="flex items-center justify-between gap-2 max-w-2xl mx-auto">
+          <button className="w-9 h-9 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft text-lg" onClick={stopAndExit} aria-label="Назад">←</button>
+          <div className="min-w-0 text-center flex-1">
+            <p className="font-display font-bold truncate text-ink dark:text-white leading-tight">{book.title}</p>
+            <p className="text-[11px] text-ink-faint">Страница {pageIndex + 1} из {book.pages.length}</p>
           </div>
           <div className="flex items-center gap-1">
-            <button className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 shadow-sm font-bold" onClick={() => setFontSizePx((s) => Math.max(14, s - 2))} aria-label="Меньше шрифт">−</button>
-            <span className="text-sm w-6 text-center text-slate-500">{fontSizePx}</span>
-            <button className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 shadow-sm font-bold" onClick={() => setFontSizePx((s) => Math.min(28, s + 2))} aria-label="Больше шрифт">+</button>
+            <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white" onClick={() => setFontSizePx((s) => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
+            <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white text-sm" onClick={() => setFontSizePx((s) => Math.min(30, s + 2))} aria-label="Больше">A+</button>
             <ThemeToggle />
           </div>
         </div>
-        <div className="flex items-center justify-between text-xs text-slate-500 mt-1">
-          <span>{progressPct}% прочитано</span>
-          <span>{fmtClock(baseMsRef.current + reader.elapsedMs)} • {reader.wpm} сл/мин</span>
-        </div>
-        <div className="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 mt-1 overflow-hidden">
-          <div className="h-full rounded-full bg-gradient-to-r from-primary to-primary-light transition-[width] duration-500" style={{ width: `${progressPct}%` }} />
+        <div className="max-w-2xl mx-auto mt-2">
+          <div className="flex items-center justify-between text-[11px] font-bold text-ink-faint mb-1">
+            <span>{progressPct}% прочитано</span>
+            <span>{fmtClock(baseMsRef.current + reader.elapsedMs)} · {reader.wpm} сл/мин</span>
+          </div>
+          <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+            <div className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600 transition-[width] duration-500" style={{ width: `${progressPct}%` }} />
+          </div>
         </div>
       </header>
 
@@ -364,40 +367,45 @@ export default function ReadingPage() {
       />
 
       {/* Controls */}
-      <footer className="fixed bottom-0 inset-x-0 z-20 p-4 space-y-2 bg-gradient-to-t from-slate-50 via-slate-50/95 dark:from-slate-900 dark:via-slate-900/95 to-transparent">
-        <div className="max-w-2xl mx-auto space-y-2">
+      <footer className="fixed bottom-0 inset-x-0 z-20 px-4 pt-6 pb-4 bg-gradient-to-t from-[var(--canvas)] via-[var(--canvas)]/95 to-transparent">
+        <div className="max-w-2xl mx-auto space-y-2.5">
           {reader.isListening && (
-            <div className="rounded-2xl border-2 border-primary/30 bg-primary-soft/70 dark:bg-primary/10 backdrop-blur p-3 flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold text-primary/70 tracking-wide">☝️ ПРОЧИТАЙ ВСЛУХ:</p>
-                <p className="text-3xl font-extrabold text-primary truncate">
-                  {reader.currentWord.toLowerCase().replace(/[^\p{L}\p{N}-]+$/gu, "")}
-                </p>
+            <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[#221d31]/90 backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">
+              <div className="min-w-0 flex items-center gap-3">
+                <span className="w-11 h-11 rounded-2xl bg-brand-500/10 grid place-items-center text-xl shrink-0">👂</span>
+                <div className="min-w-0">
+                  <p className="eyebrow">Прочитай вслух</p>
+                  <p className="font-display font-extrabold text-3xl text-brand-500 truncate leading-tight">
+                    {reader.currentWord.toLowerCase().replace(/[^\p{L}\p{N}-]+$/gu, "")}
+                  </p>
+                </div>
               </div>
-              <button className="btn-outline shrink-0" onClick={reader.skipWord}>
-                ⏭ Пропустить
+              <button className="btn-ghost shrink-0 !py-2.5 !px-4 text-sm" onClick={reader.skipWord}>
+                Пропустить →
               </button>
             </div>
           )}
 
           {!finished &&
             (reader.isListening ? (
-              <button className="btn-outline w-full py-3" onClick={reader.pause}>⏸ Пауза</button>
+              <button className="btn-ghost w-full !py-3.5 font-display font-bold" onClick={reader.pause}>
+                ⏸ Пауза
+              </button>
             ) : (
-              <button className="btn-primary w-full py-4 text-lg" onClick={reader.start} disabled={!reader.isSupported}>
+              <button className="btn-primary w-full !py-4" onClick={reader.start} disabled={!reader.isSupported}>
                 🎤 {reader.wordsRead > 0 || baseMsRef.current > 0 ? "Продолжить чтение" : "Читать вслух"}
               </button>
             ))}
 
           {!finished && !reader.isListening && (
-            <button className="w-full py-3 rounded-2xl bg-white dark:bg-slate-800 shadow-sm font-semibold text-slate-700 dark:text-slate-200" onClick={stopAndExit}>
-              🔖 Стоп, продолжу позже
+            <button className="w-full text-center text-sm font-bold text-ink-faint py-2 hover:text-ink-soft transition-colors" onClick={stopAndExit}>
+              🔖 Остановиться и продолжить позже
             </button>
           )}
 
           {!reader.isSupported && (
-            <p className="text-center text-sm text-red-500">
-              Браузер не поддерживает распознавание речи — откройте в Chrome или Edge.
+            <p className="text-center text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-2xl px-4 py-3">
+              Распознавание речи недоступно в этом браузере. Откройте в Chrome или Edge.
             </p>
           )}
         </div>
@@ -405,29 +413,29 @@ export default function ReadingPage() {
 
       {/* READ-09: resume dialog */}
       {resumePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-slate-800 p-6 text-center space-y-4">
-            <div className="text-4xl">📖</div>
-            <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">Продолжить чтение?</h2>
-            <p className="text-sm text-slate-500">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="sheet max-w-sm text-center space-y-4">
+            <div className="text-5xl">📖</div>
+            <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Продолжить чтение?</h2>
+            <p className="text-sm text-ink-soft dark:text-ink-faint">
               Ты остановился на{" "}
-              <span className="text-primary font-bold">
+              <span className="text-brand-500 font-extrabold">
                 {Math.min(99, Math.round((resumePrompt.wordsRead / totalBookWords) * 100))}%
               </span>{" "}
-              от книги
+              книги
             </p>
-            <div className="rounded-2xl bg-slate-50 dark:bg-slate-700/50 p-3 grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-black/[0.03] dark:bg-white/5 p-4 grid grid-cols-2 gap-2">
               <div>
-                <p className="text-xl font-extrabold text-slate-900 dark:text-white">{resumePrompt.wordsRead}</p>
-                <p className="text-xs text-slate-500">Слов прочитано</p>
+                <p className="font-display font-extrabold text-2xl text-ink dark:text-white">{resumePrompt.wordsRead}</p>
+                <p className="text-xs text-ink-faint">слов прочитано</p>
               </div>
               <div>
-                <p className="text-xl font-extrabold text-slate-900 dark:text-white">{fmtClock(resumePrompt.durationMs)}</p>
-                <p className="text-xs text-slate-500">Времени потрачено</p>
+                <p className="font-display font-extrabold text-2xl text-ink dark:text-white">{fmtClock(resumePrompt.durationMs)}</p>
+                <p className="text-xs text-ink-faint">времени</p>
               </div>
             </div>
-            <button className="btn-primary w-full" onClick={() => resume(true)}>🔖 Продолжить с места остановки</button>
-            <button className="btn-outline w-full" onClick={() => resume(false)}>↺ Начать сначала</button>
+            <button className="btn-primary w-full" onClick={() => resume(true)}>Продолжить</button>
+            <button className="btn-ghost w-full" onClick={() => resume(false)}>Начать сначала</button>
           </div>
         </div>
       )}
@@ -437,11 +445,11 @@ export default function ReadingPage() {
         <>
           <Fireworks />
           <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto w-full max-w-sm rounded-3xl bg-white dark:bg-slate-800 p-6 text-center space-y-4 shadow-2xl">
-              <div className="text-5xl">🎉</div>
-              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white">Молодец, {profile.name}!</h2>
-              <p className="text-slate-500">
-                Ты прочитал «{book.title}» — {savedWordsRef.current} слов!
+            <div className="pointer-events-auto sheet max-w-sm text-center space-y-4 !shadow-lift animate-pop">
+              <div className="text-6xl animate-float">🎉</div>
+              <h2 className="font-display font-extrabold text-3xl text-ink dark:text-white">Молодец, {profile.name}!</h2>
+              <p className="text-ink-soft dark:text-ink-faint">
+                Книга «{book.title}» прочитана — {savedWordsRef.current} слов!
               </p>
               <button className="btn-primary w-full" onClick={() => navigate(`/library?profile=${profileId}`)}>
                 📚 К другим сказкам
