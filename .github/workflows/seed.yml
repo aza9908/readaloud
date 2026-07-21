@@ -6,9 +6,10 @@ on:
       file:
         description: "Seed file to load"
         required: true
-        default: "seed/books.sample.json"
+        default: "seed/books.full.json"
         type: choice
         options:
+          - seed/books.full.json
           - seed/books.sample.json
           - seed/books.exported.json
 

@@ -25,6 +25,44 @@ const PageIllustration = memo(function PageIllustration({ src }: { src: string |
   return <img src={src} alt="" className="w-full rounded-2xl mb-6" decoding="async" />;
 });
 
+/**
+ * The entire reading surface (illustration + word spans), frozen behind memo.
+ * The parent ReadingPage re-renders ~1×/sec to update the progress header,
+ * but this subtree only re-renders when the page actually turns (words change)
+ * or the font size changes — so the per-second tick does ZERO work here.
+ */
+const ReadingSurface = memo(
+  function ReadingSurface({
+    illustrationSrc,
+    words,
+    paragraphSizes,
+    registerWordEl,
+    fontSizePx,
+  }: {
+    illustrationSrc: string | null;
+    words: string[];
+    paragraphSizes: number[];
+    registerWordEl: (index: number, el: HTMLElement | null) => void;
+    fontSizePx: number;
+  }) {
+    return (
+      <main className="flex-1 px-4 pt-4 pb-56 max-w-2xl mx-auto w-full">
+        <PageIllustration src={illustrationSrc} />
+        <KaraokeText
+          words={words}
+          paragraphSizes={paragraphSizes}
+          registerWordEl={registerWordEl}
+          fontSizePx={fontSizePx}
+        />
+      </main>
+    );
+  },
+  (prev, next) =>
+    prev.words === next.words &&
+    prev.fontSizePx === next.fontSizePx &&
+    prev.illustrationSrc === next.illustrationSrc,
+);
+
 function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -317,15 +355,13 @@ export default function ReadingPage() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pt-4 pb-56 max-w-2xl mx-auto w-full">
-        <PageIllustration src={book.coverUrl && pageIndex === 0 ? book.coverUrl : null} />
-        <KaraokeText
-          words={words}
-          paragraphSizes={paragraphSizes}
-          registerWordEl={reader.registerWordEl}
-          fontSizePx={fontSizePx}
-        />
-      </main>
+      <ReadingSurface
+        illustrationSrc={book.coverUrl && pageIndex === 0 ? book.coverUrl : null}
+        words={words}
+        paragraphSizes={paragraphSizes}
+        registerWordEl={reader.registerWordEl}
+        fontSizePx={fontSizePx}
+      />
 
       {/* Controls */}
       <footer className="fixed bottom-0 inset-x-0 z-20 p-4 space-y-2 bg-gradient-to-t from-slate-50 via-slate-50/95 dark:from-slate-900 dark:via-slate-900/95 to-transparent">
