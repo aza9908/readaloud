@@ -10,8 +10,7 @@
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "paths": { "@/*": ["./src/*"] }
   },
   "include": ["src", "scripts"]
 }
