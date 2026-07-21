@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function LandingPage() {
-  const { login } = useAuth();
+  const { login, loginAsGuest, error } = useAuth();
 
   return (
     <div className="min-h-dvh flex flex-col">
@@ -21,9 +21,25 @@ export default function LandingPage() {
         <div className="flex gap-3 text-3xl" aria-hidden="true">
           <span>🇷🇺</span><span>🇰🇿</span><span>🇬🇧</span>
         </div>
-        <button className="btn-primary text-lg px-8 py-4" onClick={() => void login()}>
-          Войти через Google
-        </button>
+
+        <div className="w-full max-w-xs space-y-3">
+          <button className="btn-primary w-full text-lg px-8 py-4" onClick={() => void login()}>
+            Войти через Google
+          </button>
+          <button
+            className="btn-outline w-full py-3"
+            onClick={() => void loginAsGuest()}
+          >
+            👋 Попробовать без регистрации
+          </button>
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500 max-w-sm bg-red-50 dark:bg-red-500/10 rounded-2xl px-4 py-3">
+            {error}
+          </p>
+        )}
+
         <p className="text-xs text-slate-400 max-w-xs">
           Работает в Chrome и Edge — распознавание речи происходит прямо в
           браузере, без записи на сервер.
