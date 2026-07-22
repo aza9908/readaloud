@@ -38,10 +38,32 @@ function retellCheckpoints(totalPages: number): Set<number> {
   return marks;
 }
 
-/** Memoized so the 1-second progress tick never repaints the illustration. */
+/**
+ * Memoized so the 1-second progress tick never repaints the illustration.
+ * Remote images (Wikisource / Commons) can fail or be missing, so a broken
+ * image never leaves a gap — the block simply disappears.
+ */
 const PageIllustration = memo(function PageIllustration({ src }: { src: string | null }) {
-  if (!src) return null;
-  return <img src={src} alt="" className="w-full rounded-2xl mb-6" decoding="async" />;
+  const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { setFailed(false); setLoaded(false); }, [src]);
+  if (!src || failed) return null;
+  return (
+    <figure className="mb-5 overflow-hidden rounded-3xl bg-black/[0.03] dark:bg-white/5 shadow-soft">
+      <img
+        src={src}
+        alt=""
+        loading="eager"
+        decoding="async"
+        referrerPolicy="no-referrer"
+        onLoad={() => setLoaded(true)}
+        onError={() => setFailed(true)}
+        className={`w-full max-h-64 object-contain transition-opacity duration-500 ${
+          loaded ? "opacity-100" : "opacity-0"
+        }`}
+      />
+    </figure>
+  );
 });
 
 /**
@@ -397,7 +419,7 @@ export default function ReadingPage() {
       </header>
 
       <ReadingSurface
-        illustrationSrc={book.coverUrl && pageIndex === 0 ? book.coverUrl : null}
+        illustrationSrc={book.pageImages?.[pageIndex] ?? (pageIndex === 0 ? book.coverUrl : null)}
         words={words}
         paragraphSizes={paragraphSizes}
         registerWordEl={reader.registerWordEl}

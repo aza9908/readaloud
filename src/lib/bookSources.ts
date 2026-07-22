@@ -36,6 +36,7 @@ export interface FoundBook {
 export interface PreparedBook {
   title: string;
   pages: string[];
+  pageImages?: (string | null)[];
   totalWords: number;
   sourceUrl?: string;
   origin: "wikisource" | "generated";
@@ -147,4 +148,104 @@ export function trimToBudget(text: string, maxWords: number): string {
 /** Word budget appropriate for the child's age. */
 export function budgetForAge(age: number): number {
   return Math.round(140 + Math.max(0, age - 5) * 45); // 6y ≈ 185, 10y ≈ 365
+}
+
+// ───────────────────── Illustrations ─────────────────────
+
+/** File names that are page furniture, not illustrations. */
+const IMAGE_BLOCKLIST =
+  /(logo|icon|commons|wiki|edit|button|arrow|seal|flag|coat.of.arms|disambig|ambox|question|padlock|symbol|barnstar|stub)/i;
+
+const IMAGE_OK = /\.(jpe?g|png|gif|webp)$/i;
+
+interface WikiImageInfo {
+  title: string;
+  imageinfo?: { thumburl?: string; url?: string; width?: number; height?: number }[];
+}
+
+/**
+ * Illustrations that appear on a Wikisource page itself — these usually are
+ * the book's own plates, which is exactly what we want.
+ */
+export async function fetchPageImages(
+  title: string,
+  language: Language,
+  limit = 8,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const host = WIKI_HOST[language];
+  const url =
+    `${host}/w/api.php?action=query&format=json&origin=*` +
+    `&generator=images&gimlimit=25&titles=${encodeURIComponent(title)}` +
+    `&prop=imageinfo&iiprop=url|size&iiurlwidth=900`;
+
+  try {
+    const res = await fetch(url, { signal });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { query?: { pages?: Record<string, WikiImageInfo> } };
+    return pickImages(Object.values(data.query?.pages ?? {}), limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Topic-based illustrations from Wikimedia Commons — used for generated
+ * stories, which have no source page of their own.
+ * Commons media is freely licensed; we keep the direct file URL.
+ */
+export async function searchCommonsImages(
+  query: string,
+  limit = 6,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const url =
+    `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*` +
+    `&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(query)}` +
+    `&prop=imageinfo&iiprop=url|size&iiurlwidth=900`;
+
+  try {
+    const res = await fetch(url, { signal });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { query?: { pages?: Record<string, WikiImageInfo> } };
+    return pickImages(Object.values(data.query?.pages ?? {}), limit);
+  } catch {
+    return [];
+  }
+}
+
+function pickImages(pages: WikiImageInfo[], limit: number): string[] {
+  return pages
+    .filter((p) => IMAGE_OK.test(p.title) && !IMAGE_BLOCKLIST.test(p.title))
+    .map((p) => {
+      const info = p.imageinfo?.[0];
+      // Skip tiny images — they're almost always icons.
+      if (info?.width && info.width < 200) return null;
+      return info?.thumburl ?? info?.url ?? null;
+    })
+    .filter((u): u is string => !!u)
+    .slice(0, limit);
+}
+
+/**
+ * Spreads however many illustrations we found across the pages, so a book
+ * with 3 images and 6 pages shows one every other page rather than all at
+ * the start. Returns an array aligned 1:1 with pages.
+ */
+export function distributeImages(
+  images: string[],
+  pageCount: number,
+): (string | null)[] {
+  const out: (string | null)[] = new Array(pageCount).fill(null);
+  if (!images.length || !pageCount) return out;
+  if (images.length >= pageCount) {
+    for (let i = 0; i < pageCount; i++) out[i] = images[i];
+    return out;
+  }
+  const step = pageCount / images.length;
+  images.forEach((img, i) => {
+    const slot = Math.min(pageCount - 1, Math.round(i * step));
+    out[slot] = img;
+  });
+  return out;
 }

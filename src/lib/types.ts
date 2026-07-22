@@ -28,6 +28,8 @@ export interface Book {
   language: Language;
   /** Paragraphs inside a page separated by \n\n */
   pages: string[];
+  /** Optional illustration per page (same length as `pages`); null = none. */
+  pageImages?: (string | null)[];
   totalWords: number;
   estimatedMinutes: number;
   difficulty: "easy" | "medium" | "hard" | "custom";

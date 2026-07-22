@@ -81,6 +81,7 @@ export async function saveDiscoveredBook(
     pages: string[];
     language: Language;
     coverEmoji?: string;
+    pageImages?: (string | null)[];
     sourceUrl?: string;
     origin: "wikisource" | "generated";
     age: number;
@@ -96,6 +97,7 @@ export async function saveDiscoveredBook(
     title: book.title.slice(0, 120),
     language: book.language,
     pages: book.pages,
+    pageImages: book.pageImages ?? null,
     totalWords,
     estimatedMinutes: Math.max(1, Math.round(totalWords / 60)),
     difficulty: "custom",

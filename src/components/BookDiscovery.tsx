@@ -7,7 +7,10 @@
  */
 
 import { useState } from "react";
-import { searchOnline, fetchOnlineText, type FoundBook } from "@/lib/bookSources";
+import {
+  searchOnline, fetchOnlineText, fetchPageImages, searchCommonsImages,
+  distributeImages, type FoundBook,
+} from "@/lib/bookSources";
 import { adaptStory, generateStory } from "@/lib/ai";
 import { saveDiscoveredBook } from "@/lib/starterLibrary";
 import type { ChildProfile, Language } from "@/lib/types";
@@ -94,7 +97,10 @@ export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props
     setPhase("adding");
     setError(null);
     try {
-      const raw = await fetchOnlineText(f.title, language);
+      const [raw, images] = await Promise.all([
+        fetchOnlineText(f.title, language),
+        fetchPageImages(f.title, language),
+      ]);
       if (!raw || raw.split(/\s+/).length < 60) {
         setError(c.tooShort);
         setPhase("results");
@@ -115,6 +121,7 @@ export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props
       const id = await saveDiscoveredBook(uid, {
         title: prepared.title,
         pages: prepared.pages,
+        pageImages: distributeImages(images, prepared.pages.length),
         language,
         sourceUrl: prepared.sourceUrl,
         origin: "wikisource",
@@ -132,9 +139,13 @@ export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props
     setError(null);
     try {
       const prepared = await generateStory({ topics, language, age: profile.age });
+      // Illustrate with freely-licensed Commons imagery matching the topic.
+      const commonsQuery = `${topics || "children story"} illustration`;
+      const images = await searchCommonsImages(commonsQuery, prepared.pages.length);
       const id = await saveDiscoveredBook(uid, {
         title: prepared.title,
         pages: prepared.pages,
+        pageImages: distributeImages(images, prepared.pages.length),
         language,
         origin: "generated",
         age: profile.age,

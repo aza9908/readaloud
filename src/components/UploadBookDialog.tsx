@@ -10,6 +10,7 @@ import {
 } from "@/lib/firestore";
 import { LANGUAGES, type Language } from "@/lib/types";
 import { useToast } from "@/components/Toast";
+import { importFile, ACCEPTED_FILE_TYPES } from "@/lib/fileImport";
 
 const EMOJI_CHOICES = ["📖", "🦊", "🐻", "🚀", "🌟", "🐉", "🏰", "🌊", "🦁", "🎨"];
 
@@ -29,6 +30,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
   const [text, setText] = useState("");
   const [coverEmoji, setCoverEmoji] = useState("📖");
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const wordCount = useMemo(() => countWords(text), [text]);
   const estimatedPages = Math.max(1, Math.ceil(wordCount / 45));
@@ -40,13 +42,37 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
   if (!open) return null;
 
   const handleFile = async (file: File) => {
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      toast({ icon: "⚠️", title: "Только .txt файлы", description: "Скопируйте текст и вставьте его в поле ниже." });
-      return;
+    setImporting(true);
+    try {
+      const result = await importFile(file);
+      if (!result.text.trim()) {
+        toast({
+          icon: "⚠️",
+          title: "Не удалось прочитать файл",
+          description: "Возможно, это скан без текстового слоя. Скопируйте текст вручную.",
+        });
+        return;
+      }
+      setText(result.text);
+      if (!title.trim()) setTitle(result.suggestedTitle.slice(0, 120));
+      toast({
+        icon: "📄",
+        title: "Файл прочитан",
+        description: result.pageCount
+          ? `${result.pageCount} стр. в PDF · ${countWords(result.text)} слов`
+          : `${countWords(result.text)} слов`,
+      });
+    } catch (err) {
+      toast({
+        icon: "⚠️",
+        title: err instanceof Error && err.message === "UNSUPPORTED"
+          ? "Формат не поддерживается"
+          : "Не удалось прочитать файл",
+        description: "Поддерживаются PDF, EPUB и TXT.",
+      });
+    } finally {
+      setImporting(false);
     }
-    const content = await file.text();
-    setText(content);
-    if (!title.trim()) setTitle(file.name.replace(/\.txt$/i, ""));
   };
 
   const submit = async () => {
@@ -95,7 +121,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
               📚 Добавить свою книгу
             </h2>
             <p className="text-sm text-ink-faint dark:text-ink-faint">
-              Вставьте текст — страницы соберутся сами.
+              Вставьте текст или загрузите PDF / EPUB / TXT — страницы соберутся сами.
             </p>
           </div>
           <button onClick={onClose} className="text-2xl leading-none text-ink-faint hover:text-slate-600 p-1" aria-label="Закрыть">
@@ -173,7 +199,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".txt,text/plain"
+              accept={ACCEPTED_FILE_TYPES}
               className="hidden"
               onChange={(e) => {
                 const f = e.target.files?.[0];
