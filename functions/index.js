@@ -132,3 +132,51 @@ export const recommendBook = onCall(opts, async (req) => {
   const parsed = parseJson(raw, { picks: [] });
   return { picks: Array.isArray(parsed.picks) ? parsed.picks.slice(0, 3) : [] };
 });
+
+/** Adapts a public-domain text to a child's reading level, split into pages. */
+export const adaptStory = onCall(opts, async (req) => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Sign in required");
+  const { title, text, language = "ru", age = 8 } = req.data ?? {};
+  if (!text) throw new HttpsError("invalid-argument", "text required");
+
+  const targetWords = Math.round(140 + Math.max(0, age - 5) * 45);
+  const system =
+    `Ты — детский редактор. Перерабатываешь текст для ребёнка ${age} лет, ` +
+    `который учится читать вслух. Короткие предложения, простые слова, ` +
+    `понятный сюжет. Сохрани смысл оригинала. Язык — ${LANG_NAME[language] ?? "русский"}. ` +
+    `Отвечай ТОЛЬКО валидным JSON.`;
+
+  const user =
+    `Название: «${title}»\n\nОригинал:\n${String(text).slice(0, 8000)}\n\n` +
+    `Перескажи для ребёнка примерно в ${targetWords} слов, раздели на 4-6 страниц ` +
+    `(каждая страница — 1-2 абзаца). Формат:\n` +
+    `{"title":"короткое название","pages":["страница 1","страница 2"]}`;
+
+  const raw = await askClaude(system, user, 2000);
+  const parsed = parseJson(raw, null);
+  if (!parsed?.pages?.length) throw new HttpsError("internal", "bad adaptation");
+  return { title: parsed.title || title, pages: parsed.pages.slice(0, 8) };
+});
+
+/** Writes an original story from the child's chosen topics. */
+export const generateStory = onCall(opts, async (req) => {
+  if (!req.auth) throw new HttpsError("unauthenticated", "Sign in required");
+  const { topics = "", language = "ru", age = 8 } = req.data ?? {};
+
+  const targetWords = Math.round(140 + Math.max(0, age - 5) * 45);
+  const system =
+    `Ты — детский писатель. Пишешь добрые оригинальные сказки для ребёнка ${age} лет, ` +
+    `который учится читать вслух. Короткие предложения, простые слова, ясный сюжет ` +
+    `с началом, проблемой и счастливым концом. Без страшных сцен. ` +
+    `Язык — ${LANG_NAME[language] ?? "русский"}. Отвечай ТОЛЬКО валидным JSON.`;
+
+  const user =
+    `Ребёнку нравится: ${topics || "дружба и приключения"}.\n\n` +
+    `Напиши оригинальную сказку примерно в ${targetWords} слов, раздели на 4-6 страниц. Формат:\n` +
+    `{"title":"название","pages":["страница 1","страница 2"]}`;
+
+  const raw = await askClaude(system, user, 2000);
+  const parsed = parseJson(raw, null);
+  if (!parsed?.pages?.length) throw new HttpsError("internal", "bad generation");
+  return { title: parsed.title || "Новая сказка", pages: parsed.pages.slice(0, 8) };
+});

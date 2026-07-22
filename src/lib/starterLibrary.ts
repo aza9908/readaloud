@@ -72,3 +72,43 @@ export async function installStarterLibrary(uid: string): Promise<number> {
   await batch.commit();
   return created;
 }
+
+/** Saves a prepared book (found online or generated) into the child's library. */
+export async function saveDiscoveredBook(
+  uid: string,
+  book: {
+    title: string;
+    pages: string[];
+    language: Language;
+    coverEmoji?: string;
+    sourceUrl?: string;
+    origin: "wikisource" | "generated";
+    age: number;
+  },
+): Promise<string> {
+  const totalWords = book.pages.reduce(
+    (n, p) => n + p.split(/\s+/).filter(Boolean).length,
+    0,
+  );
+  const ref = doc(collection(db, "books"));
+  const batch = writeBatch(db);
+  batch.set(ref, {
+    title: book.title.slice(0, 120),
+    language: book.language,
+    pages: book.pages,
+    totalWords,
+    estimatedMinutes: Math.max(1, Math.round(totalWords / 60)),
+    difficulty: "custom",
+    ageMin: Math.max(5, book.age - 1),
+    ageMax: Math.min(12, book.age + 2),
+    coverEmoji: book.coverEmoji ?? (book.origin === "generated" ? "✨" : "🌐"),
+    coverUrl: null,
+    ownerId: uid,
+    isCustom: true,
+    origin: book.origin,
+    sourceUrl: book.sourceUrl ?? null,
+    createdAt: Date.now(),
+  });
+  await batch.commit();
+  return ref.id;
+}

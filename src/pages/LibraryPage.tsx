@@ -221,6 +221,7 @@ export default function LibraryPage() {
       {showGuide && (
         <BookGuideDialog
           open
+          uid={user.uid}
           books={books ?? []}
           profile={profile}
           language={language}

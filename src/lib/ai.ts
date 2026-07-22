@@ -351,3 +351,91 @@ export async function recommendBook(args: {
     offline: true,
   };
 }
+
+// ───────────── Adapt an online text / generate an original story ─────────────
+
+import {
+  budgetForAge,
+  cleanWikiText,
+  trimToBudget,
+  type PreparedBook,
+} from "./bookSources";
+import { generateStoryOffline } from "./storyGen";
+import { paginateText } from "./firestore";
+
+/**
+ * Turns a raw public-domain text into child-ready pages.
+ * AI rewrites it to the right reading level; offline we clean and trim it.
+ */
+export async function adaptStory(args: {
+  title: string;
+  text: string;
+  language: Language;
+  age: number;
+  sourceUrl?: string;
+}): Promise<PreparedBook> {
+  const res = await call<
+    { title: string; text: string; language: Language; age: number },
+    { title: string; pages: string[] }
+  >("adaptStory", {
+    title: args.title,
+    text: args.text,
+    language: args.language,
+    age: args.age,
+  });
+
+  if (res?.pages?.length) {
+    return {
+      title: res.title,
+      pages: res.pages,
+      totalWords: res.pages.reduce((n, p) => n + p.split(/\s+/).filter(Boolean).length, 0),
+      sourceUrl: args.sourceUrl,
+      origin: "wikisource",
+      adapted: true,
+    };
+  }
+
+  // Offline: clean the wiki markup, keep an age-appropriate amount, paginate.
+  const cleaned = cleanWikiText(args.text);
+  const trimmed = trimToBudget(cleaned, budgetForAge(args.age));
+  const pages = paginateText(trimmed);
+  return {
+    title: args.title,
+    pages,
+    totalWords: trimmed.split(/\s+/).filter(Boolean).length,
+    sourceUrl: args.sourceUrl,
+    origin: "wikisource",
+    adapted: false,
+  };
+}
+
+/** Writes an original story when nothing suitable exists online. */
+export async function generateStory(args: {
+  topics: string;
+  language: Language;
+  age: number;
+}): Promise<PreparedBook> {
+  const res = await call<typeof args, { title: string; pages: string[] }>(
+    "generateStory",
+    args,
+  );
+
+  if (res?.pages?.length) {
+    return {
+      title: res.title,
+      pages: res.pages,
+      totalWords: res.pages.reduce((n, p) => n + p.split(/\s+/).filter(Boolean).length, 0),
+      origin: "generated",
+      adapted: true,
+    };
+  }
+
+  const local = generateStoryOffline(args.topics, args.language, args.age);
+  return {
+    title: local.title,
+    pages: local.pages,
+    totalWords: local.pages.reduce((n, p) => n + p.split(/\s+/).filter(Boolean).length, 0),
+    origin: "generated",
+    adapted: false,
+  };
+}

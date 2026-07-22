@@ -8,6 +8,7 @@
 
 import { useState, type ReactNode } from "react";
 import { recommendBook, type BookPick } from "@/lib/ai";
+import { BookDiscovery } from "@/components/BookDiscovery";
 import type { Book, ChildProfile, Language } from "@/lib/types";
 
 export type LengthPref = "short" | "medium" | "long";
@@ -18,6 +19,9 @@ const COPY = {
     eyebrow: "Книжный помощник",
     q1: "Что тебе интереснее всего?",
     q1sub: "Можно выбрать несколько",
+    ownTopic: "Или напиши свою тему",
+    ownPlaceholder: "например: про динозавров",
+    addTopic: "Добавить",
     q2: "Какую историю хочешь?",
     q3: "Насколько сложно?",
     q4: "Что-то ещё? (необязательно)",
@@ -44,16 +48,27 @@ const COPY = {
     topics: [
       { emoji: "🐾", label: "Животные", value: "животные звери лес" },
       { emoji: "🏰", label: "Волшебство", value: "волшебство сказка магия" },
-      { emoji: "🚀", label: "Приключения", value: "приключения путешествие космос" },
+      { emoji: "🚀", label: "Приключения", value: "приключения путешествие" },
       { emoji: "😄", label: "Смешное", value: "смешное весёлое хитрость" },
       { emoji: "👫", label: "Дружба", value: "дружба друзья помощь" },
       { emoji: "🦸", label: "Про героев", value: "герой батыр смелость" },
+      { emoji: "🌳", label: "Природа", value: "природа сад деревья цветы" },
+      { emoji: "🌟", label: "Космос", value: "космос звёзды планеты ракета" },
+      { emoji: "🌊", label: "Море", value: "море океан рыбы вода" },
+      { emoji: "🏫", label: "Школа", value: "школа класс учитель урок" },
+      { emoji: "⚽", label: "Спорт", value: "спорт футбол игра медаль" },
+      { emoji: "🍰", label: "Еда", value: "еда кухня пирог готовить" },
+      { emoji: "🔍", label: "Загадки", value: "тайна загадка детектив" },
+      { emoji: "🏠", label: "Семья", value: "семья мама папа брат сестра" },
     ],
   },
   kk: {
     eyebrow: "Кітап көмекшісі",
     q1: "Саған не қызық?",
     q1sub: "Бірнешеуін таңдауға болады",
+    ownTopic: "Немесе өз тақырыбыңды жаз",
+    ownPlaceholder: "мысалы: динозавр туралы",
+    addTopic: "Қосу",
     q2: "Қандай әңгіме керек?",
     q3: "Қаншалықты қиын?",
     q4: "Тағы бірдеңе? (міндетті емес)",
@@ -80,16 +95,27 @@ const COPY = {
     topics: [
       { emoji: "🐾", label: "Жануарлар", value: "жануарлар аңдар орман" },
       { emoji: "🏰", label: "Сиқыр", value: "сиқыр ертегі" },
-      { emoji: "🚀", label: "Оқиға", value: "оқиға саяхат ғарыш" },
+      { emoji: "🚀", label: "Оқиға", value: "оқиға саяхат" },
       { emoji: "😄", label: "Күлкілі", value: "күлкілі қулық" },
       { emoji: "👫", label: "Достық", value: "достық көмек" },
       { emoji: "🦸", label: "Батырлар", value: "батыр ерлік" },
+      { emoji: "🌳", label: "Табиғат", value: "табиғат бақ ағаш гүл" },
+      { emoji: "🌟", label: "Ғарыш", value: "ғарыш жұлдыз планета зымыран" },
+      { emoji: "🌊", label: "Теңіз", value: "теңіз мұхит балық су" },
+      { emoji: "🏫", label: "Мектеп", value: "мектеп сынып мұғалім сабақ" },
+      { emoji: "⚽", label: "Спорт", value: "спорт футбол ойын медаль" },
+      { emoji: "🍰", label: "Тағам", value: "тағам ас бәліш пісіру" },
+      { emoji: "🔍", label: "Жұмбақ", value: "құпия жұмбақ детектив" },
+      { emoji: "🏠", label: "Отбасы", value: "отбасы ана әке аға апа" },
     ],
   },
   en: {
     eyebrow: "Book helper",
     q1: "What sounds most interesting?",
     q1sub: "Pick as many as you like",
+    ownTopic: "Or type your own topic",
+    ownPlaceholder: "for example: dinosaurs",
+    addTopic: "Add",
     q2: "How long a story?",
     q3: "How hard should it be?",
     q4: "Anything else? (optional)",
@@ -116,10 +142,18 @@ const COPY = {
     topics: [
       { emoji: "🐾", label: "Animals", value: "animals forest creatures" },
       { emoji: "🏰", label: "Magic", value: "magic fairy tale dragons" },
-      { emoji: "🚀", label: "Adventure", value: "adventure travel space rockets" },
+      { emoji: "🚀", label: "Adventure", value: "adventure travel journey" },
       { emoji: "😄", label: "Funny", value: "funny silly clever" },
       { emoji: "👫", label: "Friendship", value: "friendship friends helping" },
       { emoji: "🦸", label: "Heroes", value: "hero brave courage" },
+      { emoji: "🌳", label: "Nature", value: "nature garden trees flowers" },
+      { emoji: "🌟", label: "Space", value: "space stars planets rocket" },
+      { emoji: "🌊", label: "Sea", value: "sea ocean fish water" },
+      { emoji: "🏫", label: "School", value: "school class teacher lesson" },
+      { emoji: "⚽", label: "Sport", value: "sport football game medal" },
+      { emoji: "🍰", label: "Food", value: "food kitchen cake baking" },
+      { emoji: "🔍", label: "Mystery", value: "mystery secret detective" },
+      { emoji: "🏠", label: "Family", value: "family mom dad brother sister" },
     ],
   },
 } as const;
@@ -128,6 +162,7 @@ const TOTAL_STEPS = 4;
 
 interface Props {
   open: boolean;
+  uid: string;
   books: Book[];
   profile: ChildProfile;
   language: Language;
@@ -138,7 +173,7 @@ interface Props {
 }
 
 export function BookGuideDialog({
-  open, books, profile, language, readIds, readTitles, onClose, onPick,
+  open, uid, books, profile, language, readIds, readTitles, onClose, onPick,
 }: Props) {
   const c = COPY[language] ?? COPY.ru;
 
@@ -147,18 +182,30 @@ export function BookGuideDialog({
   const [lengthPref, setLengthPref] = useState<LengthPref | null>(null);
   const [challenge, setChallenge] = useState<ChallengePref | null>(null);
   const [free, setFree] = useState("");
+  const [ownTopic, setOwnTopic] = useState("");
+  const [customTopics, setCustomTopics] = useState<string[]>([]);
   const [picks, setPicks] = useState<BookPick[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!open) return null;
 
+  const addOwnTopic = () => {
+    const v = ownTopic.trim();
+    if (!v) return;
+    if (!customTopics.includes(v)) setCustomTopics((t) => [...t, v]);
+    setTopics((t) => (t.includes(v) ? t : [...t, v]));
+    setOwnTopic("");
+  };
+
   const toggleTopic = (v: string) =>
     setTopics((t) => (t.includes(v) ? t.filter((x) => x !== v) : [...t, v]));
+
+  const chosenTopics = [...topics, free].filter(Boolean).join(", ");
 
   const find = async () => {
     setLoading(true);
     try {
-      const preferences = [...topics, free].filter(Boolean).join(", ");
+      const preferences = chosenTopics;
       const r = await recommendBook({
         books, age: profile.age, language, preferences, readTitles, readIds,
         lengthPref: lengthPref ?? "medium",
@@ -176,11 +223,17 @@ export function BookGuideDialog({
   if (books.length === 0) {
     return (
       <Shell eyebrow={c.eyebrow} onClose={onClose}>
-        <div className="py-8 text-center space-y-3">
+        <div className="py-4 text-center space-y-2">
           <div className="text-5xl">📚</div>
           <p className="text-ink-soft dark:text-ink-faint">{c.empty}</p>
-          <button className="btn-primary w-full" onClick={onClose}>OK</button>
         </div>
+        <BookDiscovery
+          topics={chosenTopics || "сказка"}
+          language={language}
+          profile={profile}
+          uid={uid}
+          onAdded={(bookId) => onPick(bookId)}
+        />
       </Shell>
     );
   }
@@ -217,6 +270,14 @@ export function BookGuideDialog({
         <button className="btn-ghost w-full mt-3" onClick={() => { setPicks(null); setStep(0); }}>
           {c.again}
         </button>
+
+        <BookDiscovery
+          topics={chosenTopics}
+          language={language}
+          profile={profile}
+          uid={uid}
+          onAdded={(bookId) => onPick(bookId)}
+        />
       </Shell>
     );
   }
@@ -242,7 +303,7 @@ export function BookGuideDialog({
           <h3 className="font-display font-extrabold text-xl text-ink dark:text-white">{c.q1}</h3>
           <p className="text-sm text-ink-faint mb-3">{c.q1sub}</p>
           <div className="grid grid-cols-2 gap-2">
-            {c.topics.map((t) => (
+            {[...c.topics, ...customTopics.map((v) => ({ emoji: "⭐", label: v, value: v }))].map((t) => (
               <button
                 key={t.value}
                 onClick={() => toggleTopic(t.value)}
@@ -256,6 +317,23 @@ export function BookGuideDialog({
                 <p className="font-bold text-sm text-ink dark:text-white mt-1">{t.label}</p>
               </button>
             ))}
+          </div>
+
+          <div className="mt-3">
+            <p className="text-sm font-bold text-ink-soft dark:text-ink-faint mb-1.5">{c.ownTopic}</p>
+            <div className="flex gap-2">
+              <input
+                className="input flex-1"
+                placeholder={c.ownPlaceholder}
+                value={ownTopic}
+                maxLength={40}
+                onChange={(e) => setOwnTopic(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") addOwnTopic(); }}
+              />
+              <button className="btn-ghost shrink-0" onClick={addOwnTopic} disabled={!ownTopic.trim()}>
+                {c.addTopic}
+              </button>
+            </div>
           </div>
         </div>
       )}
