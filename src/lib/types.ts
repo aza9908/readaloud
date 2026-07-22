@@ -53,6 +53,8 @@ export interface ChildProfile {
   totalWords: number;
   totalMs: number;
   booksCompleted: number;
+  /** Reward coins: 1 per word read, plus bonuses for pages and books. */
+  coins?: number;
   byLanguage: Record<Language, { books: number; ms: number }>;
 }
 

@@ -152,18 +152,49 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     lastProcessedRef.current = "";
     cascadeTimersRef.current.forEach(clearTimeout);
     cascadeTimersRef.current = [];
+    currentElRef.current = null;
     setCurrentIndex(0);
   }, [words]);
 
   // ── Direct-DOM highlighting ──
+  /**
+   * Paints one word. `word-current` is special: only a single element may
+   * carry it at a time, so we track the element that holds it and clear it
+   * explicitly. Without this, a late cascade timer from a previous advance
+   * could leave a second highlighted word on screen (the "two cursors" bug).
+   */
+  const currentElRef = useRef<HTMLElement | null>(null);
+
+  const clearCurrentHighlight = useCallback(() => {
+    const prev = currentElRef.current;
+    if (prev) {
+      prev.classList.remove("word-current");
+      // A word that was current has, by definition, been reached already.
+      const i = Number(prev.dataset.wordIndex ?? -1);
+      prev.classList.add(i > -1 && i < idxRef.current ? "word-read" : "word-pending");
+      currentElRef.current = null;
+    }
+  }, []);
+
   const paintWord = useCallback(
     (index: number, state: "read" | "current" | "pending") => {
       const el = wordElsRef.current.get(index);
       if (!el) return;
+      if (state === "current") {
+        if (currentElRef.current === el) return; // already the cursor
+        clearCurrentHighlight();
+        el.classList.remove("word-read", "word-pending");
+        el.classList.add("word-current");
+        currentElRef.current = el;
+        return;
+      }
+      // Painting a non-current state on the element that holds the cursor
+      // must also release the cursor, or it would linger.
+      if (currentElRef.current === el) currentElRef.current = null;
       el.classList.remove("word-read", "word-current", "word-pending");
       el.classList.add(`word-${state}`);
     },
-    [],
+    [clearCurrentHighlight],
   );
 
   const registerWordEl = useCallback((index: number, el: HTMLElement | null) => {
@@ -171,8 +202,18 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       wordElsRef.current.set(index, el);
       const i = idxRef.current;
       el.classList.remove("word-read", "word-current", "word-pending");
-      el.classList.add(index < i ? "word-read" : index === i ? "word-current" : "word-pending");
+      if (index === i) {
+        // Re-registering the cursor word (e.g. after a font-size change):
+        // release any previous holder so we never end up with two.
+        const prev = currentElRef.current;
+        if (prev && prev !== el) prev.classList.remove("word-current");
+        el.classList.add("word-current");
+        currentElRef.current = el;
+      } else {
+        el.classList.add(index < i ? "word-read" : "word-pending");
+      }
     } else {
+      if (currentElRef.current === wordElsRef.current.get(index)) currentElRef.current = null;
       wordElsRef.current.delete(index);
     }
   }, []);
@@ -209,6 +250,10 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       const from = idxRef.current;
       const count = newIndex - from;
       if (count <= 0) return;
+      // Drop any pending cascade steps from an earlier advance — otherwise a
+      // late timer repaints an old word as the cursor.
+      cascadeTimersRef.current.forEach(clearTimeout);
+      cascadeTimersRef.current = [];
       for (let k = 0; k < count; k++) {
         const wordIdx = from + k;
         const t = window.setTimeout(() => {
@@ -347,10 +392,15 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const seek = useCallback(
     (index: number) => {
       const clamped = Math.max(0, Math.min(index, Math.max(words.length - 1, 0)));
+      cascadeTimersRef.current.forEach(clearTimeout);
+      cascadeTimersRef.current = [];
       idxRef.current = clamped;
-      wordElsRef.current.forEach((_el, i) =>
-        paintWord(i, i < clamped ? "read" : i === clamped ? "current" : "pending"),
-      );
+      // Paint non-current states first, then the cursor last, so the
+      // single-cursor invariant is never briefly violated.
+      wordElsRef.current.forEach((_el, i) => {
+        if (i !== clamped) paintWord(i, i < clamped ? "read" : "pending");
+      });
+      paintWord(clamped, "current");
       syncStateNow();
     },
     [words.length, paintWord, syncStateNow],

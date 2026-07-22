@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createProfile, watchProfiles } from "@/lib/firestore";
 import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BookOpen, Coins, Plus, Settings } from "lucide-react";
 
 const AVATARS = ["🦁", "🐬", "🦊", "🐼", "🦄", "🐸", "🦋", "🐯", "🐨", "🦉"];
 
@@ -70,23 +71,29 @@ export default function ProfileSelectPage() {
             <span className="text-6xl mb-1 drop-shadow-sm">{p.avatar}</span>
             <span className="font-display font-bold text-xl text-ink dark:text-white">{p.name}</span>
             <span className="text-sm text-ink-faint">{p.age} лет</span>
-            <span className="chip chip-off !py-1 !px-3 text-xs mt-1">
-              📖 {p.booksCompleted} {p.booksCompleted === 1 ? "книга" : "книг"}
+            <span className="chip chip-off !py-1 !px-3 text-xs mt-1 inline-flex items-center gap-1">
+              <BookOpen className="w-3.5 h-3.5" strokeWidth={2.2} />
+              {p.booksCompleted} {p.booksCompleted === 1 ? "книга" : "книг"}
             </span>
+            {(p.coins ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
+                <Coins className="w-3.5 h-3.5" strokeWidth={2.4} /> {p.coins}
+              </span>
+            )}
           </button>
         ))}
         <button
           className="rounded-3xl p-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-brand-300 bg-brand-50/60 dark:bg-brand-500/10 text-brand-500 font-display font-bold hover:-translate-y-1 transition-all duration-200"
           onClick={() => setCreating(true)}
         >
-          <span className="w-14 h-14 rounded-2xl bg-white dark:bg-brand-500/20 grid place-items-center text-3xl shadow-soft">＋</span>
+          <span className="w-14 h-14 rounded-2xl bg-white dark:bg-brand-500/20 grid place-items-center shadow-soft"><Plus className="w-7 h-7" strokeWidth={2.4} /></span>
           Новый профиль
         </button>
       </div>
 
       <div className="flex justify-center mt-10">
         <button className="btn-ghost" onClick={() => navigate("/dashboard")}>
-          ⚙️ Родительский дашборд
+          <Settings className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.2} />Родительский дашборд
         </button>
       </div>
 

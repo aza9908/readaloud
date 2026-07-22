@@ -16,6 +16,10 @@ import { KaraokeText } from "@/components/KaraokeText";
 import { Fireworks } from "@/components/Fireworks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
+import { CoinCounter } from "@/components/CoinCounter";
+import { StoryScene } from "@/components/StoryScene";
+import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw } from "lucide-react";
+import { BOOK_COMPLETION_BONUS } from "@/lib/firestore";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -43,10 +47,30 @@ function retellCheckpoints(totalPages: number): Set<number> {
  * Remote images (Wikisource / Commons) can fail or be missing, so a broken
  * image never leaves a gap — the block simply disappears.
  */
-const PageIllustration = memo(function PageIllustration({ src }: { src: string | null }) {
+const PageIllustration = memo(function PageIllustration({
+  src, fallbackTitle, fallbackEmoji,
+}: {
+  src: string | null;
+  /** When there is no photo, a scene is drawn from these. */
+  fallbackTitle?: string;
+  fallbackEmoji?: string;
+}) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => { setFailed(false); setLoaded(false); }, [src]);
+
+  // No image (or it failed): draw a scene so the page still has a picture.
+  if ((!src || failed) && fallbackTitle) {
+    return (
+      <figure className="mb-5 overflow-hidden rounded-3xl shadow-soft">
+        <StoryScene
+          title={fallbackTitle}
+          emoji={fallbackEmoji ?? "📖"}
+          className="w-full h-44 block"
+        />
+      </figure>
+    );
+  }
   if (!src || failed) return null;
   return (
     <figure className="mb-5 overflow-hidden rounded-3xl bg-black/[0.03] dark:bg-white/5 shadow-soft">
@@ -75,12 +99,16 @@ const PageIllustration = memo(function PageIllustration({ src }: { src: string |
 const ReadingSurface = memo(
   function ReadingSurface({
     illustrationSrc,
+    sceneTitle,
+    sceneEmoji,
     words,
     paragraphSizes,
     registerWordEl,
     fontSizePx,
   }: {
     illustrationSrc: string | null;
+    sceneTitle?: string;
+    sceneEmoji?: string;
     words: string[];
     paragraphSizes: number[];
     registerWordEl: (index: number, el: HTMLElement | null) => void;
@@ -88,7 +116,7 @@ const ReadingSurface = memo(
   }) {
     return (
       <main className="flex-1 px-4 pt-5 pb-64 max-w-2xl mx-auto w-full">
-        <PageIllustration src={illustrationSrc} />
+        <PageIllustration src={illustrationSrc} fallbackTitle={sceneTitle} fallbackEmoji={sceneEmoji} />
         <div className="reading-canvas rounded-3xl px-6 py-7 text-ink dark:text-[#e8e5f2]">
           <KaraokeText
             words={words}
@@ -103,7 +131,8 @@ const ReadingSurface = memo(
   (prev, next) =>
     prev.words === next.words &&
     prev.fontSizePx === next.fontSizePx &&
-    prev.illustrationSrc === next.illustrationSrc,
+    prev.illustrationSrc === next.illustrationSrc &&
+    prev.sceneTitle === next.sceneTitle,
 );
 
 function fmtClock(ms: number): string {
@@ -135,6 +164,8 @@ export default function ReadingPage() {
   const [finished, setFinished] = useState(false);
   const [retellFor, setRetellFor] = useState<{ from: number; to: number } | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [coins, setCoins] = useState(0);
+  const baseCoinsRef = useRef(0);
 
   /* ── Session bookkeeping (base + delta model) ──
    * base*Ref   — totals carried over from PREVIOUS visits (restored session)
@@ -172,6 +203,7 @@ export default function ReadingPage() {
       if (cancelled) return;
       setBook(b);
       setProfile(p);
+      if (p) { baseCoinsRef.current = p.coins ?? 0; setCoins(p.coins ?? 0); }
       if (b) retellMarksRef.current = retellCheckpoints(b.pages.length);
       profileBeforeRef.current = p;
       if (open) {
@@ -245,6 +277,8 @@ export default function ReadingPage() {
   const handleProgress = useCallback(
     (s: ProgressSnapshot) => {
       latestSnapRef.current = s;
+      // 1 coin per word read this session, on top of what the child already had.
+      setCoins(baseCoinsRef.current + baseWordsRef.current + s.wordsRead);
       persist(s);
     },
     [persist],
@@ -266,6 +300,7 @@ export default function ReadingPage() {
         savedMsRef.current,
       );
       const before = profileBeforeRef.current ?? profile;
+      setCoins((c) => c + BOOK_COMPLETION_BONUS);
       const fresh = await checkAndAwardBadges(user.uid, profileId, before, {
         wordsThisSession: savedWordsRef.current,
         msThisSession: savedMsRef.current,
@@ -396,12 +431,13 @@ export default function ReadingPage() {
       {/* Header — updates ≤1×/sec, cheap */}
       <header className="sticky top-0 z-20 bg-[var(--canvas)]/90 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-black/[0.04] dark:border-white/[0.04]">
         <div className="flex items-center justify-between gap-2 max-w-2xl mx-auto">
-          <button className="w-9 h-9 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft text-lg" onClick={stopAndExit} aria-label="Назад">←</button>
+          <button className="w-9 h-9 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft text-lg" onClick={stopAndExit} aria-label="Назад"><ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} /></button>
           <div className="min-w-0 text-center flex-1">
             <p className="font-display font-bold truncate text-ink dark:text-white leading-tight">{book.title}</p>
             <p className="text-[11px] text-ink-faint">Страница {pageIndex + 1} из {book.pages.length}</p>
           </div>
           <div className="flex items-center gap-1">
+            <CoinCounter coins={coins} />
             <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white" onClick={() => setFontSizePx((s) => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
             <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white text-sm" onClick={() => setFontSizePx((s) => Math.min(30, s + 2))} aria-label="Больше">A+</button>
             <ThemeToggle />
@@ -420,6 +456,8 @@ export default function ReadingPage() {
 
       <ReadingSurface
         illustrationSrc={book.pageImages?.[pageIndex] ?? (pageIndex === 0 ? book.coverUrl : null)}
+        sceneTitle={pageIndex === 0 ? book.title : undefined}
+        sceneEmoji={book.coverEmoji}
         words={words}
         paragraphSizes={paragraphSizes}
         registerWordEl={reader.registerWordEl}
@@ -432,7 +470,7 @@ export default function ReadingPage() {
           {reader.isListening && (
             <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[#221d31]/90 backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">
               <div className="min-w-0 flex items-center gap-3">
-                <span className="w-11 h-11 rounded-2xl bg-brand-500/10 grid place-items-center text-xl shrink-0">👂</span>
+                <span className="w-11 h-11 rounded-2xl bg-brand-500/10 grid place-items-center shrink-0"><Ear className="w-5 h-5 text-brand-500" strokeWidth={2.2} /></span>
                 <div className="min-w-0">
                   <p className="eyebrow">Прочитай вслух</p>
                   <p className="font-display font-extrabold text-3xl text-brand-500 truncate leading-tight">
@@ -441,7 +479,7 @@ export default function ReadingPage() {
                 </div>
               </div>
               <button className="btn-ghost shrink-0 !py-2.5 !px-4 text-sm" onClick={reader.skipWord}>
-                Пропустить →
+                Пропустить <SkipForward className="w-4 h-4 inline -mt-0.5 ml-0.5" strokeWidth={2.4} />
               </button>
             </div>
           )}
@@ -449,17 +487,17 @@ export default function ReadingPage() {
           {!finished &&
             (reader.isListening ? (
               <button className="btn-ghost w-full !py-3.5 font-display font-bold" onClick={reader.pause}>
-                ⏸ Пауза
+                <Pause className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Пауза
               </button>
             ) : (
               <button className="btn-primary w-full !py-4" onClick={reader.start} disabled={!reader.isSupported}>
-                🎤 {reader.wordsRead > 0 || baseMsRef.current > 0 ? "Продолжить чтение" : "Читать вслух"}
+                <Mic className="w-5 h-5 inline -mt-1 mr-2" strokeWidth={2.4} />{reader.wordsRead > 0 || baseMsRef.current > 0 ? "Продолжить чтение" : "Читать вслух"}
               </button>
             ))}
 
           {!finished && !reader.isListening && (
             <button className="w-full text-center text-sm font-bold text-ink-faint py-2 hover:text-ink-soft transition-colors" onClick={stopAndExit}>
-              🔖 Остановиться и продолжить позже
+              <Bookmark className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Остановиться и продолжить позже
             </button>
           )}
 
@@ -495,7 +533,7 @@ export default function ReadingPage() {
               </div>
             </div>
             <button className="btn-primary w-full" onClick={() => resume(true)}>Продолжить</button>
-            <button className="btn-ghost w-full" onClick={() => resume(false)}>Начать сначала</button>
+            <button className="btn-ghost w-full" onClick={() => resume(false)}><RotateCcw className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Начать сначала</button>
           </div>
         </div>
       )}
@@ -541,6 +579,12 @@ export default function ReadingPage() {
               <p className="text-ink-soft dark:text-ink-faint">
                 Книга «{book.title}» прочитана — {savedWordsRef.current} слов!
               </p>
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-400/15 border border-amber-400/30 px-4 py-2">
+                <span className="text-2xl">🪙</span>
+                <span className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
+                  +{savedWordsRef.current + BOOK_COMPLETION_BONUS} монет
+                </span>
+              </div>
               <button className="btn-primary w-full" onClick={() => navigate(`/library?profile=${profileId}`)}>
                 📚 К другим сказкам
               </button>

@@ -169,7 +169,7 @@ interface Props {
   readIds: string[];
   readTitles: string[];
   onClose: () => void;
-  onPick: (bookId: string) => void;
+  onPick: (bookId: string, language?: Language) => void;
 }
 
 export function BookGuideDialog({
@@ -232,7 +232,7 @@ export function BookGuideDialog({
           language={language}
           profile={profile}
           uid={uid}
-          onAdded={(bookId) => onPick(bookId)}
+          onAdded={(bookId) => onPick(bookId, language)}
         />
       </Shell>
     );
@@ -276,7 +276,7 @@ export function BookGuideDialog({
           language={language}
           profile={profile}
           uid={uid}
-          onAdded={(bookId) => onPick(bookId)}
+          onAdded={(bookId) => onPick(bookId, language)}
         />
       </Shell>
     );

@@ -11,6 +11,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
+import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
@@ -51,6 +52,17 @@ export default function LibraryPage() {
   }, [user, profileId]);
 
   useEffect(() => { setBooks(null); reload(); }, [reload]);
+
+  // Books can be added from the guide or another tab; refresh on return.
+  useEffect(() => {
+    const onFocus = () => reload();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [reload]);
 
   useEffect(() => {
     if (!user || !profileId) return;
@@ -107,7 +119,7 @@ export default function LibraryPage() {
   return (
     <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto pb-28">
       <header className="flex items-center justify-between mb-6">
-        <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад">←</button>
+        <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад"><ArrowLeft className="w-5 h-5" strokeWidth={2.4} /></button>
         <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white">
           <span className="text-2xl">{profile.avatar}</span> {profile.name}
         </div>
@@ -123,12 +135,12 @@ export default function LibraryPage() {
         onClick={() => setShowGuide(true)}
         className="w-full mb-5 rounded-3xl p-4 flex items-center gap-3 text-left bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lift hover:-translate-y-0.5 transition-all animate-fade-up"
       >
-        <span className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center text-2xl shrink-0">✨</span>
+        <span className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center shrink-0"><Sparkles className="w-6 h-6" strokeWidth={2.2} /></span>
         <span className="min-w-0">
           <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
           <span className="block text-sm text-white/80">Найду то, что тебе понравится</span>
         </span>
-        <span className="ml-auto text-2xl">›</span>
+        <ChevronRight className="ml-auto w-6 h-6 shrink-0" strokeWidth={2.4} />
       </button>
 
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
@@ -139,7 +151,7 @@ export default function LibraryPage() {
           </button>
         ))}
         <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowProgress(true)}>
-          🏆 Успехи
+          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
         </button>
       </div>
 
@@ -157,7 +169,7 @@ export default function LibraryPage() {
         )}
         {books?.length === 0 && (
           <div className="card p-8 text-center sm:col-span-2 space-y-4">
-            <div className="text-5xl">📚</div>
+            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
             <div>
               <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
               <p className="text-sm text-ink-faint mt-1">
@@ -169,7 +181,7 @@ export default function LibraryPage() {
               disabled={installing}
               onClick={() => void addStarter()}
             >
-              {installing ? "Загружаю…" : `📥 Загрузить ${STARTER_COUNT} сказок`}
+              {installing ? "Загружаю…" : <><Download className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Загрузить {STARTER_COUNT} сказок</>}
             </button>
             <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
           </div>
@@ -202,7 +214,7 @@ export default function LibraryPage() {
                 </div>
               </button>
               {book.isCustom && (
-                <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить">🗑</button>
+                <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
               )}
             </div>
           );
@@ -213,7 +225,7 @@ export default function LibraryPage() {
         className="w-full mt-4 rounded-3xl border-2 border-dashed border-brand-300 bg-brand-50/50 dark:bg-brand-500/10 text-brand-500 font-display font-bold py-4 hover:-translate-y-0.5 transition-all"
         onClick={() => setShowUpload(true)}
       >
-        ＋ Добавить свою книгу
+        <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
       </button>
 
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />
@@ -228,8 +240,12 @@ export default function LibraryPage() {
           readIds={completedSessions.map((s) => s.bookId)}
           readTitles={completedSessions.map((s) => s.bookTitle)}
           onClose={() => setShowGuide(false)}
-          onPick={(bookId) => {
+          onPick={(bookId, bookLanguage) => {
             setShowGuide(false);
+            // Refresh the list and make sure the new book is actually visible:
+            // if it was added in another language, switch the filter to it.
+            if (bookLanguage && bookLanguage !== language) setLanguage(bookLanguage);
+            else reload();
             navigate(`/read/${bookId}?profile=${profile.id}`);
           }}
         />
@@ -249,11 +265,12 @@ export default function LibraryPage() {
               <button className="text-2xl text-ink-faint w-8 h-8" onClick={() => setShowProgress(false)} aria-label="Закрыть">×</button>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center">
               {[
                 { v: profile.booksCompleted, l: "книг", bg: "from-violet-100 to-fuchsia-100 dark:from-violet-500/15 dark:to-fuchsia-500/10" },
                 { v: fmtDuration(profile.totalMs), l: "времени", bg: "from-sky-100 to-blue-100 dark:from-sky-500/15 dark:to-blue-500/10" },
                 { v: avgWpm, l: "сл/мин", bg: "from-emerald-100 to-teal-100 dark:from-emerald-500/15 dark:to-teal-500/10" },
+                { v: profile.coins ?? 0, l: "монет", bg: "from-amber-100 to-yellow-100 dark:from-amber-500/15 dark:to-yellow-500/10" },
               ].map((s, i) => (
                 <div key={i} className={`rounded-2xl p-4 bg-gradient-to-br ${s.bg}`}>
                   <p className="font-display font-extrabold text-xl text-ink dark:text-white leading-tight">{s.v}</p>

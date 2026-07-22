@@ -72,6 +72,7 @@ export async function createProfile(
     totalWords: 0,
     totalMs: 0,
     booksCompleted: 0,
+    coins: 0,
     byLanguage: EMPTY_BY_LANGUAGE,
   });
   return ref.id;
@@ -193,6 +194,9 @@ export async function deleteCustomBook(bookId: string): Promise<void> {
   await deleteDoc(doc(db, "books", bookId));
 }
 
+/** Coins awarded on finishing a whole book, on top of per-word coins. */
+export const BOOK_COMPLETION_BONUS = 50;
+
 // ───────────────────────── Sessions ─────────────────────────
 
 const sessionsCol = (uid: string, pid: string) =>
@@ -248,7 +252,7 @@ export async function saveSessionProgress(
     durationMs: number;
     wpm: number;
   },
-  deltas: { words: number; ms: number },
+  deltas: { words: number; ms: number; coins?: number },
 ): Promise<void> {
   const ops: Promise<unknown>[] = [
     updateDoc(doc(sessionsCol(uid, pid), sessionId), {
@@ -261,6 +265,7 @@ export async function saveSessionProgress(
       updateDoc(doc(db, "users", uid, "profiles", pid), {
         totalWords: increment(deltas.words),
         totalMs: increment(deltas.ms),
+        coins: increment(deltas.coins ?? deltas.words),
       }),
     );
   }
@@ -281,6 +286,7 @@ export async function completeSession(
     }),
     updateDoc(doc(db, "users", uid, "profiles", pid), {
       booksCompleted: increment(1),
+      coins: increment(BOOK_COMPLETION_BONUS),
       [`byLanguage.${language}.books`]: increment(1),
       [`byLanguage.${language}.ms`]: increment(finalMs),
     }),
