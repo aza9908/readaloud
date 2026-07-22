@@ -11,6 +11,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
+import { BookGuideDialog } from "@/components/BookGuideDialog";
 
 function fmtDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -32,6 +33,7 @@ export default function LibraryPage() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [showProgress, setShowProgress] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const reload = useCallback(() => {
     if (!user) return;
@@ -100,6 +102,18 @@ export default function LibraryPage() {
         <p className="eyebrow mb-1">Библиотека</p>
         <h1 className="font-display font-extrabold text-3xl text-ink dark:text-white">Выбери сказку</h1>
       </div>
+
+      <button
+        onClick={() => setShowGuide(true)}
+        className="w-full mb-5 rounded-3xl p-4 flex items-center gap-3 text-left bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lift hover:-translate-y-0.5 transition-all animate-fade-up"
+      >
+        <span className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center text-2xl shrink-0">✨</span>
+        <span className="min-w-0">
+          <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
+          <span className="block text-sm text-white/80">Найду то, что тебе понравится</span>
+        </span>
+        <span className="ml-auto text-2xl">›</span>
+      </button>
 
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         {LANGUAGES.map((l) => (
@@ -175,6 +189,22 @@ export default function LibraryPage() {
       </button>
 
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />
+
+      {showGuide && books && books.length > 0 && (
+        <BookGuideDialog
+          open
+          books={books}
+          profile={profile}
+          language={language}
+          readIds={completedSessions.map((s) => s.bookId)}
+          readTitles={completedSessions.map((s) => s.bookTitle)}
+          onClose={() => setShowGuide(false)}
+          onPick={(bookId) => {
+            setShowGuide(false);
+            navigate(`/read/${bookId}?profile=${profile.id}`);
+          }}
+        />
+      )}
 
       {showProgress && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowProgress(false)}>

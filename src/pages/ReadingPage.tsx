@@ -16,8 +16,12 @@ import { KaraokeText } from "@/components/KaraokeText";
 import { Fireworks } from "@/components/Fireworks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
+import { RetellDialog } from "@/components/RetellDialog";
+import { QuizDialog } from "@/components/QuizDialog";
 
 const AUTOSAVE_MS = 15_000; // READ-10
+/** Ask for a retelling (пересказ) after every N pages. */
+const RETELL_EVERY_PAGES = 3;
 
 /** Memoized so the 1-second progress tick never repaints the illustration. */
 const PageIllustration = memo(function PageIllustration({ src }: { src: string | null }) {
@@ -92,6 +96,8 @@ export default function ReadingPage() {
     durationMs: number;
   } | null>(null);
   const [finished, setFinished] = useState(false);
+  const [retellFor, setRetellFor] = useState<{ from: number; to: number } | null>(null);
+  const [showQuiz, setShowQuiz] = useState(false);
 
   /* ── Session bookkeeping (base + delta model) ──
    * base*Ref   — totals carried over from PREVIOUS visits (restored session)
@@ -207,6 +213,8 @@ export default function ReadingPage() {
   // ── Page / book completion ──
   const finishBook = useCallback(() => {
     setFinished(true);
+    // Comprehension questions after a short celebration beat.
+    window.setTimeout(() => setShowQuiz(true), 2600);
     void (async () => {
       if (!user || !sessionId || !book || !profile) return;
       persist(latestSnapRef.current, true); // final flush
@@ -241,12 +249,24 @@ export default function ReadingPage() {
 
   const handlePageComplete = useCallback(() => {
     wordsBeforePageRef.current += wordsLenRef.current;
-    if (pageIndexRef.current + 1 < pagesLenRef.current) {
-      setPageIndex((i) => i + 1); // READ-05
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
+    const justFinished = pageIndexRef.current; // 0-based index of the page read
+    const isLastPage = justFinished + 1 >= pagesLenRef.current;
+
+    if (isLastPage) {
       finishBookRef.current();
+      return;
     }
+
+    // Retelling checkpoint every N pages (пересказ after a chunk).
+    const pagesRead = justFinished + 1;
+    if (pagesRead % RETELL_EVERY_PAGES === 0) {
+      readerRef.current?.pause();
+      setRetellFor({ from: pagesRead - RETELL_EVERY_PAGES, to: justFinished });
+      return; // page advances when the child continues
+    }
+
+    setPageIndex((i) => i + 1); // READ-05
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const reader = useSpeechReader({
@@ -438,6 +458,36 @@ export default function ReadingPage() {
             <button className="btn-ghost w-full" onClick={() => resume(false)}>Начать сначала</button>
           </div>
         </div>
+      )}
+
+      {/* Пересказ checkpoint after each chunk of pages */}
+      {retellFor && book && (
+        <RetellDialog
+          open
+          chunkText={book.pages.slice(retellFor.from, retellFor.to + 1).join("\n\n")}
+          language={book.language}
+          age={profile?.age ?? 8}
+          onContinue={() => {
+            setRetellFor(null);
+            setPageIndex((i) => Math.min(i + 1, book.pages.length - 1));
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
+      )}
+
+      {/* Comprehension questions after the book */}
+      {showQuiz && book && (
+        <QuizDialog
+          open
+          title={book.title}
+          text={book.pages.join("\n\n")}
+          language={book.language}
+          age={profile?.age ?? 8}
+          onClose={() => {
+            setShowQuiz(false);
+            navigate(`/library?profile=${profileId}`);
+          }}
+        />
       )}
 
       {/* GAME-01: completion */}

@@ -62,6 +62,19 @@ jobs:
             --project readai-4f87b \
             --non-interactive --force
 
+      # AI functions need the Blaze plan + ANTHROPIC_API_KEY secret.
+      # If either is missing this step is skipped, and the app falls back to
+      # its offline heuristics — the site still deploys and works.
+      - name: Deploy AI functions (optional)
+        continue-on-error: true
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          npx firebase-tools@13 deploy \
+            --only functions \
+            --project readai-4f87b \
+            --non-interactive --force
+
       - name: Cleanup credentials
         if: always()
         run: rm -f "$RUNNER_TEMP/sa.json"
