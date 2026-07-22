@@ -56,6 +56,7 @@ export default function LandingPage() {
             Лучше всего работает в Chrome и Edge. Голос ребёнка
             распознаётся прямо в браузере и никуда не отправляется.
           </p>
+          <p className="mt-3 text-[10px] text-ink-faint/60">сборка {__BUILD_ID__} UTC</p>
         </div>
       </main>
     </div>

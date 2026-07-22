@@ -1,72 +1,130 @@
 /**
- * BookGuideDialog — «Подбери мне книгу».
- * Asks the child what they're in the mood for, then recommends 3 books
- * ranked by age fit, length, novelty and taste.
+ * BookGuideDialog — a short questionnaire that learns what the child is in
+ * the mood for, then recommends books ranked by taste, length, challenge,
+ * age fit and novelty.
+ *
+ * Flow: 4 questions, one per screen → results.
  */
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { recommendBook, type BookPick } from "@/lib/ai";
 import type { Book, ChildProfile, Language } from "@/lib/types";
 
+export type LengthPref = "short" | "medium" | "long";
+export type ChallengePref = "easy" | "normal" | "hard";
+
 const COPY = {
   ru: {
-    title: "Что тебе почитать?",
-    sub: "Выбери настроение — подберу книгу",
-    custom: "Или напиши сам, что хочешь почитать",
-    placeholder: "Например: про животных и дружбу",
+    eyebrow: "Книжный помощник",
+    q1: "Что тебе интереснее всего?",
+    q1sub: "Можно выбрать несколько",
+    q2: "Какую историю хочешь?",
+    q3: "Насколько сложно?",
+    q4: "Что-то ещё? (необязательно)",
+    q4placeholder: "Например: про дружбу и приключения в лесу",
+    next: "Дальше",
+    back: "Назад",
     find: "Подобрать книгу",
     finding: "Подбираю…",
     resultTitle: "Вот что тебе подойдёт",
+    best: "Лучший выбор",
     read: "Читать",
-    again: "Подобрать ещё",
-    moods: [
-      { emoji: "🐾", label: "Про животных", value: "животные, звери, лес" },
-      { emoji: "🏰", label: "Волшебство", value: "волшебство, сказка, магия" },
-      { emoji: "🚀", label: "Приключения", value: "приключения, путешествия, космос" },
-      { emoji: "😄", label: "Весёлое", value: "смешное, весёлое, хитрость" },
-      { emoji: "👫", label: "Про дружбу", value: "дружба, друзья, помощь" },
-      { emoji: "⚡", label: "Покороче", value: "короткая история" },
+    again: "Подобрать заново",
+    empty: "В библиотеке пока нет книг — сначала добавь сказки.",
+    lengths: [
+      { v: "short" as LengthPref, emoji: "⚡", label: "Покороче", sub: "прочитаю быстро" },
+      { v: "medium" as LengthPref, emoji: "📗", label: "Обычную", sub: "как всегда" },
+      { v: "long" as LengthPref, emoji: "📚", label: "Подлиннее", sub: "люблю читать" },
+    ],
+    levels: [
+      { v: "easy" as ChallengePref, emoji: "🙂", label: "Полегче", sub: "простые слова" },
+      { v: "normal" as ChallengePref, emoji: "😀", label: "Как обычно", sub: "мой уровень" },
+      { v: "hard" as ChallengePref, emoji: "💪", label: "Посложнее", sub: "хочу вызов" },
+    ],
+    topics: [
+      { emoji: "🐾", label: "Животные", value: "животные звери лес" },
+      { emoji: "🏰", label: "Волшебство", value: "волшебство сказка магия" },
+      { emoji: "🚀", label: "Приключения", value: "приключения путешествие космос" },
+      { emoji: "😄", label: "Смешное", value: "смешное весёлое хитрость" },
+      { emoji: "👫", label: "Дружба", value: "дружба друзья помощь" },
+      { emoji: "🦸", label: "Про героев", value: "герой батыр смелость" },
     ],
   },
   kk: {
-    title: "Не оқығың келеді?",
-    sub: "Көңіл күйіңді таңда — кітап табамын",
-    custom: "Немесе өзің жаз",
-    placeholder: "Мысалы: жануарлар мен достық туралы",
+    eyebrow: "Кітап көмекшісі",
+    q1: "Саған не қызық?",
+    q1sub: "Бірнешеуін таңдауға болады",
+    q2: "Қандай әңгіме керек?",
+    q3: "Қаншалықты қиын?",
+    q4: "Тағы бірдеңе? (міндетті емес)",
+    q4placeholder: "Мысалы: достық пен орманда болған оқиға",
+    next: "Әрі қарай",
+    back: "Артқа",
     find: "Кітап табу",
     finding: "Іздеп жатырмын…",
     resultTitle: "Саған мынау жарайды",
+    best: "Ең жақсы таңдау",
     read: "Оқу",
-    again: "Тағы табу",
-    moods: [
-      { emoji: "🐾", label: "Жануарлар", value: "жануарлар, аңдар, орман" },
-      { emoji: "🏰", label: "Сиқыр", value: "сиқыр, ертегі" },
-      { emoji: "🚀", label: "Оқиға", value: "оқиға, саяхат, ғарыш" },
-      { emoji: "😄", label: "Күлкілі", value: "күлкілі, қулық" },
-      { emoji: "👫", label: "Достық", value: "достық, көмек" },
-      { emoji: "⚡", label: "Қысқасы", value: "қысқа әңгіме" },
+    again: "Қайта табу",
+    empty: "Кітапханада кітап жоқ — алдымен ертегілерді қос.",
+    lengths: [
+      { v: "short" as LengthPref, emoji: "⚡", label: "Қысқасы", sub: "тез оқимын" },
+      { v: "medium" as LengthPref, emoji: "📗", label: "Орташа", sub: "әдеттегідей" },
+      { v: "long" as LengthPref, emoji: "📚", label: "Ұзынырақ", sub: "оқыған ұнайды" },
+    ],
+    levels: [
+      { v: "easy" as ChallengePref, emoji: "🙂", label: "Жеңілірек", sub: "қарапайым сөздер" },
+      { v: "normal" as ChallengePref, emoji: "😀", label: "Әдеттегідей", sub: "менің деңгейім" },
+      { v: "hard" as ChallengePref, emoji: "💪", label: "Қиынырақ", sub: "сынақ керек" },
+    ],
+    topics: [
+      { emoji: "🐾", label: "Жануарлар", value: "жануарлар аңдар орман" },
+      { emoji: "🏰", label: "Сиқыр", value: "сиқыр ертегі" },
+      { emoji: "🚀", label: "Оқиға", value: "оқиға саяхат ғарыш" },
+      { emoji: "😄", label: "Күлкілі", value: "күлкілі қулық" },
+      { emoji: "👫", label: "Достық", value: "достық көмек" },
+      { emoji: "🦸", label: "Батырлар", value: "батыр ерлік" },
     ],
   },
   en: {
-    title: "What should you read?",
-    sub: "Pick a mood — I'll find a book",
-    custom: "Or type what you feel like reading",
-    placeholder: "For example: animals and friendship",
-    find: "Find me a book",
+    eyebrow: "Book helper",
+    q1: "What sounds most interesting?",
+    q1sub: "Pick as many as you like",
+    q2: "How long a story?",
+    q3: "How hard should it be?",
+    q4: "Anything else? (optional)",
+    q4placeholder: "For example: friendship and forest adventures",
+    next: "Next",
+    back: "Back",
+    find: "Find my book",
     finding: "Finding…",
     resultTitle: "Here's what suits you",
+    best: "Best match",
     read: "Read",
-    again: "Find more",
-    moods: [
-      { emoji: "🐾", label: "Animals", value: "animals, forest, creatures" },
-      { emoji: "🏰", label: "Magic", value: "magic, fairy tale, dragons" },
-      { emoji: "🚀", label: "Adventure", value: "adventure, travel, space" },
-      { emoji: "😄", label: "Funny", value: "funny, silly, clever tricks" },
-      { emoji: "👫", label: "Friendship", value: "friendship, friends, helping" },
-      { emoji: "⚡", label: "Short one", value: "short story" },
+    again: "Start over",
+    empty: "No books in the library yet — add the stories first.",
+    lengths: [
+      { v: "short" as LengthPref, emoji: "⚡", label: "Short", sub: "a quick read" },
+      { v: "medium" as LengthPref, emoji: "📗", label: "Normal", sub: "as usual" },
+      { v: "long" as LengthPref, emoji: "📚", label: "Longer", sub: "I love reading" },
+    ],
+    levels: [
+      { v: "easy" as ChallengePref, emoji: "🙂", label: "Easier", sub: "simple words" },
+      { v: "normal" as ChallengePref, emoji: "😀", label: "Just right", sub: "my level" },
+      { v: "hard" as ChallengePref, emoji: "💪", label: "Harder", sub: "challenge me" },
+    ],
+    topics: [
+      { emoji: "🐾", label: "Animals", value: "animals forest creatures" },
+      { emoji: "🏰", label: "Magic", value: "magic fairy tale dragons" },
+      { emoji: "🚀", label: "Adventure", value: "adventure travel space rockets" },
+      { emoji: "😄", label: "Funny", value: "funny silly clever" },
+      { emoji: "👫", label: "Friendship", value: "friendship friends helping" },
+      { emoji: "🦸", label: "Heroes", value: "hero brave courage" },
     ],
   },
 } as const;
+
+const TOTAL_STEPS = 4;
 
 interface Props {
   open: boolean;
@@ -83,22 +141,28 @@ export function BookGuideDialog({
   open, books, profile, language, readIds, readTitles, onClose, onPick,
 }: Props) {
   const c = COPY[language] ?? COPY.ru;
-  const [moods, setMoods] = useState<string[]>([]);
+
+  const [step, setStep] = useState(0);
+  const [topics, setTopics] = useState<string[]>([]);
+  const [lengthPref, setLengthPref] = useState<LengthPref | null>(null);
+  const [challenge, setChallenge] = useState<ChallengePref | null>(null);
   const [free, setFree] = useState("");
   const [picks, setPicks] = useState<BookPick[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   if (!open) return null;
 
-  const toggle = (v: string) =>
-    setMoods((m) => (m.includes(v) ? m.filter((x) => x !== v) : [...m, v]));
+  const toggleTopic = (v: string) =>
+    setTopics((t) => (t.includes(v) ? t.filter((x) => x !== v) : [...t, v]));
 
   const find = async () => {
     setLoading(true);
     try {
-      const preferences = [...moods, free].filter(Boolean).join(", ");
+      const preferences = [...topics, free].filter(Boolean).join(", ");
       const r = await recommendBook({
         books, age: profile.age, language, preferences, readTitles, readIds,
+        lengthPref: lengthPref ?? "medium",
+        challenge: challenge ?? "normal",
       });
       setPicks(r.picks);
     } finally {
@@ -108,86 +172,195 @@ export function BookGuideDialog({
 
   const bookById = (id: string) => books.find((b) => b.id === id);
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-         onClick={onClose}>
-      <div className="sheet max-w-md space-y-4 max-h-[92vh] overflow-y-auto"
-           onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="eyebrow mb-1">✨ Книжный помощник</p>
-            <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">{c.title}</h2>
-            <p className="text-sm text-ink-soft dark:text-ink-faint">{c.sub}</p>
-          </div>
-          <button className="text-2xl text-ink-faint w-8 h-8" onClick={onClose} aria-label="Закрыть">×</button>
+  // Empty-library guard — the previous version silently did nothing here.
+  if (books.length === 0) {
+    return (
+      <Shell eyebrow={c.eyebrow} onClose={onClose}>
+        <div className="py-8 text-center space-y-3">
+          <div className="text-5xl">📚</div>
+          <p className="text-ink-soft dark:text-ink-faint">{c.empty}</p>
+          <button className="btn-primary w-full" onClick={onClose}>OK</button>
         </div>
+      </Shell>
+    );
+  }
 
-        {!picks ? (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              {c.moods.map((m) => (
-                <button
-                  key={m.value}
-                  onClick={() => toggle(m.value)}
-                  className={`rounded-2xl px-3 py-3 text-left border-2 transition-all duration-200 ${
-                    moods.includes(m.value)
-                      ? "border-brand-400 bg-brand-50 dark:bg-brand-500/15"
-                      : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
-                  }`}
-                >
-                  <span className="text-2xl">{m.emoji}</span>
-                  <p className="font-bold text-sm text-ink dark:text-white mt-1">{m.label}</p>
-                </button>
-              ))}
-            </div>
+  if (picks) {
+    return (
+      <Shell eyebrow={c.eyebrow} onClose={onClose}>
+        <p className="font-display font-bold text-lg text-ink dark:text-white mb-2">{c.resultTitle}</p>
+        <div className="space-y-2">
+          {picks.map((p, i) => {
+            const b = bookById(p.id);
+            if (!b) return null;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onPick(p.id)}
+                className={`w-full text-left card p-3 flex items-center gap-3 hover:-translate-y-0.5 transition-all ${
+                  i === 0 ? "ring-2 ring-brand-400" : ""
+                }`}
+              >
+                <div className="w-14 h-14 rounded-2xl grid place-items-center text-3xl bg-brand-50 dark:bg-brand-500/15 shrink-0">
+                  {b.coverEmoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  {i === 0 && <p className="eyebrow !text-[10px] mb-0.5">{c.best}</p>}
+                  <p className="font-display font-bold text-ink dark:text-white truncate">{b.title}</p>
+                  <p className="text-xs text-ink-faint">{p.reason}</p>
+                </div>
+                <span className="chip chip-on !py-1 !px-3 text-xs shrink-0">{c.read}</span>
+              </button>
+            );
+          })}
+        </div>
+        <button className="btn-ghost w-full mt-3" onClick={() => { setPicks(null); setStep(0); }}>
+          {c.again}
+        </button>
+      </Shell>
+    );
+  }
 
-            <div>
-              <p className="text-sm font-bold text-ink-soft dark:text-ink-faint mb-1.5">{c.custom}</p>
-              <input
-                className="input"
-                placeholder={c.placeholder}
-                value={free}
-                maxLength={120}
-                onChange={(e) => setFree(e.target.value)}
-              />
-            </div>
+  const canAdvance =
+    (step === 0 && topics.length > 0) ||
+    (step === 1 && lengthPref !== null) ||
+    (step === 2 && challenge !== null) ||
+    step === 3;
 
-            <button className="btn-primary w-full" onClick={() => void find()} disabled={loading}>
-              {loading ? c.finding : c.find}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="font-display font-bold text-lg text-ink dark:text-white">{c.resultTitle}</p>
-            <div className="space-y-2">
-              {picks.map((p, i) => {
-                const b = bookById(p.id);
-                if (!b) return null;
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => onPick(p.id)}
-                    className={`w-full text-left card p-3 flex items-center gap-3 hover:-translate-y-0.5 transition-all ${
-                      i === 0 ? "ring-2 ring-brand-400" : ""
-                    }`}
-                  >
-                    <div className="w-14 h-14 rounded-2xl grid place-items-center text-3xl bg-brand-50 dark:bg-brand-500/15 shrink-0">
-                      {b.coverEmoji}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-display font-bold text-ink dark:text-white truncate">
-                        {i === 0 && "⭐ "}{b.title}
-                      </p>
-                      <p className="text-xs text-ink-faint">{p.reason}</p>
-                    </div>
-                    <span className="chip chip-on !py-1 !px-3 text-xs shrink-0">{c.read}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <button className="btn-ghost w-full" onClick={() => setPicks(null)}>{c.again}</button>
-          </>
+  return (
+    <Shell eyebrow={c.eyebrow} onClose={onClose}>
+      <div className="flex items-center gap-1.5 mb-4">
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <div key={i} className={`h-1.5 rounded-full flex-1 transition-colors duration-300 ${
+            i <= step ? "bg-brand-500" : "bg-black/[0.08] dark:bg-white/10"
+          }`} />
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="animate-fade-up">
+          <h3 className="font-display font-extrabold text-xl text-ink dark:text-white">{c.q1}</h3>
+          <p className="text-sm text-ink-faint mb-3">{c.q1sub}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {c.topics.map((t) => (
+              <button
+                key={t.value}
+                onClick={() => toggleTopic(t.value)}
+                className={`rounded-2xl px-3 py-3 text-left border-2 transition-all duration-200 ${
+                  topics.includes(t.value)
+                    ? "border-brand-400 bg-brand-50 dark:bg-brand-500/15"
+                    : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
+                }`}
+              >
+                <span className="text-2xl">{t.emoji}</span>
+                <p className="font-bold text-sm text-ink dark:text-white mt-1">{t.label}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <StepList
+          title={c.q2}
+          items={c.lengths}
+          selected={lengthPref}
+          onSelect={(v) => setLengthPref(v as LengthPref)}
+        />
+      )}
+
+      {step === 2 && (
+        <StepList
+          title={c.q3}
+          items={c.levels}
+          selected={challenge}
+          onSelect={(v) => setChallenge(v as ChallengePref)}
+        />
+      )}
+
+      {step === 3 && (
+        <div className="animate-fade-up">
+          <h3 className="font-display font-extrabold text-xl text-ink dark:text-white mb-3">{c.q4}</h3>
+          <input
+            className="input"
+            placeholder={c.q4placeholder}
+            value={free}
+            maxLength={120}
+            onChange={(e) => setFree(e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="flex gap-2 mt-5">
+        {step > 0 && (
+          <button className="btn-ghost flex-1" onClick={() => setStep((s) => s - 1)}>{c.back}</button>
         )}
+        {step < TOTAL_STEPS - 1 ? (
+          <button className="btn-primary flex-1" disabled={!canAdvance} onClick={() => setStep((s) => s + 1)}>
+            {c.next}
+          </button>
+        ) : (
+          <button className="btn-primary flex-1" onClick={() => void find()} disabled={loading}>
+            {loading ? c.finding : c.find}
+          </button>
+        )}
+      </div>
+    </Shell>
+  );
+}
+
+function StepList({
+  title, items, selected, onSelect,
+}: {
+  title: string;
+  items: readonly { v: string; emoji: string; label: string; sub: string }[];
+  selected: string | null;
+  onSelect: (v: string) => void;
+}) {
+  return (
+    <div className="animate-fade-up">
+      <h3 className="font-display font-extrabold text-xl text-ink dark:text-white mb-3">{title}</h3>
+      <div className="space-y-2">
+        {items.map((l) => (
+          <button
+            key={l.v}
+            onClick={() => onSelect(l.v)}
+            className={`w-full rounded-2xl px-4 py-3 flex items-center gap-3 border-2 text-left transition-all duration-200 ${
+              selected === l.v
+                ? "border-brand-400 bg-brand-50 dark:bg-brand-500/15"
+                : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
+            }`}
+          >
+            <span className="text-2xl">{l.emoji}</span>
+            <span>
+              <span className="block font-bold text-ink dark:text-white">{l.label}</span>
+              <span className="block text-xs text-ink-faint">{l.sub}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Shell({
+  eyebrow, onClose, children,
+}: {
+  eyebrow: string;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div className="sheet max-w-md max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between mb-3">
+          <p className="eyebrow">✨ {eyebrow}</p>
+          <button className="text-2xl text-ink-faint w-8 h-8 -mt-2" onClick={onClose} aria-label="Закрыть">×</button>
+        </div>
+        {children}
       </div>
     </div>
   );

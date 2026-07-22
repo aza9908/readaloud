@@ -20,8 +20,23 @@ import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
 const AUTOSAVE_MS = 15_000; // READ-10
-/** Ask for a retelling (пересказ) after every N pages. */
-const RETELL_EVERY_PAGES = 3;
+/**
+ * Retelling (пересказ) checkpoints.
+ * Books here are short (3-8 pages), so a fixed "every 3 pages" rule never
+ * fired on a 3-page book (page 3 is the last page and goes straight to the
+ * finish). Instead: one checkpoint at the midpoint of short books, then
+ * every 3 pages for longer ones. Never on the final page.
+ */
+function retellCheckpoints(totalPages: number): Set<number> {
+  const marks = new Set<number>();
+  if (totalPages < 3) return marks;              // too short to interrupt
+  if (totalPages <= 4) {
+    marks.add(Math.floor(totalPages / 2) - 1);   // midpoint (0-based page just read)
+    return marks;
+  }
+  for (let p = 2; p < totalPages - 1; p += 3) marks.add(p);
+  return marks;
+}
 
 /** Memoized so the 1-second progress tick never repaints the illustration. */
 const PageIllustration = memo(function PageIllustration({ src }: { src: string | null }) {
@@ -118,6 +133,8 @@ export default function ReadingPage() {
   /** Words on pages already completed this visit — for the progress bar. */
   const wordsBeforePageRef = useRef(0);
   const profileBeforeRef = useRef<ChildProfile | null>(null);
+  const retellMarksRef = useRef<Set<number>>(new Set());
+  const lastRetellPageRef = useRef(0);
   const restoreRef = useRef<{ wordIndex: number } | null>(null);
 
   // ── Load book, profile, and any open session ──
@@ -133,6 +150,7 @@ export default function ReadingPage() {
       if (cancelled) return;
       setBook(b);
       setProfile(p);
+      if (b) retellMarksRef.current = retellCheckpoints(b.pages.length);
       profileBeforeRef.current = p;
       if (open) {
         setSessionId(open.id);
@@ -257,11 +275,11 @@ export default function ReadingPage() {
       return;
     }
 
-    // Retelling checkpoint every N pages (пересказ after a chunk).
-    const pagesRead = justFinished + 1;
-    if (pagesRead % RETELL_EVERY_PAGES === 0) {
+    // Retelling checkpoint (пересказ after a chunk of pages).
+    if (retellMarksRef.current.has(justFinished)) {
       readerRef.current?.pause();
-      setRetellFor({ from: pagesRead - RETELL_EVERY_PAGES, to: justFinished });
+      setRetellFor({ from: lastRetellPageRef.current, to: justFinished });
+      lastRetellPageRef.current = justFinished + 1;
       return; // page advances when the child continues
     }
 

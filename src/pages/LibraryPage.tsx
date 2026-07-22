@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
+import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
 function fmtDuration(ms: number): string {
   const s = Math.round(ms / 1000);
@@ -34,6 +35,7 @@ export default function LibraryPage() {
   const [showProgress, setShowProgress] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   const reload = useCallback(() => {
     if (!user) return;
@@ -74,6 +76,20 @@ export default function LibraryPage() {
   if (!user || !profile) {
     return <div className="min-h-dvh grid place-items-center text-ink-faint">Загрузка…</div>;
   }
+
+  const addStarter = async () => {
+    if (!user || installing) return;
+    setInstalling(true);
+    try {
+      const n = await installStarterLibrary(user.uid);
+      toast({ icon: "📚", title: "Библиотека загружена!", description: `Добавлено ${n} сказок` });
+      reload();
+    } catch {
+      toast({ icon: "⚠️", title: "Не удалось загрузить", description: "Проверьте соединение и попробуйте снова" });
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   const handleDelete = async (book: Book) => {
     if (!confirm(`Удалить «${book.title}»?`)) return;
@@ -140,10 +156,22 @@ export default function LibraryPage() {
           ))
         )}
         {books?.length === 0 && (
-          <div className="card p-8 text-center sm:col-span-2">
-            <div className="text-4xl mb-2">📚</div>
-            <p className="font-display font-bold text-ink dark:text-white">Здесь пока пусто</p>
-            <p className="text-sm text-ink-faint mt-1">Добавь свою книгу кнопкой ниже</p>
+          <div className="card p-8 text-center sm:col-span-2 space-y-4">
+            <div className="text-5xl">📚</div>
+            <div>
+              <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
+              <p className="text-sm text-ink-faint mt-1">
+                Загрузи {STARTER_COUNT} готовых сказок на русском, казахском и английском
+              </p>
+            </div>
+            <button
+              className="btn-primary w-full"
+              disabled={installing}
+              onClick={() => void addStarter()}
+            >
+              {installing ? "Загружаю…" : `📥 Загрузить ${STARTER_COUNT} сказок`}
+            </button>
+            <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
           </div>
         )}
         {books?.map((book, i) => {
@@ -190,10 +218,10 @@ export default function LibraryPage() {
 
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />
 
-      {showGuide && books && books.length > 0 && (
+      {showGuide && (
         <BookGuideDialog
           open
-          books={books}
+          books={books ?? []}
           profile={profile}
           language={language}
           readIds={completedSessions.map((s) => s.bookId)}

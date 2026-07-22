@@ -239,7 +239,14 @@ const REC_COPY = {
 /** Offline recommender: scores books on age fit, length, novelty, keywords. */
 function localRecommend(
   books: Book[],
-  opts: { age: number; language: Language; preferences: string; readIds: Set<string> },
+  opts: {
+    age: number;
+    language: Language;
+    preferences: string;
+    readIds: Set<string>;
+    lengthPref: "short" | "medium" | "long";
+    challenge: "easy" | "normal" | "hard";
+  },
 ): BookPick[] {
   const c = REC_COPY[opts.language] ?? REC_COPY.ru;
   const prefTokens = new Set(tokens(opts.preferences));
@@ -256,12 +263,18 @@ function localRecommend(
       score += Math.max(0, 25 - Math.abs(opts.age - (b.ageMin + b.ageMax) / 2) * 6);
     }
 
-    // Length vs age (younger → shorter)
-    const idealWords = 90 + (opts.age - 5) * 22;
+    // Length: base on age, then shift by the child's stated preference.
+    const ageIdeal = 90 + (opts.age - 5) * 22;
+    const lengthShift = opts.lengthPref === "short" ? -45 : opts.lengthPref === "long" ? 55 : 0;
+    const idealWords = ageIdeal + lengthShift;
     const diff = Math.abs(b.totalWords - idealWords);
-    score += Math.max(0, 25 - diff / 8);
-    if (b.totalWords < idealWords) reasons.push(c.shorter);
+    score += Math.max(0, 35 - diff / 6);
+    if (b.totalWords < ageIdeal) reasons.push(c.shorter);
     else reasons.push(c.longer);
+
+    // Challenge: "easy" favours shorter/simpler, "hard" favours longer books.
+    if (opts.challenge === "easy" && b.totalWords <= ageIdeal) score += 15;
+    if (opts.challenge === "hard" && b.totalWords >= ageIdeal) score += 15;
 
     // Novelty
     if (!opts.readIds.has(b.id)) {
@@ -299,6 +312,8 @@ export async function recommendBook(args: {
   preferences: string;
   readTitles: string[];
   readIds: string[];
+  lengthPref?: "short" | "medium" | "long";
+  challenge?: "easy" | "normal" | "hard";
 }): Promise<{ picks: BookPick[]; offline: boolean }> {
   const payload = {
     books: args.books.map((b) => ({
@@ -310,7 +325,11 @@ export async function recommendBook(args: {
     })),
     age: args.age,
     language: args.language,
-    preferences: args.preferences,
+    preferences: [
+      args.preferences,
+      args.lengthPref ? `предпочитает длину: ${args.lengthPref}` : "",
+      args.challenge ? `уровень сложности: ${args.challenge}` : "",
+    ].filter(Boolean).join("; "),
     history: args.readTitles,
   };
   const res = await call<typeof payload, { picks: BookPick[] }>("recommendBook", payload);
@@ -326,6 +345,8 @@ export async function recommendBook(args: {
       language: args.language,
       preferences: args.preferences,
       readIds: new Set(args.readIds),
+      lengthPref: args.lengthPref ?? "medium",
+      challenge: args.challenge ?? "normal",
     }),
     offline: true,
   };
