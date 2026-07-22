@@ -1,22 +1,42 @@
 /**
- * StoryScene — a generated illustration used when a book has no photograph.
+ * StoryScene — the illustration shown for a book that has no photograph.
  *
- * Every book therefore shows a visual on its first page, with no network
- * request and no licensing question. The palette and decorations are derived
- * deterministically from the book title, so a given book always looks the
- * same, and different books look different.
+ * Design intent: a composed "book plate" rather than a clip-art landscape.
+ * The subject sits inside a medallion on a calm, layered background, which
+ * reads as deliberate at any size and — critically — never crops. The
+ * previous version used `preserveAspectRatio="slice"`, which cut the sun off
+ * the top and the subject off the bottom.
+ *
+ * The palette and ornament placement derive deterministically from the
+ * title, so a book always looks like itself, and two books look different.
  */
 
 import { memo } from "react";
 
-const PALETTES = [
-  { sky: ["#dbeafe", "#eff6ff"], hill: "#bfdbfe", accent: "#93c5fd", sun: "#fcd34d" },
-  { sky: ["#fce7f3", "#fdf2f8"], hill: "#fbcfe8", accent: "#f9a8d4", sun: "#fbbf24" },
-  { sky: ["#dcfce7", "#f0fdf4"], hill: "#bbf7d0", accent: "#86efac", sun: "#facc15" },
-  { sky: ["#ede9fe", "#f5f3ff"], hill: "#ddd6fe", accent: "#c4b5fd", sun: "#fde68a" },
-  { sky: ["#ffedd5", "#fff7ed"], hill: "#fed7aa", accent: "#fdba74", sun: "#fbbf24" },
-  { sky: ["#cffafe", "#ecfeff"], hill: "#a5f3fc", accent: "#67e8f9", sun: "#fde047" },
+interface Palette {
+  from: string;
+  to: string;
+  ring: string;
+  ornament: string;
+  medallion: string;
+}
+
+const PALETTES: Palette[] = [
+  { from: "#EEF2FF", to: "#E0E7FF", ring: "#C7D2FE", ornament: "#A5B4FC", medallion: "#FFFFFF" },
+  { from: "#FFF1F2", to: "#FFE4E6", ring: "#FECDD3", ornament: "#FDA4AF", medallion: "#FFFFFF" },
+  { from: "#ECFDF5", to: "#D1FAE5", ring: "#A7F3D0", ornament: "#6EE7B7", medallion: "#FFFFFF" },
+  { from: "#FFFBEB", to: "#FEF3C7", ring: "#FDE68A", ornament: "#FCD34D", medallion: "#FFFFFF" },
+  { from: "#F5F3FF", to: "#EDE9FE", ring: "#DDD6FE", ornament: "#C4B5FD", medallion: "#FFFFFF" },
+  { from: "#ECFEFF", to: "#CFFAFE", ring: "#A5F3FC", ornament: "#67E8F9", medallion: "#FFFFFF" },
 ];
+
+const DARK_PALETTES: Palette[] = PALETTES.map((p) => ({
+  from: "#232032",
+  to: "#1B1826",
+  ring: p.ornament,
+  ornament: p.ring,
+  medallion: "#2A2539",
+}));
 
 function hashString(s: string): number {
   let h = 2166136261;
@@ -31,70 +51,99 @@ export const StoryScene = memo(function StoryScene({
   title,
   emoji,
   className = "",
+  dark = false,
 }: {
   title: string;
   emoji: string;
   className?: string;
+  dark?: boolean;
 }) {
   const h = hashString(title || emoji);
-  const p = PALETTES[h % PALETTES.length];
-  const cloudSeed = h % 5;
-  const treeCount = 3 + (h % 3);
+  const p = (dark ? DARK_PALETTES : PALETTES)[h % PALETTES.length];
+  const id = `s${h % 100000}`;
+
+  // Deterministic ornament placement — same book, same composition.
+  const dots = Array.from({ length: 7 }).map((_, i) => {
+    const seed = (h >> (i * 3)) % 1000;
+    return {
+      cx: 30 + ((seed * 7) % 340),
+      cy: 22 + ((seed * 13) % 176),
+      r: 2 + (seed % 4),
+      o: 0.18 + ((seed % 5) * 0.06),
+    };
+  });
 
   return (
     <svg
-      viewBox="0 0 400 200"
+      viewBox="0 0 400 220"
       className={className}
       role="img"
       aria-label={title}
-      preserveAspectRatio="xMidYMid slice"
+      /* `meet` guarantees the whole composition is always visible. */
+      preserveAspectRatio="xMidYMid meet"
     >
       <defs>
-        <linearGradient id={`sky-${h}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={p.sky[0]} />
-          <stop offset="100%" stopColor={p.sky[1]} />
+        <linearGradient id={`bg-${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor={p.from} />
+          <stop offset="100%" stopColor={p.to} />
         </linearGradient>
+        <radialGradient id={`glow-${id}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity={dark ? "0.10" : "0.85"} />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </radialGradient>
+        <filter id={`soft-${id}`} x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow
+            dx="0" dy="4" stdDeviation="6"
+            floodColor="#2a2540" floodOpacity={dark ? "0.35" : "0.12"}
+          />
+        </filter>
       </defs>
 
-      <rect width="400" height="200" fill={`url(#sky-${h})`} />
+      <rect width="400" height="220" fill={`url(#bg-${id})`} />
 
-      {/* sun */}
-      <circle cx={330 - cloudSeed * 12} cy={44} r="20" fill={p.sun} opacity="0.9" />
+      {/* Two calm arcs give depth without clutter */}
+      <path
+        d="M -40 190 Q 120 140 200 168 T 440 150 L440 240 L-40 240 Z"
+        fill={p.ornament}
+        opacity={dark ? "0.18" : "0.30"}
+      />
+      <path
+        d="M -40 208 Q 140 168 240 196 T 440 184 L440 240 L-40 240 Z"
+        fill={p.ring}
+        opacity={dark ? "0.22" : "0.45"}
+      />
 
-      {/* clouds */}
-      <g fill="#ffffff" opacity="0.75">
-        <ellipse cx={70 + cloudSeed * 10} cy="46" rx="26" ry="13" />
-        <ellipse cx={95 + cloudSeed * 10} cy="50" rx="20" ry="11" />
-        <ellipse cx={210 - cloudSeed * 8} cy="34" rx="20" ry="10" />
+      {/* Scattered dots — quiet texture, deterministic */}
+      <g fill={p.ornament}>
+        {dots.map((d, i) => (
+          <circle key={i} cx={d.cx} cy={d.cy} r={d.r} opacity={d.o} />
+        ))}
       </g>
 
-      {/* rolling hills */}
-      <path d="M0 150 Q 70 112 150 148 T 400 138 L400 200 L0 200 Z" fill={p.hill} />
-      <path d="M0 172 Q 110 140 220 172 T 400 164 L400 200 L0 200 Z" fill={p.accent} opacity="0.85" />
+      {/* Soft light behind the subject */}
+      <circle cx="200" cy="100" r="86" fill={`url(#glow-${id})`} />
 
-      {/* simple trees along the ridge */}
-      <g>
-        {Array.from({ length: treeCount }).map((_, i) => {
-          const x = 40 + i * (320 / treeCount) + (h % 17);
-          const scale = 0.85 + ((h >> i) % 4) * 0.1;
-          return (
-            <g key={i} transform={`translate(${x} 158) scale(${scale})`}>
-              <rect x="-3" y="-14" width="6" height="16" rx="2" fill="#a16207" opacity="0.55" />
-              <circle cx="0" cy="-22" r="14" fill="#4ade80" opacity="0.65" />
-              <circle cx="-9" cy="-16" r="10" fill="#22c55e" opacity="0.55" />
-              <circle cx="9" cy="-16" r="10" fill="#22c55e" opacity="0.55" />
-            </g>
-          );
-        })}
+      {/* Medallion holding the subject — generous padding, never clipped */}
+      <g filter={`url(#soft-${id})`}>
+        <circle cx="200" cy="100" r="54" fill={p.medallion} />
+        <circle
+          cx="200" cy="100" r="54"
+          fill="none" stroke={p.ring} strokeWidth="2.5" opacity="0.9"
+        />
+        <circle
+          cx="200" cy="100" r="62"
+          fill="none" stroke={p.ring} strokeWidth="1.5"
+          strokeDasharray="3 7" opacity="0.55"
+        />
       </g>
 
-      {/* the book's emoji, sitting on the hill as the subject of the scene */}
+      {/* The subject, optically centred inside the medallion */}
       <text
         x="200"
-        y="150"
+        y="100"
         textAnchor="middle"
-        fontSize="62"
-        style={{ dominantBaseline: "middle" }}
+        dominantBaseline="central"
+        fontSize="52"
       >
         {emoji}
       </text>

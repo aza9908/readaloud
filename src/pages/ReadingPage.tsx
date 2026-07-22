@@ -66,14 +66,15 @@ const PageIllustration = memo(function PageIllustration({
         <StoryScene
           title={fallbackTitle}
           emoji={fallbackEmoji ?? "📖"}
-          className="w-full h-44 block"
+          className="w-full block aspect-[400/220]"
+          dark={document.documentElement.classList.contains("dark")}
         />
       </figure>
     );
   }
   if (!src || failed) return null;
   return (
-    <figure className="mb-5 overflow-hidden rounded-3xl bg-black/[0.03] dark:bg-white/5 shadow-soft">
+    <figure className="mb-5 overflow-hidden rounded-3xl bg-black/[0.03] dark:bg-white/5 shadow-soft grid place-items-center aspect-[400/220]">
       <img
         src={src}
         alt=""
@@ -82,7 +83,7 @@ const PageIllustration = memo(function PageIllustration({
         referrerPolicy="no-referrer"
         onLoad={() => setLoaded(true)}
         onError={() => setFailed(true)}
-        className={`w-full max-h-64 object-contain transition-opacity duration-500 ${
+        className={`w-full h-full object-contain transition-opacity duration-500 ${
           loaded ? "opacity-100" : "opacity-0"
         }`}
       />
@@ -585,6 +586,10 @@ export default function ReadingPage() {
                   +{savedWordsRef.current + BOOK_COMPLETION_BONUS} монет
                 </span>
               </div>
+              <p className="text-xs text-ink-faint leading-relaxed px-2">
+                Монеты можно обменять на настоящий приз или деньги — договорись с родителями,
+                сколько стоит одна монета.
+              </p>
               <button className="btn-primary w-full" onClick={() => navigate(`/library?profile=${profileId}`)}>
                 📚 К другим сказкам
               </button>

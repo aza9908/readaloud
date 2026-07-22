@@ -11,6 +11,7 @@ import {
   type ReadingSession,
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { RewardsPanel } from "@/components/RewardsPanel";
 
 function fmtDuration(ms: number): string {
   if (ms < 1000) return "—";
@@ -125,6 +126,11 @@ export default function DashboardPage() {
               <p className="text-sm text-ink-faint">Слов в минуту</p>
             </div>
             <div className="card bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/10 p-4">
+              <p className="text-2xl">🪙</p>
+              <p className="text-2xl font-display font-extrabold text-ink dark:text-white">{profile.coins ?? 0}</p>
+              <p className="text-sm text-ink-faint">Монет заработано</p>
+            </div>
+            <div className="card bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-500/10 dark:to-pink-500/10 p-4">
               <p className="text-2xl">⭐</p>
               <p className="text-2xl font-display font-extrabold text-ink dark:text-white">{profile.totalWords}</p>
               <p className="text-sm text-ink-faint">Слов прочитано</p>

@@ -169,11 +169,14 @@ interface Props {
   readIds: string[];
   readTitles: string[];
   onClose: () => void;
-  onPick: (bookId: string, language?: Language) => void;
+  /** Existing library book chosen → open it for reading. */
+  onPick: (bookId: string) => void;
+  /** A new book was fetched/generated and saved → show it in the library. */
+  onBookAdded: (bookId: string, language: Language) => void;
 }
 
 export function BookGuideDialog({
-  open, uid, books, profile, language, readIds, readTitles, onClose, onPick,
+  open, uid, books, profile, language, readIds, readTitles, onClose, onPick, onBookAdded,
 }: Props) {
   const c = COPY[language] ?? COPY.ru;
 
@@ -232,7 +235,7 @@ export function BookGuideDialog({
           language={language}
           profile={profile}
           uid={uid}
-          onAdded={(bookId) => onPick(bookId, language)}
+          onAdded={(bookId) => onBookAdded(bookId, language)}
         />
       </Shell>
     );
@@ -276,7 +279,7 @@ export function BookGuideDialog({
           language={language}
           profile={profile}
           uid={uid}
-          onAdded={(bookId) => onPick(bookId, language)}
+          onAdded={(bookId) => onBookAdded(bookId, language)}
         />
       </Shell>
     );

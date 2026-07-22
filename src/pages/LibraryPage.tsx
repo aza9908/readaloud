@@ -13,6 +13,7 @@ import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
 import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
+import { RewardsPanel } from "@/components/RewardsPanel";
 import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
 function fmtDuration(ms: number): string {
@@ -37,10 +38,14 @@ export default function LibraryPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [installing, setInstalling] = useState(false);
+  /** Book just added via the guide — pulled to the top and highlighted. */
+  const [highlightId, setHighlightId] = useState<string | null>(null);
 
-  const reload = useCallback(() => {
+  const reload = useCallback(async () => {
     if (!user) return;
-    void getBooks(user.uid, language).then(setBooks);
+    const next = await getBooks(user.uid, language);
+    setBooks(next);
+    return next;
   }, [user, language]);
 
   useEffect(() => {
@@ -51,11 +56,11 @@ export default function LibraryPage() {
     });
   }, [user, profileId]);
 
-  useEffect(() => { setBooks(null); reload(); }, [reload]);
+  useEffect(() => { setBooks(null); void reload(); }, [reload]);
 
   // Books can be added from the guide or another tab; refresh on return.
   useEffect(() => {
-    const onFocus = () => reload();
+    const onFocus = () => { void reload(); };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onFocus);
     return () => {
@@ -186,11 +191,21 @@ export default function LibraryPage() {
             <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
           </div>
         )}
-        {books?.map((book, i) => {
+        {(highlightId && books
+            ? [...books].sort((a, b) => (a.id === highlightId ? -1 : b.id === highlightId ? 1 : 0))
+            : books
+          )?.map((book, i) => {
           const prog = progressByBook.get(book.id);
           const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
           return (
-            <div key={book.id} className="card p-4 flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200 animate-fade-up" style={{ animationDelay: `${i * 40}ms` }}>
+            <div
+              key={book.id}
+              data-book-id={book.id}
+              className={`card p-4 flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200 animate-fade-up ${
+                book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""
+              }`}
+              style={{ animationDelay: `${i * 40}ms` }}
+            >
               <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={() => navigate(`/read/${book.id}?profile=${profile.id}`)}>
                 <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
                   {book.coverUrl
@@ -200,6 +215,11 @@ export default function LibraryPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <p className="font-display font-bold text-ink dark:text-white truncate">{book.title}</p>
+                    {book.id === highlightId && (
+                      <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
+                        НОВАЯ
+                      </span>
+                    )}
                     {prog?.completed && <span className="text-amber-500">⭐</span>}
                   </div>
                   <p className="text-xs text-ink-faint mt-0.5">
@@ -240,13 +260,28 @@ export default function LibraryPage() {
           readIds={completedSessions.map((s) => s.bookId)}
           readTitles={completedSessions.map((s) => s.bookTitle)}
           onClose={() => setShowGuide(false)}
-          onPick={(bookId, bookLanguage) => {
+          onPick={(bookId) => {
             setShowGuide(false);
-            // Refresh the list and make sure the new book is actually visible:
-            // if it was added in another language, switch the filter to it.
-            if (bookLanguage && bookLanguage !== language) setLanguage(bookLanguage);
-            else reload();
             navigate(`/read/${bookId}?profile=${profile.id}`);
+          }}
+          onBookAdded={async (bookId, bookLanguage) => {
+            // Stay in the library so the child actually sees the new book
+            // appear, instead of being thrown straight into the reader.
+            setShowGuide(false);
+            if (bookLanguage !== language) {
+              setLanguage(bookLanguage); // triggers reload via the effect
+            } else {
+              await reload();
+            }
+            setHighlightId(bookId);
+            toast({ icon: "📚", title: "Книга добавлена в библиотеку" });
+            // Bring it into view once the list has painted.
+            requestAnimationFrame(() => {
+              document
+                .querySelector(`[data-book-id="${bookId}"]`)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+            window.setTimeout(() => setHighlightId(null), 6000);
           }}
         />
       )}
@@ -278,6 +313,8 @@ export default function LibraryPage() {
                 </div>
               ))}
             </div>
+
+            <RewardsPanel language={language} coins={profile.coins ?? 0} />
 
             <div>
               <p className="font-display font-bold text-ink dark:text-white mb-2">Книги по языкам</p>
