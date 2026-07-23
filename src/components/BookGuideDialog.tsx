@@ -231,7 +231,8 @@ export function BookGuideDialog({
           <p className="text-ink-soft dark:text-ink-faint">{c.empty}</p>
         </div>
         <BookDiscovery
-          topics={chosenTopics || "сказка"}
+          topics={topics.join(", ") || "сказка"}
+          prompt={free}
           language={language}
           profile={profile}
           uid={uid}
@@ -275,7 +276,8 @@ export function BookGuideDialog({
         </button>
 
         <BookDiscovery
-          topics={chosenTopics}
+          topics={topics.join(", ")}
+          prompt={free}
           language={language}
           profile={profile}
           uid={uid}

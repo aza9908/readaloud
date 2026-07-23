@@ -67,13 +67,15 @@ type Phase = "idle" | "searching" | "results" | "adding" | "generating";
 
 interface Props {
   topics: string;
+  /** Free text the child typed — drives what the story is about. */
+  prompt?: string;
   language: Language;
   profile: ChildProfile;
   uid: string;
   onAdded: (bookId: string) => void;
 }
 
-export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props) {
+export function BookDiscovery({ topics, prompt = "", language, profile, uid, onAdded }: Props) {
   const c = COPY[language] ?? COPY.ru;
   const [phase, setPhase] = useState<Phase>("idle");
   const [results, setResults] = useState<FoundBook[]>([]);
@@ -83,7 +85,7 @@ export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props
     setPhase("searching");
     setError(null);
     try {
-      const found = await searchOnline(topics, language);
+      const found = await searchOnline([prompt, topics].filter(Boolean).join(" "), language);
       setResults(found);
       setPhase("results");
       if (found.length === 0) setError(c.nothing);
@@ -138,9 +140,9 @@ export function BookDiscovery({ topics, language, profile, uid, onAdded }: Props
     setPhase("generating");
     setError(null);
     try {
-      const prepared = await generateStory({ topics, language, age: profile.age });
+      const prepared = await generateStory({ topics, prompt, language, age: profile.age });
       // Illustrate with freely-licensed Commons imagery matching the topic.
-      const commonsQuery = `${topics || "children story"} illustration`;
+      const commonsQuery = `${prompt || topics || "children story"} illustration`;
       const images = await searchCommonsImages(commonsQuery, prepared.pages.length);
       const id = await saveDiscoveredBook(uid, {
         title: prepared.title,

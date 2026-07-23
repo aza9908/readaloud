@@ -411,7 +411,10 @@ export async function adaptStory(args: {
 
 /** Writes an original story when nothing suitable exists online. */
 export async function generateStory(args: {
+  /** Topic chips the child selected. */
   topics: string;
+  /** Free text the child typed — what the story should be about. */
+  prompt?: string;
   language: Language;
   age: number;
 }): Promise<PreparedBook> {
@@ -430,7 +433,11 @@ export async function generateStory(args: {
     };
   }
 
-  const local = generateStoryOffline(args.topics, args.language, args.age);
+  const local = generateStoryOffline(
+    { topics: args.topics, prompt: args.prompt },
+    args.language,
+    args.age,
+  );
   return {
     title: local.title,
     pages: local.pages,

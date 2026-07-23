@@ -52,7 +52,18 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
 6. **Generated stories draw problem/helper/reward as one bound `Scenario`.**
    Drawing them from independent pools produces incoherent stories.
 7. **Russian output must respect grammatical gender.** Heroes carry
-   `gender: "m" | "f"`; verbs and adjectives agree.
+   `gender: "m" | "f"`; verbs and adjectives agree. Never interpolate a noun
+   where the sentence needs a non-nominative case — restructure instead
+   (this produced "нашла полная корзина ягод").
+8. **Alignment lives in `src/lib/alignment.ts`, not in the hook.** It is pure
+   and covered by `npm test`. Never re-scan the transcript tail: tokens are
+   consumed once via a `consumed` pointer. A page turn calls `setPage`, which
+   drops pending speech — without that, the previous page's words advance the
+   new page instantly.
+9. **Never skip more than one word, and only on a `strong` match.** A `weak`
+   (prefix) match is accepted at the cursor but must never cause a skip.
+10. **The reading prompt subscribes to the cursor** (`subscribeCursor`), it
+    does not read throttled state — otherwise it lags a second behind.
 
 ## Deploy
 

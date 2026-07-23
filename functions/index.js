@@ -161,7 +161,7 @@ export const adaptStory = onCall(opts, async (req) => {
 /** Writes an original story from the child's chosen topics. */
 export const generateStory = onCall(opts, async (req) => {
   if (!req.auth) throw new HttpsError("unauthenticated", "Sign in required");
-  const { topics = "", language = "ru", age = 8 } = req.data ?? {};
+  const { topics = "", prompt = "", language = "ru", age = 8 } = req.data ?? {};
 
   const targetWords = Math.round(140 + Math.max(0, age - 5) * 45);
   const system =
@@ -171,7 +171,9 @@ export const generateStory = onCall(opts, async (req) => {
     `Язык — ${LANG_NAME[language] ?? "русский"}. Отвечай ТОЛЬКО валидным JSON.`;
 
   const user =
-    `Ребёнку нравится: ${topics || "дружба и приключения"}.\n\n` +
+    `Ребёнку нравится: ${topics || "дружба и приключения"}.\n` +
+    (prompt ? `Ребёнок попросил именно это: "${prompt}". Сказка ОБЯЗАТЕЛЬНО должна быть об этом.\n` : "") +
+    `\n` +
     `Напиши оригинальную сказку примерно в ${targetWords} слов, раздели на 4-6 страниц. Формат:\n` +
     `{"title":"название","pages":["страница 1","страница 2"]}`;
 

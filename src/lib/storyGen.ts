@@ -533,6 +533,8 @@ const DATA = {
 interface Cast {
   hero: Hero; friend: string; place: string;
   problem: string; helper: string; treasure: string;
+  /** What the child asked for, woven into the opening. Null if unspecified. */
+  subject: string | null;
 }
 
 type PlotFn = (c: Cast) => string[];
@@ -543,7 +545,7 @@ const ruG = (c: Cast) => (m: string, f: string) => (c.hero.gender === "m" ? m : 
 const RU_PLOTS: PlotFn[] = [
   // 1 — quest
   (c) => { const g = ruG(c); const H = cap(c.hero.name); return [
-    `${g("Жил-был", "Жила-была")} ${c.hero.name}. Каждое утро ${g("он", "она")} ${g("гулял", "гуляла")} ${c.place} и здоровался со всеми, кого встречал.`,
+    `${g("Жил-был", "Жила-была")} ${c.hero.name}. Каждое утро ${g("он", "она")} ${g("гулял", "гуляла")} ${c.place}.${c.subject ? ` Больше всего на свете ${g("его", "её")} интересовала тема «${c.subject}».` : ` И ${g("здоровался", "здоровалась")} со всеми, кого ${g("встречал", "встречала")}.`}`,
     `Однажды случилась беда: ${c.problem}. Все вокруг растерялись. Но ${c.hero.name} ${g("сказал", "сказала")}: «Я знаю, что делать!»`,
     `Рядом всегда был верный друг — ${c.friend}. Вдвоём отправляться в путь было совсем не страшно.`,
     `По дороге им встретился ${c.helper}. «Сначала подумайте, потом делайте», — посоветовал он. Друзья послушались.`,
@@ -552,7 +554,7 @@ const RU_PLOTS: PlotFn[] = [
   ]; },
   // 2 — lost and found
   (c) => { const g = ruG(c); return [
-    `Утро началось спокойно ${c.place}. ${cap(c.hero.name)} ${g("допивал", "допивала")} чай, когда прибежал ${c.friend}.`,
+    `Утро началось спокойно ${c.place}.${c.subject ? ` ${cap(c.hero.name)} как раз думал${g("", "а")} про ${c.subject}.` : ""} ${cap(c.hero.name)} ${g("допивал", "допивала")} чай, когда прибежал ${c.friend}.`,
     `«Скорее! ${cap(c.problem)}», — выпалил друг. ${cap(c.hero.name)} сразу ${g("вскочил", "вскочила")} с места.`,
     `Они искали везде: заглядывали под каждый куст, спрашивали у каждого встречного. Но следов не было.`,
     `Тогда ${c.helper} тихо сказал: «А вы посмотрели там, где искать никто не догадался?» Друзья переглянулись.`,
@@ -561,8 +563,8 @@ const RU_PLOTS: PlotFn[] = [
   ]; },
   // 3 — rescue / helping
   (c) => { const g = ruG(c); return [
-    `${cap(c.hero.name)} ${g("любил", "любила")} бывать ${c.place}. Там всегда было тихо и хорошо.`,
-    `Но в тот день пришла беда: ${c.problem}. ${c.friend} чуть не заплакал от расстройства.`,
+    `${cap(c.hero.name)} ${g("любил", "любила")} бывать ${c.place}.${c.subject ? ` Там ${g("он", "она")} часто представлял${g("", "а")} себе ${c.subject}.` : " Там всегда было тихо и хорошо."}`,
+    `Но в тот день пришла беда: ${c.problem}. ${cap(c.friend)} чуть не заплакал от расстройства.`,
     `«Не грусти, — сказал${g("", "а")} ${c.hero.name}. — Мы что-нибудь придумаем.» И они взялись за дело.`,
     `Работа была трудной. Позвали на помощь — пришёл ${c.helper}, а за ним и другие соседи.`,
     `Все вместе они управились до заката. Никто не ушёл, пока дело не было сделано.`,
@@ -579,7 +581,7 @@ const RU_PLOTS: PlotFn[] = [
   ]; },
   // 5 — sharing
   (c) => { const g = ruG(c); return [
-    `Однажды ${c.place} ${c.hero.name} ${g("нашёл", "нашла")} кое-что удивительное.`,
+    `Однажды ${c.place} ${c.hero.name} ${g("нашёл", "нашла")} кое-что удивительное${c.subject ? ` — то, что напомнило ${g("ему", "ей")} про ${c.subject}` : ""}.`,
     `Радость длилась недолго: ${c.problem}. И сразу стало ясно, что делать с находкой.`,
     `${cap(c.hero.name)} позвал${g("", "а")} всех. Первым прибежал ${c.friend}, за ним — остальные.`,
     `«Хватит ли на всех?» — засомневался кто-то. Но ${c.helper} ответил: «Когда делишь — всегда хватает.»`,
@@ -588,7 +590,7 @@ const RU_PLOTS: PlotFn[] = [
   ]; },
   // 6 — small mystery
   (c) => { const g = ruG(c); return [
-    `Что-то странное происходило ${c.place}. ${cap(c.problem)} — и никто не мог объяснить почему.`,
+    `Что-то странное происходило ${c.place}. ${cap(c.problem)} — и никто не мог объяснить почему.${c.subject ? ` ${cap(c.hero.name)} сразу подумал${g("", "а")} про ${c.subject}.` : ""}`,
     `${cap(c.hero.name)} решил${g("", "а")} разобраться. Взял${g("", "а")} блокнот и стал${g("", "а")} записывать всё необычное.`,
     `${cap(c.friend)} помогал искать улики. Вдвоём они обошли всё вокруг три раза.`,
     `Разгадку подсказал ${c.helper}: «Иногда самая простая причина — самая верная.»`,
@@ -599,7 +601,7 @@ const RU_PLOTS: PlotFn[] = [
 
 const KK_PLOTS: PlotFn[] = [
   (c) => [
-    `Ерте, ерте, ертеде ${c.hero.name} деген бала өмір сүріпті. Ол күн сайын ${c.place} серуендейтін.`,
+    `Ерте, ерте, ертеде ${c.hero.name} деген бала өмір сүріпті. Ол күн сайын ${c.place} серуендейтін.${c.subject ? ` Ол «${c.subject}» тақырыбын бәрінен де жақсы көретін.` : ""}`,
     `Бір күні бақытсыздық болды: ${c.problem}. Бәрі не істерін білмеді. Ал ${c.hero.name}: «Мен білемін не істеу керек!» — деді.`,
     `Қасында әрқашан адал досы — ${c.friend} болды. Екеуіне жол жүру мүлдем қорқынышты емес еді.`,
     `Жолда оларға ${c.helper} кездесті. «Алдымен ойланыңдар, сосын істеңдер», — деді ол.`,
@@ -634,7 +636,7 @@ const KK_PLOTS: PlotFn[] = [
 
 const EN_PLOTS: PlotFn[] = [
   (c) => [
-    `Once there was a child named ${c.hero.name}. Every morning ${c.hero.gender === "m" ? "he" : "she"} walked ${c.place} and said hello to everyone.`,
+    `Once there was a child named ${c.hero.name}. Every morning ${c.hero.gender === "m" ? "he" : "she"} walked ${c.place}.${c.subject ? ` More than anything, ${c.hero.name} loved everything about ${c.subject}.` : " and said hello to everyone."}`,
     `Then one day something went wrong: ${c.problem}. Everyone worried. But ${c.hero.name} said, "I know what to do!"`,
     `A loyal friend was always nearby — ${c.friend}. With a friend along, the road was not scary at all.`,
     `On the way they met ${c.helper}. "Think first, then do," came the advice. The friends listened.`,
@@ -677,6 +679,41 @@ const EN_PLOTS: PlotFn[] = [
 
 const PLOTS = { ru: RU_PLOTS, kk: KK_PLOTS, en: EN_PLOTS };
 
+// ───────────────── Using the child's own prompt ─────────────────
+
+/** Words that carry no story meaning — dropped when reading the prompt. */
+const PROMPT_STOP = new Set([
+  "про","о","об","и","с","на","в","для","что","чтобы","как","хочу","хочется",
+  "историю","история","сказку","сказка","рассказ","книгу","книга","читать",
+  "туралы","және","мен","бен","пен","ертегі","әңгіме","кітап","оқығым","келеді",
+  "about","a","an","the","and","with","for","story","tale","book","read","want",
+  "i","to","of","on","in","some","please",
+]);
+
+/**
+ * Pulls the meaningful phrase out of what the child typed, e.g.
+ * "хочу сказку про динозавров и вулкан" → ["динозавров", "вулкан"].
+ * These are injected into the story so it visibly answers the request.
+ */
+export function extractSubjects(prompt: string): string[] {
+  return prompt
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]+/gu, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 2 && !PROMPT_STOP.has(w))
+    .slice(0, 3);
+}
+
+/** Turns a subject word into something that reads naturally in a sentence. */
+function subjectPhrase(subjects: string[], language: Language): string | null {
+  if (!subjects.length) return null;
+  const s = subjects[0];
+  if (language === "ru") return s;
+  if (language === "kk") return s;
+  return s;
+}
+
 // ───────────────────── Topic detection ─────────────────────
 
 const TOPIC_HINTS: Record<TopicKey, string[]> = {
@@ -713,18 +750,33 @@ function detectTopic(text: string, rnd: () => number): TopicKey {
 // ───────────────────────── Titles ─────────────────────────
 
 const TITLES = {
-  ru: (c: Cast, rnd: () => number) => choose([
+  ru: (c: Cast, rnd: () => number) => c.subject
+    ? choose([
+        `${cap(c.hero.name)} и ${c.subject}`,
+        `${cap(c.hero.name)}: история про ${c.subject}`,
+        `Сказка про ${c.subject}`,
+      ], rnd)
+    : choose([
     `${cap(c.hero.name)} и ${c.treasure}`,
-    `Как ${c.hero.name} ${c.hero.gender === "m" ? "нашёл" : "нашла"} ${c.treasure}`,
-    `История про то, как ${c.problem}`,
+    `Как всё получилось у ${c.hero.name}`,
     `${cap(c.hero.name)} и верный друг`,
   ], rnd),
-  kk: (c: Cast, rnd: () => number) => choose([
+  kk: (c: Cast, rnd: () => number) => c.subject
+    ? choose([
+        `${cap(c.hero.name)} және ${c.subject}`,
+        `${cap(c.subject)} туралы ертегі`,
+      ], rnd)
+    : choose([
     `${cap(c.hero.name)} және ${c.treasure}`,
     `${cap(c.hero.name)} қалай ${c.treasure} тапты`,
     `${cap(c.hero.name)} мен адал дос`,
   ], rnd),
-  en: (c: Cast, rnd: () => number) => choose([
+  en: (c: Cast, rnd: () => number) => c.subject
+    ? choose([
+        `${cap(c.hero.name)} and the ${c.subject}`,
+        `A Story About ${cap(c.subject)}`,
+      ], rnd)
+    : choose([
     `${cap(c.hero.name)} and ${c.treasure}`,
     `How ${c.hero.name} Found ${c.treasure}`,
     `${cap(c.hero.name)} and the Loyal Friend`,
@@ -738,11 +790,18 @@ const TITLES = {
  * place, problem, helper and treasure, so repeated requests differ.
  */
 export function generateStoryOffline(
-  topicsText: string,
+  input: string | { topics?: string; prompt?: string },
   language: Language,
   age: number,
   seed = Date.now() ^ Math.floor(Math.random() * 1e9),
 ): { title: string; pages: string[]; topic: TopicKey } {
+  // Topic chips steer WHICH world the story is set in; the child's typed
+  // prompt is what the story should visibly be *about*. Only the latter
+  // becomes a subject — chip values like "животные лес" read badly in prose.
+  const topics = typeof input === "string" ? input : (input.topics ?? "");
+  const prompt = typeof input === "string" ? "" : (input.prompt ?? "");
+  const topicsText = `${topics} ${prompt}`.trim();
+
   const rnd = makeRng(seed);
   const data = DATA[language] ?? DATA.ru;
   const topic = detectTopic(topicsText, rnd);
@@ -752,7 +811,9 @@ export function generateStoryOffline(
   // Draw problem/helper/treasure as ONE scenario so they stay coherent —
   // a space problem is never solved by a forest badger.
   const scenario = choose(pool.scenarios ?? fallback.scenarios, rnd);
+  const subjects = extractSubjects(prompt);
   const cast: Cast = {
+    subject: subjectPhrase(subjects, language),
     hero: choose(data.heroes, rnd),
     friend: choose(pool.friends ?? fallback.friends, rnd),
     place: choose(pool.places ?? fallback.places, rnd),
@@ -763,7 +824,25 @@ export function generateStoryOffline(
 
   const plots = PLOTS[language] ?? PLOTS.ru;
   const plot = choose(plots, rnd);
-  const scenes = plot(cast);
+  let scenes = plot(cast);
+
+  // Guarantee the child's request is visible. Some plots weave the subject in
+  // themselves; if this one did not, open with an explicit link so the story
+  // always answers what was asked for.
+  if (cast.subject) {
+    const mentioned = scenes.some((p) =>
+      p.toLocaleLowerCase().includes(cast.subject!.toLocaleLowerCase()),
+    );
+    if (!mentioned) {
+      const opener =
+        language === "kk"
+          ? `Бұл — «${cast.subject}» туралы ертегі.`
+          : language === "en"
+            ? `This is a story about ${cast.subject}.`
+            : `Это история про ${cast.subject}.`;
+      scenes = [`${opener} ${scenes[0]}`, ...scenes.slice(1)];
+    }
+  }
 
   const sceneCount = age <= 6 ? 4 : age <= 8 ? 5 : scenes.length;
   return {

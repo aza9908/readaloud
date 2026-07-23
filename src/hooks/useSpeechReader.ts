@@ -1,26 +1,30 @@
 /**
- * useSpeechReader — high-performance karaoke reading hook.
+ * useSpeechReader — karaoke reading engine.
  *
- * Performance design (this is why the old Replit version lagged):
- * 1. All matching state lives in refs — zero React re-renders per word.
- * 2. Highlighting toggles CSS classes DIRECTLY on word <span>s.
- * 3. React state syncs on a throttled 1000 ms tick (progress bar / WPM).
- * 4. One SpeechRecognition instance; Chrome's auto-stop handled with a
- *    guarded silent restart. Listening intent survives page turns.
- * 5. Levenshtein replaced by an O(n) distance-≤1 check; matching scans
- *    only current word + small lookahead window.
+ * Responsibilities are split deliberately:
+ *   • ReadingAligner (src/lib/alignment.ts) decides WHERE the cursor is.
+ *     It is pure and unit-tested (test/alignment.test.mjs).
+ *   • This hook owns the microphone, the DOM highlighting and the timers.
  *
- * Implements PRD §4.4 (MATCH-01 … MATCH-07).
+ * Performance rules (breaking these reintroduces the reading lag):
+ *   1. Never setState per speech event — `onresult` fires 5–15×/sec.
+ *   2. Highlighting toggles CSS classes directly on the word <span>s.
+ *   3. Progress/WPM sync on a 1-second tick; the reading surface is memoized.
+ *
+ * Synchronisation rule:
+ *   The "read this word" prompt must never lag the highlight. It therefore
+ *   does NOT read the throttled React state — it subscribes to cursor changes
+ *   and re-renders only itself, immediately.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ReadingAligner } from "@/lib/alignment";
 
 export interface SpeechReaderOptions {
   words: string[];
-  lang: string; // BCP-47
+  lang: string;
   onPageComplete: () => void;
   onProgress?: (state: ProgressSnapshot) => void;
-  lookahead?: number;
 }
 
 export interface ProgressSnapshot {
@@ -37,7 +41,9 @@ export interface SpeechReaderApi {
   elapsedMs: number;
   isListening: boolean;
   isSupported: boolean;
-  currentWord: string;
+  /** Live cursor — subscribe for instant updates, never throttled. */
+  subscribeCursor: (fn: (index: number) => void) => () => void;
+  getCursor: () => number;
   start: () => void;
   pause: () => void;
   skipWord: () => void;
@@ -45,62 +51,9 @@ export interface SpeechReaderApi {
   registerWordEl: (index: number, el: HTMLElement | null) => void;
 }
 
-// ── Normalization (MATCH-01) ──
-const NORMALIZE_RE = /[^\p{L}\p{N}]+/gu;
-
-export function normalizeWord(raw: string): string {
-  return raw.toLocaleLowerCase().replace(/ё/g, "е").replace(NORMALIZE_RE, "");
-}
-
-function expandHyphens(raw: string): string[] {
-  if (raw.includes("-")) {
-    const parts = raw.split("-").map(normalizeWord).filter(Boolean);
-    if (parts.length > 1) return parts;
-  }
-  const n = normalizeWord(raw);
-  return n ? [n] : [];
-}
-
-// ── O(n) Levenshtein ≤ 1 (all MATCH-05 needs) ──
-function withinDistanceOne(a: string, b: string): boolean {
-  if (a === b) return true;
-  const la = a.length, lb = b.length;
-  if (Math.abs(la - lb) > 1) return false;
-  let i = 0, j = 0, edits = 0;
-  while (i < la && j < lb) {
-    if (a[i] === b[j]) { i++; j++; continue; }
-    if (++edits > 1) return false;
-    if (la === lb) { i++; j++; }
-    else if (la > lb) i++;
-    else j++;
-  }
-  return edits + (la - i) + (lb - j) <= 1;
-}
-
-// ── Matcher (MATCH-02…05) ──
-function wordsMatch(target: string, spoken: string): boolean {
-  if (!target || !spoken) return false;
-  if (target === spoken) return true;               // MATCH-02
-  if (target.length <= 2) return false;             // MATCH-03
-  if (target.length >= 4) {                         // MATCH-04
-    const need = Math.ceil(target.length * 0.75);
-    if (spoken.length >= need && (target.startsWith(spoken) || spoken.startsWith(target))) {
-      return true;
-    }
-  }
-  return withinDistanceOne(target, spoken);         // MATCH-05
-}
-
-const CASCADE_MS = 130;         // MATCH-07 — slower, calmer highlight pace (was 70)
+const CASCADE_MS = 130;
 const SYNC_INTERVAL_MS = 1000;
 const RESTART_BACKOFF_MS = 250;
-
-function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
-  const w = window as unknown as Record<string, unknown>;
-  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as
-    | (new () => SpeechRecognitionLike)
-    | null;
-}
 
 interface SpeechRecognitionLike {
   continuous: boolean;
@@ -115,10 +68,18 @@ interface SpeechRecognitionLike {
 }
 interface SpeechResultEventLike {
   results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }>;
+  resultIndex: number;
+}
+
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  const w = window as unknown as Record<string, unknown>;
+  return (w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null) as
+    | (new () => SpeechRecognitionLike)
+    | null;
 }
 
 export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
-  const { words, lang, onPageComplete, onProgress, lookahead = 3 } = opts;
+  const { words, lang, onPageComplete, onProgress } = opts;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [wordsRead, setWordsRead] = useState(0);
@@ -127,7 +88,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const [isListening, setIsListening] = useState(false);
   const isSupported = !!getSpeechRecognitionCtor();
 
-  const idxRef = useRef(0);
+  const alignerRef = useRef<ReadingAligner>(new ReadingAligner());
   const wordsReadRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef(0);
@@ -135,8 +96,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const wantListeningRef = useRef(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const wordElsRef = useRef(new Map<number, HTMLElement>());
-  const normTargetsRef = useRef<string[][]>([]);
-  const lastProcessedRef = useRef("");
+  const currentElRef = useRef<HTMLElement | null>(null);
   const cascadeTimersRef = useRef<number[]>([]);
   const pageDoneRef = useRef(false);
   const onPageCompleteRef = useRef(onPageComplete);
@@ -144,67 +104,61 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   onPageCompleteRef.current = onPageComplete;
   onProgressRef.current = onProgress;
 
-  // Page changed → precompute targets, reset index, clear timers.
+  // ── Instant cursor notification (prompt must not lag the highlight) ──
+  const cursorSubsRef = useRef(new Set<(i: number) => void>());
+  const notifyCursor = useCallback((i: number) => {
+    cursorSubsRef.current.forEach((fn) => fn(i));
+  }, []);
+  const subscribeCursor = useCallback((fn: (index: number) => void) => {
+    cursorSubsRef.current.add(fn);
+    fn(alignerRef.current.cursor);
+    return () => {
+      cursorSubsRef.current.delete(fn);
+    };
+  }, []);
+  const getCursor = useCallback(() => alignerRef.current.cursor, []);
+
+  // ── Page load: the aligner drops speech from the previous page ──
   useEffect(() => {
-    normTargetsRef.current = words.map(expandHyphens);
+    alignerRef.current.setPage(words, 0);
     pageDoneRef.current = false;
-    idxRef.current = 0;
-    lastProcessedRef.current = "";
     cascadeTimersRef.current.forEach(clearTimeout);
     cascadeTimersRef.current = [];
     currentElRef.current = null;
     setCurrentIndex(0);
-  }, [words]);
+    notifyCursor(0);
+  }, [words, notifyCursor]);
 
-  // ── Direct-DOM highlighting ──
-  /**
-   * Paints one word. `word-current` is special: only a single element may
-   * carry it at a time, so we track the element that holds it and clear it
-   * explicitly. Without this, a late cascade timer from a previous advance
-   * could leave a second highlighted word on screen (the "two cursors" bug).
-   */
-  const currentElRef = useRef<HTMLElement | null>(null);
-
-  const clearCurrentHighlight = useCallback(() => {
-    const prev = currentElRef.current;
-    if (prev) {
-      prev.classList.remove("word-current");
-      // A word that was current has, by definition, been reached already.
-      const i = Number(prev.dataset.wordIndex ?? -1);
-      prev.classList.add(i > -1 && i < idxRef.current ? "word-read" : "word-pending");
-      currentElRef.current = null;
-    }
-  }, []);
-
-  const paintWord = useCallback(
-    (index: number, state: "read" | "current" | "pending") => {
-      const el = wordElsRef.current.get(index);
-      if (!el) return;
-      if (state === "current") {
-        if (currentElRef.current === el) return; // already the cursor
-        clearCurrentHighlight();
-        el.classList.remove("word-read", "word-pending");
-        el.classList.add("word-current");
-        currentElRef.current = el;
-        return;
+  // ── DOM highlighting, with a strict single-cursor invariant ──
+  const paintWord = useCallback((index: number, state: "read" | "current" | "pending") => {
+    const el = wordElsRef.current.get(index);
+    if (!el) return;
+    if (state === "current") {
+      if (currentElRef.current === el) return;
+      const prev = currentElRef.current;
+      if (prev) {
+        prev.classList.remove("word-current");
+        const pi = Number(prev.dataset.wordIndex ?? -1);
+        prev.classList.add(
+          pi > -1 && pi < alignerRef.current.cursor ? "word-read" : "word-pending",
+        );
       }
-      // Painting a non-current state on the element that holds the cursor
-      // must also release the cursor, or it would linger.
-      if (currentElRef.current === el) currentElRef.current = null;
-      el.classList.remove("word-read", "word-current", "word-pending");
-      el.classList.add(`word-${state}`);
-    },
-    [clearCurrentHighlight],
-  );
+      el.classList.remove("word-read", "word-pending");
+      el.classList.add("word-current");
+      currentElRef.current = el;
+      return;
+    }
+    if (currentElRef.current === el) currentElRef.current = null;
+    el.classList.remove("word-read", "word-current", "word-pending");
+    el.classList.add(`word-${state}`);
+  }, []);
 
   const registerWordEl = useCallback((index: number, el: HTMLElement | null) => {
     if (el) {
       wordElsRef.current.set(index, el);
-      const i = idxRef.current;
+      const i = alignerRef.current.cursor;
       el.classList.remove("word-read", "word-current", "word-pending");
       if (index === i) {
-        // Re-registering the cursor word (e.g. after a font-size change):
-        // release any previous holder so we never end up with two.
         const prev = currentElRef.current;
         if (prev && prev !== el) prev.classList.remove("word-current");
         el.classList.add("word-current");
@@ -219,19 +173,19 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   }, []);
 
   const computeElapsed = () =>
-    accumulatedMsRef.current +
-    (startedAtRef.current ? Date.now() - startedAtRef.current : 0);
+    accumulatedMsRef.current + (startedAtRef.current ? Date.now() - startedAtRef.current : 0);
 
   const syncStateNow = useCallback(() => {
     const elapsed = computeElapsed();
     const minutes = elapsed / 60000;
     const currentWpm = minutes > 0.05 ? Math.round(wordsReadRef.current / minutes) : 0;
-    setCurrentIndex(Math.min(idxRef.current, Math.max(words.length - 1, 0)));
+    const cursor = alignerRef.current.cursor;
+    setCurrentIndex(Math.min(cursor, Math.max(words.length - 1, 0)));
     setWordsRead(wordsReadRef.current);
     setElapsedMs(elapsed);
     setWpm(currentWpm);
     onProgressRef.current?.({
-      currentIndex: idxRef.current,
+      currentIndex: cursor,
       wordsRead: wordsReadRef.current,
       elapsedMs: elapsed,
       wpm: currentWpm,
@@ -244,17 +198,15 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     return () => window.clearInterval(id);
   }, [isListening, syncStateNow]);
 
-  // ── Advance (cascade MATCH-07, page turn READ-05) ──
-  const advanceTo = useCallback(
-    (newIndex: number) => {
-      const from = idxRef.current;
-      const count = newIndex - from;
-      if (count <= 0) return;
-      // Drop any pending cascade steps from an earlier advance — otherwise a
-      // late timer repaints an old word as the cursor.
+  /** Repaint after the aligner moved the cursor forward. */
+  const applyAdvance = useCallback(
+    (from: number, advanced: number) => {
+      if (advanced <= 0) return;
       cascadeTimersRef.current.forEach(clearTimeout);
       cascadeTimersRef.current = [];
-      for (let k = 0; k < count; k++) {
+
+      const to = from + advanced;
+      for (let k = 0; k < advanced; k++) {
         const wordIdx = from + k;
         const t = window.setTimeout(() => {
           paintWord(wordIdx, "read");
@@ -262,51 +214,46 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
         }, k * CASCADE_MS);
         cascadeTimersRef.current.push(t);
       }
-      idxRef.current = newIndex;
-      wordsReadRef.current += count;
-      if (newIndex >= words.length && !pageDoneRef.current) {
+
+      wordsReadRef.current += advanced;
+      notifyCursor(to); // immediate — the prompt must not wait for the tick
+
+      if (to >= words.length && !pageDoneRef.current) {
         pageDoneRef.current = true;
-        window.setTimeout(() => {
-          syncStateNow();
-          onPageCompleteRef.current();
-        }, count * CASCADE_MS + 120);
+        window.setTimeout(
+          () => {
+            syncStateNow();
+            onPageCompleteRef.current();
+          },
+          advanced * CASCADE_MS + 120,
+        );
       }
     },
-    [words.length, paintWord, syncStateNow],
+    [words.length, paintWord, syncStateNow, notifyCursor],
   );
 
-  // ── Hot path: transcript → match → advance (refs only) ──
-  const handleTranscript = useCallback(
-    (transcript: string) => {
-      if (transcript === lastProcessedRef.current) return;
-      lastProcessedRef.current = transcript;
-      const spokenTokens = transcript
-        .split(/\s+/)
-        .map(normalizeWord)
-        .filter(Boolean)
-        .slice(-6);
-      if (!spokenTokens.length) return;
-
-      const targets = normTargetsRef.current;
-      let advanced = idxRef.current;
-      for (const spoken of spokenTokens) {
-        if (advanced >= targets.length) break;
-        const windowEnd = Math.min(advanced + 1 + lookahead, targets.length);
-        for (let w = advanced; w < windowEnd; w++) {
-          if (targets[w].some((p) => wordsMatch(p, spoken))) {
-            advanced = w + 1;
-            break;
-          }
-        }
+  // ── Speech events ──
+  const handleResults = useCallback(
+    (event: SpeechResultEventLike) => {
+      let finalText = "";
+      let interimText = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const r = event.results[i];
+        if (!r?.[0]) continue;
+        if (r.isFinal) finalText += r[0].transcript + " ";
+        else interimText += r[0].transcript + " ";
       }
-      if (advanced > idxRef.current) advanceTo(advanced);
-    },
-    [advanceTo, lookahead],
-  );
-  const handleTranscriptRef = useRef(handleTranscript);
-  handleTranscriptRef.current = handleTranscript;
 
-  // ── Recognition lifecycle: one instance per language ──
+      const before = alignerRef.current.cursor;
+      const { advanced } = alignerRef.current.feed(finalText, interimText);
+      if (advanced > 0) applyAdvance(before, advanced);
+    },
+    [applyAdvance],
+  );
+  const handleResultsRef = useRef(handleResults);
+  handleResultsRef.current = handleResults;
+
+  // ── Recogniser lifecycle ──
   useEffect(() => {
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) return;
@@ -317,20 +264,21 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     rec.maxAlternatives = 1;
     rec.lang = lang;
 
-    rec.onresult = (event) => {
-      const last = event.results[event.results.length - 1];
-      if (!last || !last[0]) return;
-      handleTranscriptRef.current(last[0].transcript);
-      if (last.isFinal) lastProcessedRef.current = "";
-    };
+    rec.onresult = (event) => handleResultsRef.current(event);
 
     rec.onend = () => {
       listeningRef.current = false;
       if (wantListeningRef.current) {
-        // Chrome auto-stops (~60 s / silence) → silent restart with backoff.
+        // Chrome stops on its own; restart quietly. The aligner tolerates the
+        // finals list resetting, so this causes no cursor jump.
         window.setTimeout(() => {
           if (wantListeningRef.current && !listeningRef.current) {
-            try { rec.start(); listeningRef.current = true; } catch { /* already started */ }
+            try {
+              rec.start();
+              listeningRef.current = true;
+            } catch {
+              /* already started */
+            }
           }
         }, RESTART_BACKOFF_MS);
       } else {
@@ -346,15 +294,23 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     };
 
     recognitionRef.current = rec;
-    // Intent survives instance recreation (e.g. language switch).
     if (wantListeningRef.current) {
-      try { rec.start(); listeningRef.current = true; } catch { /* noop */ }
+      try {
+        rec.start();
+        listeningRef.current = true;
+      } catch {
+        /* noop */
+      }
     }
     return () => {
       rec.onend = null;
       rec.onresult = null;
       rec.onerror = null;
-      try { rec.stop(); } catch { /* noop */ }
+      try {
+        rec.stop();
+      } catch {
+        /* noop */
+      }
       listeningRef.current = false;
       recognitionRef.current = null;
     };
@@ -365,9 +321,14 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     if (!recognitionRef.current) return;
     wantListeningRef.current = true;
     if (!startedAtRef.current) startedAtRef.current = Date.now();
-    lastProcessedRef.current = "";
+    alignerRef.current.dropPendingSpeech(); // ignore anything heard while paused
     if (!listeningRef.current) {
-      try { recognitionRef.current.start(); listeningRef.current = true; } catch { /* noop */ }
+      try {
+        recognitionRef.current.start();
+        listeningRef.current = true;
+      } catch {
+        /* noop */
+      }
     }
     setIsListening(true);
   }, []);
@@ -378,32 +339,40 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       accumulatedMsRef.current += Date.now() - startedAtRef.current;
       startedAtRef.current = null;
     }
-    try { recognitionRef.current?.stop(); } catch { /* noop */ }
+    try {
+      recognitionRef.current?.stop();
+    } catch {
+      /* noop */
+    }
     listeningRef.current = false;
     setIsListening(false);
     syncStateNow();
   }, [syncStateNow]);
 
   const skipWord = useCallback(() => {
-    if (idxRef.current < words.length) advanceTo(idxRef.current + 1);
+    const from = alignerRef.current.cursor;
+    if (from >= words.length) return;
+    alignerRef.current.seek(from + 1);
+    alignerRef.current.dropPendingSpeech();
+    applyAdvance(from, 1);
     syncStateNow();
-  }, [advanceTo, words.length, syncStateNow]);
+  }, [words.length, applyAdvance, syncStateNow]);
 
   const seek = useCallback(
     (index: number) => {
-      const clamped = Math.max(0, Math.min(index, Math.max(words.length - 1, 0)));
       cascadeTimersRef.current.forEach(clearTimeout);
       cascadeTimersRef.current = [];
-      idxRef.current = clamped;
-      // Paint non-current states first, then the cursor last, so the
-      // single-cursor invariant is never briefly violated.
+      alignerRef.current.seek(index);
+      alignerRef.current.dropPendingSpeech();
+      const clamped = alignerRef.current.cursor;
       wordElsRef.current.forEach((_el, i) => {
         if (i !== clamped) paintWord(i, i < clamped ? "read" : "pending");
       });
       paintWord(clamped, "current");
+      notifyCursor(clamped);
       syncStateNow();
     },
-    [words.length, paintWord, syncStateNow],
+    [paintWord, syncStateNow, notifyCursor],
   );
 
   useEffect(() => {
@@ -418,7 +387,8 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     elapsedMs,
     isListening,
     isSupported,
-    currentWord: words[Math.min(currentIndex, Math.max(words.length - 1, 0))] ?? "",
+    subscribeCursor,
+    getCursor,
     start,
     pause,
     skipWord,

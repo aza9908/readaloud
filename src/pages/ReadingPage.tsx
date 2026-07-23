@@ -17,6 +17,7 @@ import { Fireworks } from "@/components/Fireworks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import { CoinCounter } from "@/components/CoinCounter";
+import { CurrentWord } from "@/components/CurrentWord";
 import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw } from "lucide-react";
 import { BOOK_COMPLETION_BONUS } from "@/lib/firestore";
@@ -474,9 +475,7 @@ export default function ReadingPage() {
                 <span className="w-11 h-11 rounded-2xl bg-brand-500/10 grid place-items-center shrink-0"><Ear className="w-5 h-5 text-brand-500" strokeWidth={2.2} /></span>
                 <div className="min-w-0">
                   <p className="eyebrow">Прочитай вслух</p>
-                  <p className="font-display font-extrabold text-3xl text-brand-500 truncate leading-tight">
-                    {reader.currentWord.toLowerCase().replace(/[^\p{L}\p{N}-]+$/gu, "")}
-                  </p>
+                  <CurrentWord words={words} subscribeCursor={reader.subscribeCursor} />
                 </div>
               </div>
               <button className="btn-ghost shrink-0 !py-2.5 !px-4 text-sm" onClick={reader.skipWord}>
