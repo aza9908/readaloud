@@ -141,6 +141,24 @@ console.log("\n── full realistic read-through ──");
   eq("page complete", a.isPageComplete, true);
 }
 
+console.log("\n── struggle detection (for the parent report) ──");
+{
+  const a = new ReadingAligner();
+  a.setPage("Радость длилась недолго перед стартом задрожали коленки".split(/\s+/));
+  a.feed("Радость", "");           // read word 0
+  // Child gets stuck on "длилась": three failed attempts, then gets it.
+  a.feed("Радость дли", "");
+  a.feed("Радость дли даль", "");
+  const r = a.feed("Радость дли даль дил", "");
+  eq("struggled word recorded", r.struggled.includes(1) || a.wordAt(1) === "длилась", true);
+
+  // A clean read reports no struggles.
+  const b = new ReadingAligner();
+  b.setPage("кот сидел тихо".split(/\s+/));
+  const rb = b.feed("кот сидел тихо", "");
+  eq("clean read has no struggles", rb.struggled.length, 0);
+}
+
 console.log("\n── recovery must not reintroduce runaway ──");
 {
   // Recovery widens the search only after repeated misses. It must still

@@ -32,6 +32,8 @@ export interface ProgressSnapshot {
   wordsRead: number;
   elapsedMs: number;
   wpm: number;
+  /** Words the child needed several attempts on — for the parent report. */
+  struggledWords: string[];
 }
 
 export interface SpeechReaderApi {
@@ -90,6 +92,8 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
 
   const alignerRef = useRef<ReadingAligner>(new ReadingAligner());
   const wordsReadRef = useRef(0);
+  /** Words the child struggled on this session (deduped, capped). */
+  const struggledRef = useRef<string[]>([]);
   const startedAtRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef(0);
   const listeningRef = useRef(false);
@@ -189,6 +193,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       wordsRead: wordsReadRef.current,
       elapsedMs: elapsed,
       wpm: currentWpm,
+      struggledWords: struggledRef.current.slice(),
     });
   }, [words.length]);
 
@@ -245,7 +250,15 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       }
 
       const before = alignerRef.current.cursor;
-      const { advanced } = alignerRef.current.feed(finalText, interimText);
+      const { advanced, struggled } = alignerRef.current.feed(finalText, interimText);
+      if (struggled.length) {
+        for (const idx of struggled) {
+          const w = alignerRef.current.wordAt(idx).toLocaleLowerCase().replace(/[^\p{L}\p{N}-]/gu, "");
+          if (w && w.length >= 4 && !struggledRef.current.includes(w) && struggledRef.current.length < 30) {
+            struggledRef.current.push(w);
+          }
+        }
+      }
       if (advanced > 0) applyAdvance(before, advanced);
     },
     [applyAdvance],

@@ -11,11 +11,13 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
+import { RewardsStore } from "@/components/RewardsStore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { StreakBadge } from "@/components/StreakBadge";
 import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
 function fmtDuration(ms: number): string {
@@ -43,6 +45,7 @@ export default function LibraryPage() {
   /** Book just added via the guide — pulled to the top and highlighted. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showShop, setShowShop] = useState(false);
+  const [showRewards, setShowRewards] = useState(false);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -128,8 +131,11 @@ export default function LibraryPage() {
     <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto pb-28">
       <header className="flex items-center justify-between mb-6">
         <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад"><ArrowLeft className="w-5 h-5" strokeWidth={2.4} /></button>
-        <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white">
-          <ProfileAvatar value={profile.avatar} size={30} /> {profile.name}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white">
+            <ProfileAvatar value={profile.avatar} size={30} /> {profile.name}
+          </div>
+          <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
         </div>
         <ThemeToggle />
       </header>
@@ -158,7 +164,10 @@ export default function LibraryPage() {
             {l.flag} {l.label}
           </button>
         ))}
-        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowShop(true)}>
+        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowRewards(true)}>
+          <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
+        </button>
+        <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>
           <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
         </button>
         <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
@@ -253,6 +262,13 @@ export default function LibraryPage() {
       >
         <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
       </button>
+
+      <RewardsStore
+        open={showRewards}
+        uid={user.uid}
+        profile={profile}
+        onClose={() => setShowRewards(false)}
+      />
 
       <AvatarShop
         open={showShop}

@@ -146,6 +146,12 @@ export interface FeedResult {
   index: number;
   /** How many words the cursor moved. */
   advanced: number;
+  /**
+   * Page indices the child clearly struggled on in this batch — a word the
+   * cursor sat on while several spoken tokens failed to match it. Used by the
+   * parent report; empty in the common case.
+   */
+  struggled: number[];
 }
 
 export class ReadingAligner {
@@ -164,6 +170,14 @@ export class ReadingAligner {
   private readonly recoveryWindow: number;
   /** Consecutive spoken tokens that matched nothing — drives recovery. */
   private misses = 0;
+  /** Original page words, for reporting the struggled word as written. */
+  private rawWords: string[] = [];
+  /** Misses accumulated against the CURRENT cursor word specifically. */
+  private missesOnCurrent = 0;
+  /** Cursor indices already reported as struggled this page (report once). */
+  private reportedStruggles = new Set<number>();
+  /** Struggles found during the current feed() call. */
+  private pendingStruggles: number[] = [];
 
   constructor(opts: AlignerOptions = {}) {
     this.allowSingleSkip = opts.allowSingleSkip ?? true;
@@ -177,7 +191,10 @@ export class ReadingAligner {
    * the new page (bug 1).
    */
   setPage(words: string[], startIndex = 0): void {
+    this.rawWords = words.slice();
     this.targets = words.map(expandHyphens);
+    this.missesOnCurrent = 0;
+    this.reportedStruggles = new Set<number>();
     this.index = Math.max(0, Math.min(startIndex, Math.max(words.length - 1, 0)));
     this.misses = 0;
     this.dropPendingSpeech();
@@ -230,9 +247,10 @@ export class ReadingAligner {
     if (this.consumed > stream.length) this.consumed = stream.length;
 
     const fresh = stream.slice(this.consumed);
-    if (fresh.length === 0) return { index: this.index, advanced: 0 };
+    if (fresh.length === 0) return { index: this.index, advanced: 0, struggled: [] };
 
     const before = this.index;
+    this.pendingStruggles = [];
 
     for (const spoken of fresh) {
       if (this.index >= this.targets.length) break;
@@ -244,7 +262,16 @@ export class ReadingAligner {
     // interim tail stays re-checkable until it is finalised.
     this.consumed = Math.max(this.consumed, this.committed.length);
 
-    return { index: this.index, advanced: this.index - before };
+    return {
+      index: this.index,
+      advanced: this.index - before,
+      struggled: this.pendingStruggles,
+    };
+  }
+
+  /** The page word at an index, as originally written (for reporting). */
+  wordAt(index: number): string {
+    return this.rawWords[index] ?? "";
   }
 
   /**
@@ -265,6 +292,7 @@ export class ReadingAligner {
     if (strengthAgainst(cur, spoken) !== "none") {
       this.index += 1;
       this.misses = 0;
+      this.missesOnCurrent = 0;
       return;
     }
 
@@ -278,11 +306,26 @@ export class ReadingAligner {
       if (strengthAgainst(this.targets[this.index + 1], spoken) === "strong") {
         this.index += 2;
         this.misses = 0;
+        this.missesOnCurrent = 0;
         return;
       }
     }
 
     this.misses += 1;
+    this.missesOnCurrent += 1;
+
+    // A word that needed several attempts before the child got past it is a
+    // genuine struggle — record it once for the parent report. The threshold
+    // is deliberately higher than recovery's, so a single mis-recognition or
+    // a bit of background noise does not count as "hard for the child".
+    if (
+      this.missesOnCurrent >= 3 &&
+      !this.reportedStruggles.has(this.index) &&
+      cur.some((v) => v.length >= 4) // ignore tiny function words
+    ) {
+      this.reportedStruggles.add(this.index);
+      this.pendingStruggles.push(this.index);
+    }
 
     // ── Recovery ──
     if (this.misses >= this.recoveryAfterMisses) {
@@ -291,6 +334,7 @@ export class ReadingAligner {
         if (strengthAgainst(this.targets[w], spoken) === "strong") {
           this.index = w + 1;
           this.misses = 0;
+          this.missesOnCurrent = 0;
           return;
         }
       }

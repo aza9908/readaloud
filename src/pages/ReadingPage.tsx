@@ -19,8 +19,8 @@ import { useToast } from "@/components/Toast";
 import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { StoryScene } from "@/components/StoryScene";
-import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw } from "lucide-react";
-import { BOOK_COMPLETION_BONUS } from "@/lib/firestore";
+import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
+import { BOOK_COMPLETION_BONUS, updateStreakAndHardWords } from "@/lib/firestore";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -167,6 +167,7 @@ export default function ReadingPage() {
   const [retellFor, setRetellFor] = useState<{ from: number; to: number } | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [coins, setCoins] = useState(0);
+  const [streakInfo, setStreakInfo] = useState<{ streak: number; grew: boolean } | null>(null);
   const baseCoinsRef = useRef(0);
 
   /* ── Session bookkeeping (base + delta model) ──
@@ -184,6 +185,7 @@ export default function ReadingPage() {
     wordsRead: 0,
     elapsedMs: 0,
     wpm: 0,
+    struggledWords: [],
   });
   /** Words on pages already completed this visit — for the progress bar. */
   const wordsBeforePageRef = useRef(0);
@@ -303,6 +305,13 @@ export default function ReadingPage() {
       );
       const before = profileBeforeRef.current ?? profile;
       setCoins((c) => c + BOOK_COMPLETION_BONUS);
+      // Обновляем серию и копилку трудных слов — результат покажем на итоге.
+      const streakRes = await updateStreakAndHardWords(
+        user.uid,
+        profileId,
+        latestSnapRef.current.struggledWords,
+      );
+      setStreakInfo(streakRes);
       const fresh = await checkAndAwardBadges(user.uid, profileId, before, {
         wordsThisSession: savedWordsRef.current,
         msThisSession: savedMsRef.current,
@@ -352,6 +361,23 @@ export default function ReadingPage() {
     onPageComplete: handlePageComplete,
     onProgress: handleProgress,
   });
+
+  // Поделиться результатом: Web Share API на телефоне, иначе копирование.
+  const shareResult = useCallback(async () => {
+    const wpm = reader.wpm || latestSnapRef.current.wpm || 0;
+    const text = `${profile?.name ?? "Ребёнок"} прочитал книгу «${book?.title ?? ""}» в ReadAloud` +
+      (wpm ? ` — скорость ${wpm} слов/мин! 📚` : " 📚");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "ReadAloud", text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast({ icon: "📋", title: "Скопировано", description: "Можно отправить в мессенджер" });
+      }
+    } catch {
+      /* пользователь отменил — это не ошибка */
+    }
+  }, [reader, profile, book, toast]);
   const readerRef = useRef(reader);
   readerRef.current = reader;
 
@@ -573,29 +599,65 @@ export default function ReadingPage() {
         <>
           <Fireworks />
           <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto sheet max-w-sm text-center space-y-4 !shadow-lift animate-pop">
+            <div className="pointer-events-auto sheet max-w-sm text-center space-y-3 !shadow-lift animate-pop">
               <div className="text-6xl animate-float">🎉</div>
               <h2 className="font-display font-extrabold text-3xl text-ink dark:text-white">Молодец, {profile.name}!</h2>
               <p className="text-ink-soft dark:text-ink-faint">
                 Книга «{book.title}» прочитана — {savedWordsRef.current} слов!
               </p>
-              <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-400/15 border border-amber-400/30 px-4 py-2">
-                <span className="text-2xl">🪙</span>
-                <span className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
-                  +{savedWordsRef.current + BOOK_COMPLETION_BONUS} монет
-                </span>
+
+              {/* Серия дней — показываем, только когда она сегодня выросла */}
+              {streakInfo && streakInfo.grew && streakInfo.streak > 1 && (
+                <div className="inline-flex items-center gap-2 rounded-2xl bg-orange-400/15 border border-orange-400/30 px-4 py-2">
+                  <span className="text-2xl">🔥</span>
+                  <span className="font-display font-extrabold text-lg text-orange-600 dark:text-orange-400">
+                    {streakInfo.streak} {streakPlural(streakInfo.streak)} подряд!
+                  </span>
+                </div>
+              )}
+
+              {/* Итоговые показатели */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-amber-400/15 border border-amber-400/30 px-3 py-2.5">
+                  <div className="text-2xl">🪙</div>
+                  <div className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
+                    +{savedWordsRef.current + BOOK_COMPLETION_BONUS}
+                  </div>
+                  <div className="text-[11px] text-ink-faint">монет</div>
+                </div>
+                <div className="rounded-2xl bg-brand-500/10 border border-brand-500/25 px-3 py-2.5">
+                  <div className="text-2xl">⚡</div>
+                  <div className="font-display font-extrabold text-lg text-brand-600 dark:text-brand-300">
+                    {reader.wpm || latestSnapRef.current.wpm || "—"}
+                  </div>
+                  <div className="text-[11px] text-ink-faint">слов/мин</div>
+                </div>
               </div>
+
               <p className="text-xs text-ink-faint leading-relaxed px-2">
-                Монеты можно обменять на настоящий приз или деньги — договорись с родителями,
-                сколько стоит одна монета.
+                Монеты можно потратить в магазине героев или обменять у родителей
+                на настоящий приз.
               </p>
-              <button className="btn-primary w-full" onClick={() => navigate(`/library?profile=${profileId}`)}>
-                📚 К другим сказкам
-              </button>
+
+              <div className="flex gap-2">
+                <button className="btn-ghost flex-1 !py-2.5" onClick={() => void shareResult()}>
+                  <Share2 className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Поделиться
+                </button>
+                <button className="btn-primary flex-1 !py-2.5" onClick={() => navigate(`/library?profile=${profileId}`)}>
+                  К сказкам
+                </button>
+              </div>
             </div>
           </div>
         </>
       )}
     </div>
   );
+}
+
+function streakPlural(n: number): string {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return "день";
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return "дня";
+  return "дней";
 }

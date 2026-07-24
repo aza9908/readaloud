@@ -90,6 +90,27 @@ without it a double tap would deduct coins twice.
 `profile.avatar` holds either an emoji or `av:<id>`; always render it through
 `<ProfileAvatar>` rather than printing the field directly.
 
+Two separate reward tracks, do not conflate them:
+- **Hero shop** (`AvatarShop`): child spends coins instantly on avatars they own.
+- **Parent rewards** (`ParentRewardsManager` / `RewardsStore`): the parent adds
+  real-world rewards (ice cream, cinema, PS5 time) and prices them in coins.
+  The child *requests*; coins are deducted only when the parent approves, via
+  `approveRewardRequest` (a transaction — never deduct on request, and never
+  outside a transaction, or a double tap double-charges). Rewards and requests
+  live at account level (`users/{uid}/rewards`, `users/{uid}/rewardRequests`),
+  since one parent sets the list for all their children.
+
+## Retention & parent value
+
+- **Streak** (`StreakBadge` + `updateStreakAndHardWords`): consecutive reading
+  days, counted by local date (not UTC). Grows if last read was yesterday,
+  holds for same-day, resets on a gap.
+- **Weekly report** (`WeeklyReport`): minutes, books, WPM trend, and the words
+  the child struggled on. Those come from the aligner: `feed()` returns a
+  `struggled` array (a cursor word that took >=3 misses to pass), the hook
+  dedupes them, and `updateStreakAndHardWords` banks them in `profile.hardWords`.
+  Never fabricate this list — if empty, say there is not enough data yet.
+
 ## Deploy
 
 Push to `main` → GitHub Actions builds and deploys Hosting + Firestore rules.

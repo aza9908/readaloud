@@ -24,6 +24,7 @@ import {
   getDocs,
   increment,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -37,6 +38,9 @@ import {
   type Book,
   type ChildProfile,
   type Language,
+  type ParentReward,
+  type RewardRequest,
+  type RewardRequestStatus,
   type ReadingSession,
 } from "./types";
 
@@ -198,6 +202,62 @@ export async function deleteCustomBook(bookId: string): Promise<void> {
 
 /** Coins awarded on finishing a whole book, on top of per-word coins. */
 export const BOOK_COMPLETION_BONUS = 50;
+
+/** Локальная дата в формате YYYY-MM-DD (не UTC — важно для «сегодня»). */
+function localDay(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Обновляет streak и копилку трудных слов.
+ *
+ * Streak растёт, если предыдущий день чтения — вчера; сохраняется, если это
+ * сегодня (несколько сессий за день); и сбрасывается на 1, если был пропуск.
+ * Возвращает актуальные значения, чтобы UI показал их сразу.
+ */
+export async function updateStreakAndHardWords(
+  uid: string,
+  profileId: string,
+  struggledWords: string[],
+): Promise<{ streak: number; grew: boolean }> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { streak: 1, grew: true };
+      const data = snap.data() as ChildProfile;
+
+      const today = localDay();
+      const yesterday = localDay(new Date(Date.now() - 86400000));
+      const last = data.lastReadDay;
+      let streak = data.streak ?? 0;
+      let grew = false;
+
+      if (last === today) {
+        // Уже читали сегодня — streak не меняется.
+      } else if (last === yesterday) {
+        streak += 1;
+        grew = true;
+      } else {
+        streak = 1;
+        grew = true;
+      }
+
+      // Копим трудные слова с частотой (для отчёта показываем топ).
+      const hard = { ...(data.hardWords ?? {}) };
+      for (const w of struggledWords) hard[w] = (hard[w] ?? 0) + 1;
+      // Не даём словарю разрастаться безгранично — оставляем 40 самых частых.
+      const trimmed = Object.fromEntries(
+        Object.entries(hard).sort((a, b) => b[1] - a[1]).slice(0, 40),
+      );
+
+      tx.update(ref, { streak, lastReadDay: today, hardWords: trimmed });
+      return { streak, grew };
+    });
+  } catch {
+    return { streak: 0, grew: false };
+  }
+}
 
 // ───────────────────────── Sessions ─────────────────────────
 
@@ -382,4 +442,126 @@ export async function setProfileAvatar(
   avatar: string,
 ): Promise<void> {
   await updateDoc(doc(db, "users", uid, "profiles", profileId), { avatar });
+}
+
+
+// ───────────────────── Родительские награды ─────────────────────
+//
+// Модель: награды и запросы живут на уровне аккаунта (users/{uid}), а не
+// профиля, потому что родитель один задаёт список для всех своих детей.
+// Монеты у каждого ребёнка свои — списываются с конкретного профиля.
+
+const rewardsCol = (uid: string) => collection(db, "users", uid, "rewards");
+const requestsCol = (uid: string) => collection(db, "users", uid, "rewardRequests");
+
+/** Список наград, которые создал родитель. */
+export async function getRewards(uid: string): Promise<ParentReward[]> {
+  const snap = await getDocs(query(rewardsCol(uid), orderBy("price", "asc")));
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ParentReward, "id">) }));
+}
+
+/** Добавить новую награду. */
+export async function addReward(
+  uid: string,
+  reward: Omit<ParentReward, "id" | "createdAt" | "active">,
+): Promise<string> {
+  const ref = await addDoc(rewardsCol(uid), {
+    ...reward,
+    createdAt: Date.now(),
+    active: true,
+  });
+  return ref.id;
+}
+
+/** Изменить награду (название, цену, иконку, видимость). */
+export async function updateReward(
+  uid: string,
+  rewardId: string,
+  patch: Partial<Pick<ParentReward, "title" | "emoji" | "price" | "active">>,
+): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "rewards", rewardId), patch);
+}
+
+/** Удалить награду. */
+export async function deleteReward(uid: string, rewardId: string): Promise<void> {
+  await deleteDoc(doc(db, "users", uid, "rewards", rewardId));
+}
+
+/**
+ * Ребёнок запрашивает награду. Монеты пока НЕ списываются — только когда
+ * родитель подтвердит. Проверяем, что монет достаточно на момент запроса,
+ * чтобы не создавать заведомо невыполнимые заявки.
+ */
+export async function requestReward(
+  uid: string,
+  profile: ChildProfile,
+  reward: ParentReward,
+): Promise<{ ok: boolean; reason?: "not_enough" | "error" }> {
+  if ((profile.coins ?? 0) < reward.price) return { ok: false, reason: "not_enough" };
+  try {
+    await addDoc(requestsCol(uid), {
+      rewardId: reward.id,
+      rewardTitle: reward.title,
+      rewardEmoji: reward.emoji,
+      price: reward.price,
+      profileId: profile.id,
+      profileName: profile.name,
+      status: "requested" as RewardRequestStatus,
+      requestedAt: Date.now(),
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/** Открытые (ещё не решённые) запросы — для родительского дашборда. */
+export async function getPendingRequests(uid: string): Promise<RewardRequest[]> {
+  const snap = await getDocs(
+    query(requestsCol(uid), where("status", "==", "requested")),
+  );
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<RewardRequest, "id">) }))
+    .sort((a, b) => b.requestedAt - a.requestedAt);
+}
+
+/**
+ * Родитель подтверждает выдачу: монеты списываются с профиля ребёнка в
+ * транзакции (чтобы нельзя было подтвердить дважды или уйти в минус).
+ */
+export async function approveRewardRequest(
+  uid: string,
+  request: RewardRequest,
+): Promise<{ ok: boolean; reason?: "not_enough" | "already_resolved" | "error" }> {
+  const reqRef = doc(db, "users", uid, "rewardRequests", request.id);
+  const profRef = doc(db, "users", uid, "profiles", request.profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const [reqSnap, profSnap] = await Promise.all([tx.get(reqRef), tx.get(profRef)]);
+      if (!reqSnap.exists() || !profSnap.exists()) return { ok: false, reason: "error" as const };
+      const req = reqSnap.data() as RewardRequest;
+      if (req.status !== "requested") return { ok: false, reason: "already_resolved" as const };
+
+      const prof = profSnap.data() as ChildProfile;
+      const coins = prof.coins ?? 0;
+      if (coins < request.price) return { ok: false, reason: "not_enough" as const };
+
+      tx.update(profRef, {
+        coins: coins - request.price,
+        coinsSpent: (prof.coinsSpent ?? 0) + request.price,
+      });
+      tx.update(reqRef, { status: "approved", resolvedAt: Date.now() });
+      return { ok: true as const };
+    });
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/** Родитель отклоняет запрос — монеты не трогаются. */
+export async function declineRewardRequest(uid: string, requestId: string): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "rewardRequests", requestId), {
+    status: "declined",
+    resolvedAt: Date.now(),
+  });
 }

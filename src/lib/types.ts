@@ -57,6 +57,14 @@ export interface ChildProfile {
   coins?: number;
   /** Ids of avatar characters bought in the shop. */
   unlockedAvatars?: string[];
+  /** Дни подряд с чтением (streak). */
+  streak?: number;
+  /** ISO-дата (YYYY-MM-DD) последнего дня чтения — для подсчёта streak. */
+  lastReadDay?: string;
+  /** Трудные слова с частотой, накапливаются между сессиями (для отчёта). */
+  hardWords?: Record<string, number>;
+  /** Всего монет потрачено на награды (для истории). */
+  coinsSpent?: number;
   byLanguage: Record<Language, { books: number; ms: number }>;
 }
 
@@ -85,3 +93,41 @@ export const EMPTY_BY_LANGUAGE: ChildProfile["byLanguage"] = {
   ru: { books: 0, ms: 0 },
   kk: { books: 0, ms: 0 },
 };
+
+/**
+ * Родительская награда: настоящая «хотелка», которую родитель добавил и
+ * оценил в монетах (мороженое, поход в кино, час игры). Ребёнок копит монеты
+ * и запрашивает награду; родитель подтверждает выдачу.
+ *
+ * Это отличается от героев в магазине: героя ребёнок открывает сам и сразу,
+ * а физическую награду выдаёт родитель — поэтому есть статус запроса.
+ */
+export interface ParentReward {
+  id: string;
+  /** Название: «Мороженое», «30 мин PlayStation». */
+  title: string;
+  /** Эмодзи-иконка для карточки. */
+  emoji: string;
+  /** Цена в монетах, которую назначил родитель. */
+  price: number;
+  /** Кто создал (для мультиребёнковых семей — награда общая на аккаунт). */
+  createdAt: number;
+  /** Можно временно скрыть награду, не удаляя. */
+  active: boolean;
+}
+
+export type RewardRequestStatus = "requested" | "approved" | "declined";
+
+/** Запрос ребёнка на выдачу награды. Монеты списываются при подтверждении. */
+export interface RewardRequest {
+  id: string;
+  rewardId: string;
+  rewardTitle: string;
+  rewardEmoji: string;
+  price: number;
+  profileId: string;
+  profileName: string;
+  status: RewardRequestStatus;
+  requestedAt: number;
+  resolvedAt?: number;
+}

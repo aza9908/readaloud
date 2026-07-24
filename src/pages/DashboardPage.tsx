@@ -13,6 +13,8 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { WeeklyReport } from "@/components/WeeklyReport";
+import { ParentRewardsManager } from "@/components/ParentRewardsManager";
 
 function fmtDuration(ms: number): string {
   if (ms < 1000) return "—";
