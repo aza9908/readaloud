@@ -29,8 +29,20 @@ export interface AvatarDef {
 }
 
 type HairStyle = "short" | "long" | "braids" | "bun" | "curly" | "none";
-type Headwear = "helmet" | "crown" | "wizard" | "pirate" | "ninja" | "goggles" | "takiya" | "none";
-type Accessory = "stars" | "wand" | "sword" | "book" | "gear" | "wings" | "dombra" | "none";
+type Headwear =
+  | "helmet" | "crown" | "wizard" | "pirate" | "ninja" | "goggles"
+  | "takiya"      // тюбетейка
+  | "saukele"     // сәукеле — высокий свадебный головной убор
+  | "tymak"       // тымақ — меховая шапка охотника
+  | "saka_helmet" // сакский шлем с золотым навершием
+  | "kalpak"      // ақ қалпақ — белый войлочный колпак
+  | "none";
+type Accessory =
+  | "stars" | "wand" | "sword" | "book" | "gear" | "wings" | "dombra"
+  | "eagle"    // беркут на руке
+  | "kobyz"    // қобыз
+  | "shanyrak" // шаңырақ
+  | "none";
 
 const SKIN = { light: "#F3C9A6", mid: "#DBA477", tan: "#C98B5E", deep: "#9C6640" };
 
@@ -114,6 +126,47 @@ export const AVATARS: AvatarDef[] = [
     palette: { bg1: "#1E1B4B", bg2: "#312E81", suit: "#4C1D95", suitDark: "#2E1065", accent: "#FDE047" },
     skin: SKIN.deep, hair: { color: "#1F1A17", style: "curly" },
     headwear: "crown", accessory: "book",
+  },
+  // ── Казахская коллекция ──
+  {
+    id: "aldar",
+    name: { ru: "Алдар Косе", kk: "Алдар Көсе", en: "Aldar Kose" },
+    price: 600, rarity: "common", appeal: "neutral",
+    palette: { bg1: "#FEF9C3", bg2: "#FEF08A", suit: "#B45309", suitDark: "#8A3F07", accent: "#DC2626" },
+    skin: SKIN.tan, hair: { color: "#2B2018", style: "short" },
+    headwear: "kalpak", accessory: "none",
+  },
+  {
+    id: "akyn",
+    name: { ru: "Акын", kk: "Ақын", en: "Akyn" },
+    price: 700, rarity: "common", appeal: "neutral",
+    palette: { bg1: "#E0F2FE", bg2: "#BAE6FD", suit: "#0E7490", suitDark: "#0A566B", accent: "#D4A017" },
+    skin: SKIN.tan, hair: { color: "#1F1A17", style: "short" },
+    headwear: "takiya", accessory: "kobyz",
+  },
+  {
+    id: "burkitshi",
+    name: { ru: "Беркутчи", kk: "Бүркітші", en: "Eagle Hunter" },
+    price: 1100, rarity: "rare", appeal: "boys",
+    palette: { bg1: "#FEF3C7", bg2: "#FDE68A", suit: "#7C4A1E", suitDark: "#5C3614", accent: "#D97706" },
+    skin: SKIN.tan, hair: { color: "#1F1A17", style: "short" },
+    headwear: "tymak", accessory: "eagle",
+  },
+  {
+    id: "kyz_zhibek",
+    name: { ru: "Кыз Жибек", kk: "Қыз Жібек", en: "Kyz Zhibek" },
+    price: 1200, rarity: "rare", appeal: "girls",
+    palette: { bg1: "#FDF2F8", bg2: "#FBCFE8", suit: "#9D174D", suitDark: "#7A1039", accent: "#D4A017" },
+    skin: SKIN.light, hair: { color: "#1F1A17", style: "braids" },
+    headwear: "saukele", accessory: "shanyrak",
+  },
+  {
+    id: "tomiris",
+    name: { ru: "Томирис", kk: "Томирис", en: "Tomyris" },
+    price: 2400, rarity: "legendary", appeal: "girls",
+    palette: { bg1: "#FEF3C7", bg2: "#FCD34D", suit: "#92400E", suitDark: "#6B2D06", accent: "#F5C518" },
+    skin: SKIN.tan, hair: { color: "#1F1A17", style: "braids" },
+    headwear: "saka_helmet", accessory: "sword",
   },
 ];
 

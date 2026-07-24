@@ -76,8 +76,14 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
 ## Rewards economy
 
 Coins: 1 per word read + 50 per completed book, so one ~130-word book is
-about 180 coins. Shop prices are set against that: common 400–550 (2–3 books),
-rare 800–950 (4–5), legendary 2000–2200 (11–12). Whole collection ≈ 53 books.
+about 180 coins. Shop prices are set against that: common 400–700 (2–4 books),
+rare 800–1200 (4–7), legendary 2000–2400 (11–13). Whole collection ≈ 87 books.
+15 characters, 7 of them Kazakh-themed; keep the girls/boys/neutral split
+roughly even when adding more.
+
+Locked characters render in **colour** with a padlock badge — not greyed out.
+Desaturating them killed the motivation to earn them; a child has to see the
+prize clearly for it to be a prize.
 Purchases run through `purchaseAvatar`, which uses a Firestore transaction —
 without it a double tap would deduct coins twice.
 

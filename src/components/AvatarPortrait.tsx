@@ -33,7 +33,10 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       className={className}
       role="img"
       aria-label={def.name.ru}
-      style={locked ? { filter: "grayscale(1)", opacity: 0.45 } : undefined}
+      /* Заблокированные показываем В ЦВЕТЕ: ребёнок должен видеть награду,
+         иначе она не мотивирует. Обесцвечивание делало персонажа похожим
+         на сломанную картинку. Достаточно лёгкого приглушения и замка. */
+      style={locked ? { filter: "saturate(0.82) brightness(0.97)" } : undefined}
     >
       <defs>
         <linearGradient id={`bg-${uid}`} x1="0" y1="0" x2="0" y2="1">
@@ -172,6 +175,58 @@ export const AvatarPortrait = memo(function AvatarPortrait({
             <circle cx="61" cy="34" r="6.5" fill="none" stroke={p.suitDark} strokeWidth="2" />
           </g>
         )}
+        {def.headwear === "kalpak" && (
+          <g>
+            {/* ақ қалпақ — белый войлочный колпак с отворотом */}
+            <path d="M50 8 L66 34 L34 34 Z" fill="#F5F2E8" />
+            <path d="M50 8 L58 34 L34 34 Z" fill="#E4DFCE" />
+            <path d="M30 32 Q50 26 70 32 L70 38 Q50 33 30 38 Z" fill="#FFFFFF" />
+            <path d="M30 35 Q50 30 70 35" stroke={p.accent} strokeWidth="1.6" fill="none" />
+          </g>
+        )}
+        {def.headwear === "tymak" && (
+          <g>
+            {/* тымақ — меховая шапка с боковыми отворотами */}
+            <path d="M24 42 Q24 16 50 16 Q76 16 76 42 L76 34 Q50 26 24 34 Z" fill={p.suitDark} />
+            <path d="M22 34 Q50 24 78 34 Q78 46 72 48 Q50 40 28 48 Q22 46 22 34 Z" fill="#8B5A2B" />
+            <ellipse cx="22" cy="48" rx="7" ry="11" fill="#8B5A2B" />
+            <ellipse cx="78" cy="48" rx="7" ry="11" fill="#8B5A2B" />
+            <ellipse cx="22" cy="48" rx="4.6" ry="8" fill="#A0724A" />
+            <ellipse cx="78" cy="48" rx="4.6" ry="8" fill="#A0724A" />
+          </g>
+        )}
+        {def.headwear === "saukele" && (
+          <g>
+            {/* сәукеле — высокий конический убор с подвесками */}
+            <path d="M50 0 L64 34 L36 34 Z" fill={p.suit} />
+            <path d="M50 0 L57 34 L36 34 Z" fill={p.suitDark} opacity="0.45" />
+            <path d="M38 20 L62 20" stroke={p.accent} strokeWidth="2" />
+            <path d="M40 27 L60 27" stroke={p.accent} strokeWidth="2" />
+            <circle cx="50" cy="7" r="3" fill={p.accent} />
+            <path d="M32 32 Q50 26 68 32 L68 39 Q50 33 32 39 Z" fill={p.accent} />
+            {/* подвески по бокам */}
+            <g fill={p.accent}>
+              <circle cx="33" cy="46" r="2.4" /><circle cx="33" cy="54" r="2.4" />
+              <circle cx="67" cy="46" r="2.4" /><circle cx="67" cy="54" r="2.4" />
+            </g>
+            <path d="M33 42 v14 M67 42 v14" stroke={p.accent} strokeWidth="1" />
+          </g>
+        )}
+        {def.headwear === "saka_helmet" && (
+          <g>
+            {/* сакский шлем с золотым навершием */}
+            <path d="M27 44 Q27 18 50 18 Q73 18 73 44 L73 40 Q73 24 50 24 Q27 24 27 40 Z"
+                  fill={p.accent} />
+            <path d="M27 44 Q27 18 50 18 L50 24 Q27 24 27 40 Z" fill="#D9A404" />
+            <rect x="25" y="38" width="50" height="6" rx="3" fill={p.suitDark} />
+            {/* навершие в виде стрелы */}
+            <path d="M50 4 L54 16 L50 13 L46 16 Z" fill={p.accent} />
+            <rect x="48.8" y="12" width="2.4" height="8" fill="#D9A404" />
+            {/* нащёчники */}
+            <path d="M27 44 Q26 58 32 62 L36 50 Z" fill={p.accent} />
+            <path d="M73 44 Q74 58 68 62 L64 50 Z" fill={p.accent} />
+          </g>
+        )}
         {def.headwear === "takiya" && (
           <>
             {/* казахская тюбетейка */}
@@ -224,6 +279,37 @@ export const AvatarPortrait = memo(function AvatarPortrait({
             ))}
           </g>
         )}
+        {def.accessory === "eagle" && (
+          <g transform="translate(4 44)">
+            {/* беркут на руке — силуэт с раскрытым крылом */}
+            <path d="M14 22 Q6 10 12 2 Q20 8 20 20 Z" fill="#6B4423" />
+            <ellipse cx="17" cy="24" rx="8" ry="10" fill="#7C4A1E" />
+            <circle cx="17" cy="15" r="6" fill="#8B5A2B" />
+            <path d="M12 14 L6 16 L12 18 Z" fill="#E5A50A" />
+            <circle cx="15" cy="13.6" r="1.5" fill="#1F1A17" />
+            <path d="M13 33 l0 5 M21 33 l0 5" stroke="#E5A50A" strokeWidth="2" strokeLinecap="round" />
+          </g>
+        )}
+        {def.accessory === "kobyz" && (
+          <g transform="rotate(-18 18 64)">
+            {/* қобыз — смычковый инструмент с округлым корпусом */}
+            <path d="M12 60 Q10 78 20 80 Q30 78 28 60 Q20 56 12 60 Z" fill="#6B4423" />
+            <ellipse cx="20" cy="70" rx="6.5" ry="7.5" fill="#3E2A18" />
+            <rect x="18.4" y="40" width="3.2" height="22" rx="1.6" fill="#8B5A2B" />
+            <path d="M17 40 q3 -5 6 0" fill="none" stroke="#8B5A2B" strokeWidth="2.4" />
+            <line x1="19.4" y1="44" x2="19.4" y2="62" stroke="#E8DCC0" strokeWidth="0.7" />
+            <line x1="20.8" y1="44" x2="20.8" y2="62" stroke="#E8DCC0" strokeWidth="0.7" />
+          </g>
+        )}
+        {def.accessory === "shanyrak" && (
+          <g transform="translate(72 52)">
+            {/* шаңырақ — навершие юрты, символ дома */}
+            <circle cx="10" cy="10" r="9.5" fill="none" stroke={p.accent} strokeWidth="2.4" />
+            <circle cx="10" cy="10" r="5" fill="none" stroke={p.accent} strokeWidth="1.4" />
+            <path d="M10 0.5 v19 M0.5 10 h19 M3.2 3.2 l13.6 13.6 M16.8 3.2 L3.2 16.8"
+                  stroke={p.accent} strokeWidth="1.2" />
+          </g>
+        )}
         {def.accessory === "dombra" && (
           <g transform="rotate(-24 20 66)">
             <ellipse cx="18" cy="72" rx="9" ry="11" fill="#C58B4A" />
@@ -237,6 +323,17 @@ export const AvatarPortrait = memo(function AvatarPortrait({
 
       {/* ободок медальона */}
       <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.7" />
+
+      {/* значок замка — понятная метка «ещё не открыт», без выцветания */}
+      {locked && (
+        <g>
+          <circle cx="79" cy="79" r="15" fill="#2A2540" opacity="0.82" />
+          <circle cx="79" cy="79" r="15" fill="none" stroke="#ffffff" strokeWidth="1.6" opacity="0.85" />
+          <rect x="73" y="78" width="12" height="9.5" rx="2.2" fill="#ffffff" />
+          <path d="M75.6 78 v-3.2 a3.4 3.4 0 0 1 6.8 0 V78"
+                fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      )}
     </svg>
   );
 });
