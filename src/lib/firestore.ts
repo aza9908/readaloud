@@ -15,6 +15,7 @@
  */
 
 import {
+  runTransaction,
   addDoc,
   collection,
   deleteDoc,
@@ -73,6 +74,7 @@ export async function createProfile(
     totalMs: 0,
     booksCompleted: 0,
     coins: 0,
+    unlockedAvatars: [],
     byLanguage: EMPTY_BY_LANGUAGE,
   });
   return ref.id;
@@ -325,4 +327,59 @@ export async function awardAchievement(
   if (existing.exists()) return false;
   await setDoc(ref, { earnedAt: Date.now() });
   return true;
+}
+
+
+// ───────────────────── Магазин персонажей ─────────────────────
+
+export type PurchaseResult =
+  | { ok: true; coinsLeft: number }
+  | { ok: false; reason: "not_enough" | "already_owned" | "error"; coinsLeft?: number };
+
+/**
+ * Покупка персонажа за монеты.
+ *
+ * Выполняется в транзакции: без неё два быстрых нажатия (или две вкладки)
+ * списали бы монеты дважды либо купили бы уже открытого персонажа.
+ */
+export async function purchaseAvatar(
+  uid: string,
+  profileId: string,
+  avatarId: string,
+  price: number,
+): Promise<PurchaseResult> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { ok: false, reason: "error" } as PurchaseResult;
+      const data = snap.data() as ChildProfile;
+      const owned = data.unlockedAvatars ?? [];
+      const coins = data.coins ?? 0;
+
+      if (owned.includes(avatarId)) {
+        return { ok: false, reason: "already_owned", coinsLeft: coins } as PurchaseResult;
+      }
+      if (coins < price) {
+        return { ok: false, reason: "not_enough", coinsLeft: coins } as PurchaseResult;
+      }
+
+      tx.update(ref, {
+        coins: coins - price,
+        unlockedAvatars: [...owned, avatarId],
+      });
+      return { ok: true, coinsLeft: coins - price } as PurchaseResult;
+    });
+  } catch {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/** Смена внешнего вида на уже открытого персонажа (или эмодзи). */
+export async function setProfileAvatar(
+  uid: string,
+  profileId: string,
+  avatar: string,
+): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "profiles", profileId), { avatar });
 }

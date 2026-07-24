@@ -13,8 +13,8 @@ const COPY = {
   ru: {
     title: "Зачем нужны монеты",
     lead: "За каждое прочитанное слово ты получаешь 1 монету, а за целую книгу — ещё 50 сверху.",
-    exchange: "Монеты можно обменять на настоящий приз или деньги",
-    detail: "Обменять монеты можно у родителей: договоритесь заранее, сколько стоит монета и какой приз тебя ждёт. Например, 500 монет — поход в кино, 1000 — новая книга или игрушка.",
+    exchange: "Монеты можно потратить двумя способами",
+    detail: "1) В магазине героев — открыть нового персонажа прямо в приложении. 2) У родителей — обменять на настоящий приз или деньги: договоритесь заранее, сколько стоит монета. Например, 500 монет — поход в кино, 1000 — новая книга или игрушка.",
     parentNote: "Родителям: курс обмена и награду вы устанавливаете сами. Приложение не проводит выплат — это ваша договорённость с ребёнком.",
     rates: [
       { coins: 100, label: "маленький приз" },
@@ -26,7 +26,7 @@ const COPY = {
   kk: {
     title: "Монеталар не үшін керек",
     lead: "Әр оқыған сөз үшін 1 монета, ал толық кітап үшін тағы 50 монета аласың.",
-    exchange: "Монеталарды нағыз сыйлыққа немесе ақшаға айырбастауға болады",
+    exchange: "Монетаны екі жолмен жұмсауға болады",
     detail: "Монеталарды ата-анаңмен айырбастайсың: бір монета қанша тұратынын және қандай сыйлық күтетінін алдын ала келісіңдер. Мысалы, 500 монета — кинотеатрға бару, 1000 — жаңа кітап немесе ойыншық.",
     parentNote: "Ата-аналарға: айырбас бағамы мен сыйлықты өзіңіз белгілейсіз. Қосымша төлем жасамайды — бұл сіздің балаңызбен келісіміңіз.",
     rates: [
@@ -39,8 +39,8 @@ const COPY = {
   en: {
     title: "What the coins are for",
     lead: "You earn 1 coin for every word you read, plus 50 more for finishing a whole book.",
-    exchange: "Coins can be exchanged for a real prize or money",
-    detail: "You exchange coins with your parents: agree in advance what a coin is worth and what prize is waiting. For example, 500 coins for a trip to the cinema, 1000 for a new book or toy.",
+    exchange: "Coins can be spent in two ways",
+    detail: "1) In the hero shop — unlock a new character right in the app. 2) With your parents — exchange for a real prize or money: agree in advance what a coin is worth. For example, 500 coins for a cinema trip, 1000 for a new book or toy.",
     parentNote: "For parents: you set the exchange rate and the reward yourself. The app makes no payments — this is your arrangement with your child.",
     rates: [
       { coins: 100, label: "a small prize" },

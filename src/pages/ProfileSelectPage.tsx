@@ -5,6 +5,7 @@ import { createProfile, watchProfiles } from "@/lib/firestore";
 import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BookOpen, Coins, Plus, Settings } from "lucide-react";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 const AVATARS = ["🦁", "🐬", "🦊", "🐼", "🦄", "🐸", "🦋", "🐯", "🐨", "🦉"];
 
@@ -68,7 +69,7 @@ export default function ProfileSelectPage() {
             style={{ animationDelay: `${i * 60}ms` }}
             onClick={() => navigate(`/library?profile=${p.id}`)}
           >
-            <span className="text-6xl mb-1 drop-shadow-sm">{p.avatar}</span>
+            <span className="mb-1 drop-shadow-sm"><ProfileAvatar value={p.avatar} size={68} /></span>
             <span className="font-display font-bold text-xl text-ink dark:text-white">{p.name}</span>
             <span className="text-sm text-ink-faint">{p.age} лет</span>
             <span className="chip chip-off !py-1 !px-3 text-xs mt-1 inline-flex items-center gap-1">

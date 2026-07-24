@@ -55,6 +55,8 @@ export interface ChildProfile {
   booksCompleted: number;
   /** Reward coins: 1 per word read, plus bonuses for pages and books. */
   coins?: number;
+  /** Ids of avatar characters bought in the shop. */
+  unlockedAvatars?: string[];
   byLanguage: Record<Language, { books: number; ms: number }>;
 }
 

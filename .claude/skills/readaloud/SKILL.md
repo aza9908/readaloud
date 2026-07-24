@@ -49,6 +49,9 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
    the callable, then falls back to a local heuristic.
 5. **Only import public-domain text.** Wikisource only. Do not add general
    web scraping — it would pull copyrighted books into the product.
+   The same rule covers artwork: never import third-party game skins or
+   character art (Roblox, Minecraft, Disney and the like). Reward characters
+   in `src/lib/avatars.ts` are original parametric SVG owned by the project.
 6. **Generated stories draw problem/helper/reward as one bound `Scenario`.**
    Drawing them from independent pools produces incoherent stories.
 7. **Russian output must respect grammatical gender.** Heroes carry
@@ -69,6 +72,17 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
     widens the search only after repeated misses. `node test/accuracy.sim.mjs`
     reports both drift and page-completion; a change that improves one at the
     cost of the other is not an improvement.
+
+## Rewards economy
+
+Coins: 1 per word read + 50 per completed book, so one ~130-word book is
+about 180 coins. Shop prices are set against that: common 400–550 (2–3 books),
+rare 800–950 (4–5), legendary 2000–2200 (11–12). Whole collection ≈ 53 books.
+Purchases run through `purchaseAvatar`, which uses a Firestore transaction —
+without it a double tap would deduct coins twice.
+
+`profile.avatar` holds either an emoji or `av:<id>`; always render it through
+`<ProfileAvatar>` rather than printing the field directly.
 
 ## Deploy
 

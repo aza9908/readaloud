@@ -11,9 +11,11 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
+import { AvatarShop } from "@/components/AvatarShop";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
 function fmtDuration(ms: number): string {
@@ -40,6 +42,7 @@ export default function LibraryPage() {
   const [installing, setInstalling] = useState(false);
   /** Book just added via the guide — pulled to the top and highlighted. */
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [showShop, setShowShop] = useState(false);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -126,7 +129,7 @@ export default function LibraryPage() {
       <header className="flex items-center justify-between mb-6">
         <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад"><ArrowLeft className="w-5 h-5" strokeWidth={2.4} /></button>
         <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white">
-          <span className="text-2xl">{profile.avatar}</span> {profile.name}
+          <ProfileAvatar value={profile.avatar} size={30} /> {profile.name}
         </div>
         <ThemeToggle />
       </header>
@@ -155,7 +158,10 @@ export default function LibraryPage() {
             {l.flag} {l.label}
           </button>
         ))}
-        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowProgress(true)}>
+        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowShop(true)}>
+          <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
+        </button>
+        <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
           <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
         </button>
       </div>
@@ -248,6 +254,15 @@ export default function LibraryPage() {
         <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
       </button>
 
+      <AvatarShop
+        open={showShop}
+        uid={user.uid}
+        profile={profile}
+        language={language}
+        onClose={() => setShowShop(false)}
+        onChanged={() => { void getProfile(user.uid, profileId).then(setProfile); }}
+      />
+
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />
 
       {showGuide && (
@@ -291,7 +306,7 @@ export default function LibraryPage() {
           <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto space-y-5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-3xl">{profile.avatar}</span>
+                <ProfileAvatar value={profile.avatar} size={38} />
                 <div>
                   <h2 className="font-display font-extrabold text-xl text-ink dark:text-white leading-none">Мои успехи</h2>
                   <p className="text-sm text-ink-faint">{profile.name}</p>

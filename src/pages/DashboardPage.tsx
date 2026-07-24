@@ -12,6 +12,7 @@ import {
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RewardsPanel } from "@/components/RewardsPanel";
+import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 function fmtDuration(ms: number): string {
   if (ms < 1000) return "—";
@@ -92,7 +93,7 @@ export default function DashboardPage() {
                 : "bg-white dark:bg-[#211d2e] text-ink-soft dark:text-ink-faint shadow-sm"
             }`}
           >
-            {p.avatar} {p.name}
+            {p.name}
           </button>
         ))}
       </div>
@@ -100,7 +101,7 @@ export default function DashboardPage() {
       {profile && (
         <>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-4xl">{profile.avatar}</span>
+            <ProfileAvatar value={profile.avatar} size={48} />
             <div>
               <p className="text-2xl font-display font-extrabold text-ink dark:text-white">{profile.name}</p>
               <p className="text-sm text-ink-faint">
