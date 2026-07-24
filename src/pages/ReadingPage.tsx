@@ -458,16 +458,18 @@ export default function ReadingPage() {
     <div className="min-h-dvh flex flex-col">
       {/* Header — updates ≤1×/sec, cheap */}
       <header className="sticky top-0 z-20 bg-[var(--canvas)]/90 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-black/[0.04] dark:border-white/[0.04]">
-        <div className="flex items-center justify-between gap-2 max-w-2xl mx-auto">
-          <button className="w-9 h-9 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft text-lg" onClick={stopAndExit} aria-label="Назад"><ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} /></button>
-          <div className="min-w-0 text-center flex-1">
+        <div className="flex items-center gap-2 max-w-2xl mx-auto">
+          <button className="w-9 h-9 shrink-0 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft" onClick={stopAndExit} aria-label="Назад"><ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} /></button>
+          <div className="min-w-0 flex-1">
             <p className="font-display font-bold truncate text-ink dark:text-white leading-tight">{book.title}</p>
             <p className="text-[11px] text-ink-faint">Страница {pageIndex + 1} из {book.pages.length}</p>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 shrink-0">
             <CoinCounter coins={coins} />
-            <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white" onClick={() => setFontSizePx((s) => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
-            <button className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 shadow-soft font-bold text-ink dark:text-white text-sm" onClick={() => setFontSizePx((s) => Math.min(30, s + 2))} aria-label="Больше">A+</button>
+            <div className="flex items-center gap-0.5 rounded-2xl bg-white/70 dark:bg-white/10 shadow-soft p-0.5">
+              <button className="w-8 h-8 rounded-xl font-bold text-ink dark:text-white grid place-items-center" onClick={() => setFontSizePx((s) => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
+              <button className="w-8 h-8 rounded-xl font-bold text-ink dark:text-white text-sm grid place-items-center" onClick={() => setFontSizePx((s) => Math.min(30, s + 2))} aria-label="Больше">A+</button>
+            </div>
             <ThemeToggle />
           </div>
         </div>

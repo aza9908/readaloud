@@ -106,8 +106,10 @@ export interface ParentReward {
   id: string;
   /** Название: «Мороженое», «30 мин PlayStation». */
   title: string;
-  /** Эмодзи-иконка для карточки. */
+  /** Эмодзи-иконка (если нет фото). */
   emoji: string;
+  /** Фото награды (сжатый data URL). Если задано — показываем вместо эмодзи. */
+  photo?: string;
   /** Цена в монетах, которую назначил родитель. */
   price: number;
   /** Кто создал (для мультиребёнковых семей — награда общая на аккаунт). */
@@ -124,6 +126,7 @@ export interface RewardRequest {
   rewardId: string;
   rewardTitle: string;
   rewardEmoji: string;
+  rewardPhoto?: string;
   price: number;
   profileId: string;
   profileName: string;

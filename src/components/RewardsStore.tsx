@@ -101,7 +101,11 @@ export function RewardsStore({
               const progress = Math.min(100, (coins / r.price) * 100);
               return (
                 <div key={r.id} className="card p-4 flex items-center gap-4">
-                  <span className="text-4xl shrink-0">{r.emoji}</span>
+                  {r.photo ? (
+                    <img src={r.photo} alt="" className="w-14 h-14 rounded-2xl object-cover shrink-0" />
+                  ) : (
+                    <span className="text-4xl shrink-0 w-14 text-center">{r.emoji}</span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="font-display font-bold text-ink dark:text-white truncate">{r.title}</p>
                     <div className="flex items-center gap-1.5 text-sm font-bold text-amber-600 dark:text-amber-400 mt-0.5">

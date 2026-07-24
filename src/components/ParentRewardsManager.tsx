@@ -6,12 +6,13 @@
  * при подтверждении (транзакцией на стороне firestore).
  */
 
-import { useEffect, useState } from "react";
-import { Coins, Plus, Trash2, Check, X, Gift, Bell } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Coins, Plus, Trash2, Check, X, Gift, Bell, Camera, Loader2 } from "lucide-react";
 import {
   getRewards, addReward, deleteReward,
   getPendingRequests, approveRewardRequest, declineRewardRequest,
 } from "@/lib/firestore";
+import { compressImage, ACCEPTED_IMAGE_TYPES } from "@/lib/imageCompress";
 import { useToast } from "@/components/Toast";
 import type { ParentReward, RewardRequest } from "@/lib/types";
 
@@ -34,7 +35,23 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
   const [emoji, setEmoji] = useState("🍦");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const compressed = await compressImage(file);
+      setPhoto(compressed);
+    } catch {
+      toast({ icon: "⚠️", title: "Не удалось обработать фото" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const reload = async () => {
     const [r, q] = await Promise.all([getRewards(uid), getPendingRequests(uid)]);
@@ -53,8 +70,8 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
     }
     setBusy(true);
     try {
-      await addReward(uid, { title: t, emoji: e, price: p });
-      setTitle(""); setPrice(""); setAdding(false);
+      await addReward(uid, { title: t, emoji: e, price: p, ...(photo ? { photo } : {}) });
+      setTitle(""); setPrice(""); setPhoto(null); setAdding(false);
       await reload();
       toast({ icon: "🎁", title: "Награда добавлена" });
     } finally {
@@ -110,7 +127,11 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
           </p>
           {requests.map((req) => (
             <div key={req.id} className="rounded-2xl bg-brand-500/8 border border-brand-500/25 p-3 flex items-center gap-3">
-              <span className="text-3xl shrink-0">{req.rewardEmoji}</span>
+              {req.rewardPhoto ? (
+                <img src={req.rewardPhoto} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
+              ) : (
+                <span className="text-3xl shrink-0">{req.rewardEmoji}</span>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-ink dark:text-white truncate">{req.rewardTitle}</p>
                 <p className="text-xs text-ink-faint">
@@ -137,19 +158,64 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
       {/* Форма добавления */}
       {adding && (
         <div className="rounded-2xl border-2 border-brand-500/20 p-4 mb-4 space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            {EMOJI_CHOICES.map((e) => (
+          {/* Фото награды или выбор эмодзи */}
+          <div className="flex items-start gap-3">
+            <div className="shrink-0">
+              <input
+                ref={fileRef}
+                type="file"
+                accept={ACCEPTED_IMAGE_TYPES}
+                className="hidden"
+                onChange={(e) => void pickPhoto(e.target.files?.[0])}
+              />
               <button
-                key={e}
-                onClick={() => setEmoji(e)}
-                className={`w-9 h-9 rounded-xl text-xl grid place-items-center transition-all ${
-                  emoji === e ? "bg-brand-500/15 ring-2 ring-brand-500" : "bg-black/[0.04] dark:bg-white/5"
-                }`}
+                onClick={() => fileRef.current?.click()}
+                className="w-20 h-20 rounded-2xl border-2 border-dashed border-brand-400/40 grid place-items-center overflow-hidden bg-black/[0.02] dark:bg-white/5"
+                aria-label="Загрузить фото награды"
               >
-                {e}
+                {uploading ? (
+                  <Loader2 className="w-6 h-6 text-brand-400 animate-spin" />
+                ) : photo ? (
+                  <img src={photo} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <Camera className="w-6 h-6 text-brand-400 mx-auto" strokeWidth={2} />
+                    <span className="text-[10px] text-ink-faint">Фото</span>
+                  </div>
+                )}
               </button>
-            ))}
+              {photo && (
+                <button
+                  className="text-[11px] text-ink-faint mt-1 w-full text-center"
+                  onClick={() => setPhoto(null)}
+                >
+                  Убрать
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-ink-faint mb-1.5">
+                {photo ? "Фото загружено" : "Или выберите значок:"}
+              </p>
+              {!photo && (
+                <div className="flex flex-wrap gap-1.5">
+                  {EMOJI_CHOICES.map((e) => (
+                    <button
+                      key={e}
+                      onClick={() => setEmoji(e)}
+                      className={`w-9 h-9 rounded-xl text-xl grid place-items-center transition-all ${
+                        emoji === e ? "bg-brand-500/15 ring-2 ring-brand-500" : "bg-black/[0.04] dark:bg-white/5"
+                      }`}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
           <input
             className="input w-full"
             placeholder="Название: Мороженое, Поход в кино…"
@@ -168,10 +234,10 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
                 onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
               />
             </div>
-            <button className="btn-primary !py-2.5" disabled={busy} onClick={() => void create()}>
+            <button className="btn-primary !py-2.5" disabled={busy || uploading} onClick={() => void create()}>
               Добавить
             </button>
-            <button className="btn-ghost !py-2.5" onClick={() => setAdding(false)}>Отмена</button>
+            <button className="btn-ghost !py-2.5" onClick={() => { setAdding(false); setPhoto(null); }}>Отмена</button>
           </div>
         </div>
       )}
@@ -208,7 +274,11 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
         <div className="space-y-2">
           {rewards.map((r) => (
             <div key={r.id} className="flex items-center gap-3 rounded-2xl bg-black/[0.02] dark:bg-white/5 p-3">
-              <span className="text-2xl shrink-0">{r.emoji}</span>
+              {r.photo ? (
+                <img src={r.photo} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
+              ) : (
+                <span className="text-2xl shrink-0 w-10 text-center">{r.emoji}</span>
+              )}
               <p className="flex-1 font-bold text-ink dark:text-white truncate">{r.title}</p>
               <span className="flex items-center gap-1 text-sm font-bold text-amber-600 dark:text-amber-400">
                 <Coins className="w-3.5 h-3.5" strokeWidth={2.4} /> {r.price}

@@ -503,6 +503,7 @@ export async function requestReward(
       rewardId: reward.id,
       rewardTitle: reward.title,
       rewardEmoji: reward.emoji,
+      ...(reward.photo ? { rewardPhoto: reward.photo } : {}),
       price: reward.price,
       profileId: profile.id,
       profileName: profile.name,
