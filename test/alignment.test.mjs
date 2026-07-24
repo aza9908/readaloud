@@ -141,5 +141,30 @@ console.log("\n── full realistic read-through ──");
   eq("page complete", a.isPageComplete, true);
 }
 
+console.log("\n── recovery must not reintroduce runaway ──");
+{
+  // Recovery widens the search only after repeated misses. It must still
+  // refuse to leap ahead when the child simply has not read that far.
+  const a = new ReadingAligner();
+  a.setPage(PAGE1);
+  a.feed("шум шум шум", "");           // three misses → recovery armed
+  const r = a.feed("шум шум шум ещё", "");
+  eq("noise never advances even in recovery", a.cursor, 0);
+
+  // But a genuine word further ahead does resync it.
+  const b = new ReadingAligner();
+  b.setPage(PAGE1);
+  b.feed("мама папа собака", "");       // 3 misses
+  b.feed("мама папа собака стартом", ""); // real word 4 ahead
+  const moved = b.cursor > 0 && b.cursor <= PAGE1.length;
+  eq("recovery resyncs on a real word", moved, true);
+
+  // Recovery resets once tracking is healthy again.
+  const c = new ReadingAligner();
+  c.setPage(PAGE1);
+  c.feed("Радость", "");
+  eq("normal match keeps strict mode", c.cursor, 1);
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

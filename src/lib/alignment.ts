@@ -126,6 +126,19 @@ export interface AlignerOptions {
    * when the NEXT word matches strongly. Default true.
    */
   allowSingleSkip?: boolean;
+  /**
+   * After this many consecutive unmatched tokens the aligner enters recovery
+   * and searches a wider window to resync. Default 3.
+   *
+   * Rationale: strict matching alone never runs ahead, but on poor recognition
+   * (noisy room, weaker Kazakh models) it can stall — the child keeps reading
+   * while the cursor sits still. Recovery trades a little strictness for the
+   * ability to catch up, and only engages once the strict path has clearly
+   * lost the thread.
+   */
+  recoveryAfterMisses?: number;
+  /** How far ahead recovery may look. Default 6. */
+  recoveryWindow?: number;
 }
 
 export interface FeedResult {
@@ -147,9 +160,15 @@ export class ReadingAligner {
   /** How many tokens of (committed + interim) have been aligned already. */
   private consumed = 0;
   private readonly allowSingleSkip: boolean;
+  private readonly recoveryAfterMisses: number;
+  private readonly recoveryWindow: number;
+  /** Consecutive spoken tokens that matched nothing — drives recovery. */
+  private misses = 0;
 
   constructor(opts: AlignerOptions = {}) {
     this.allowSingleSkip = opts.allowSingleSkip ?? true;
+    this.recoveryAfterMisses = opts.recoveryAfterMisses ?? 3;
+    this.recoveryWindow = opts.recoveryWindow ?? 6;
   }
 
   /**
@@ -160,6 +179,7 @@ export class ReadingAligner {
   setPage(words: string[], startIndex = 0): void {
     this.targets = words.map(expandHyphens);
     this.index = Math.max(0, Math.min(startIndex, Math.max(words.length - 1, 0)));
+    this.misses = 0;
     this.dropPendingSpeech();
   }
 
@@ -173,6 +193,7 @@ export class ReadingAligner {
   /** Move the cursor without consuming speech (skip button, restore). */
   seek(index: number): void {
     this.index = Math.max(0, Math.min(index, Math.max(this.targets.length - 1, 0)));
+    this.misses = 0;
   }
 
   get cursor(): number {
@@ -226,33 +247,54 @@ export class ReadingAligner {
     return { index: this.index, advanced: this.index - before };
   }
 
-  /** Align one spoken token against the cursor. At most one word is skipped. */
+  /**
+   * Align one spoken token against the cursor.
+   *
+   * Normal path is deliberately strict: match the current word, or skip at
+   * most one on a strong match. That is what keeps the cursor from running
+   * ahead of the child.
+   *
+   * If several tokens in a row match nothing, the strict path has lost the
+   * thread (badly mangled recognition, or the child read on while we stalled).
+   * Recovery then searches a wider window so the cursor can catch up instead
+   * of freezing until the child presses "skip".
+   */
   private consumeToken(spoken: string): void {
     const cur = this.targets[this.index];
-    const curStrength = strengthAgainst(cur, spoken);
 
-    if (curStrength !== "none") {
+    if (strengthAgainst(cur, spoken) !== "none") {
       this.index += 1;
+      this.misses = 0;
       return;
     }
 
-    // The child repeated the word just read — a very common behaviour.
-    // Ignore it rather than letting it match something ahead.
+    // The child repeated the word just read — very common. Not a miss.
     if (this.index > 0 && strengthAgainst(this.targets[this.index - 1], spoken) === "strong") {
       return;
     }
 
-    // The child may have skipped or mumbled exactly one word. Only act on a
-    // strong match, and only one word ahead — this is what stops the cursor
-    // running away (bug 3).
+    // Skipped or mumbled exactly one word.
     if (this.allowSingleSkip && this.index + 1 < this.targets.length) {
-      const next = this.targets[this.index + 1];
-      if (strengthAgainst(next, spoken) === "strong") {
+      if (strengthAgainst(this.targets[this.index + 1], spoken) === "strong") {
         this.index += 2;
+        this.misses = 0;
         return;
       }
     }
 
-    // Unrecognised speech (noise, a wrong word, a filler). Hold position.
+    this.misses += 1;
+
+    // ── Recovery ──
+    if (this.misses >= this.recoveryAfterMisses) {
+      const end = Math.min(this.index + this.recoveryWindow, this.targets.length);
+      for (let w = this.index + 2; w < end; w++) {
+        if (strengthAgainst(this.targets[w], spoken) === "strong") {
+          this.index = w + 1;
+          this.misses = 0;
+          return;
+        }
+      }
+    }
+    // Otherwise hold position — unrecognised noise must not move the cursor.
   }
 }

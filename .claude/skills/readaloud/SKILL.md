@@ -64,6 +64,11 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
    (prefix) match is accepted at the cursor but must never cause a skip.
 10. **The reading prompt subscribes to the cursor** (`subscribeCursor`), it
     does not read throttled state — otherwise it lags a second behind.
+11. **Strictness and stalling are a trade-off — measure both.** Strict matching
+    alone never runs ahead but freezes on poor recognition. `recoveryAfterMisses`
+    widens the search only after repeated misses. `node test/accuracy.sim.mjs`
+    reports both drift and page-completion; a change that improves one at the
+    cost of the other is not an improvement.
 
 ## Deploy
 
