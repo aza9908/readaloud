@@ -166,15 +166,22 @@ export default function LibraryPage() {
 
   return (
     <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto pb-28">
-      <header className="flex items-center justify-between mb-6">
-        <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад"><ArrowLeft className="w-5 h-5" strokeWidth={2.4} /></button>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white">
-            <ProfileAvatar value={profile.avatar} size={30} /> {profile.name}
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
+        <div className="justify-self-start">
+          <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад">
+            <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
+          </button>
+        </div>
+        <div className="justify-self-center flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white min-w-0">
+            <ProfileAvatar value={profile.avatar} size={30} />
+            <span className="truncate">{profile.name}</span>
           </div>
           <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
         </div>
-        <ThemeToggle />
+        <div className="justify-self-end">
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="mb-5 animate-fade-up">

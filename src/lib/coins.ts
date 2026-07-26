@@ -42,8 +42,22 @@ export const BELOW_LEVEL_FACTOR = 0.35;
 /** Небольшая надбавка за книгу выше своего уровня — за смелость. */
 export const ABOVE_LEVEL_FACTOR = 1.15;
 
-/** Больше этого за сутки не заработать (≈5 книг по возрасту). */
-export const DAILY_COIN_CAP = 260;
+/**
+ * Порог, после которого награда за день резко уменьшается (≈5 книг по
+ * возрасту). Именно уменьшается, а не обнуляется: жёсткий ноль наказывал бы
+ * увлечённого ребёнка — прочитал восемь книг вместо пяти и не получил ничего.
+ * Симуляция показала, что при жёстком потолке 8 книг давали 260 монет против
+ * 250 за пять, то есть три лишние книги стоили 10 монет. Теперь сверх порога
+ * монеты продолжают капать, но по сниженной ставке — марафон даёт убывающую
+ * отдачу, а ребёнок всегда видит награду за труд.
+ */
+export const DAILY_SOFT_CAP = 260;
+
+/** Доля награды за книги сверх дневного порога. */
+export const OVER_CAP_RATE = 0.25;
+
+/** Совместимость со старым именем. @deprecated используйте DAILY_SOFT_CAP */
+export const DAILY_COIN_CAP = DAILY_SOFT_CAP;
 
 export interface AwardInput {
   /** Сколько слов реально прочитано вслух. */
@@ -99,10 +113,12 @@ export function awardForCompletion(input: AwardInput): AwardResult {
   if (rereadFactor < 1) reason = "reread";
   else if (fit === "below") reason = "below_level";
 
-  // Дневной потолок применяем последним.
-  const remaining = Math.max(0, DAILY_COIN_CAP - earnedToday);
-  if (coins > remaining) {
-    coins = remaining;
+  // Дневной порог применяем последним: часть награды до порога считаем
+  // полностью, остаток — по сниженной ставке.
+  const beforeCap = Math.max(0, DAILY_SOFT_CAP - earnedToday);
+  if (coins > beforeCap) {
+    const over = coins - beforeCap;
+    coins = settle(beforeCap + over * OVER_CAP_RATE);
     reason = "daily_cap";
   }
 
@@ -115,8 +131,9 @@ export function awardForCompletion(input: AwardInput): AwardResult {
  */
 export function coinsForWords(words: number, earnedToday: number): number {
   const raw = settle(words * COINS_PER_WORD);
-  const remaining = Math.max(0, DAILY_COIN_CAP - earnedToday);
-  return Math.min(raw, remaining);
+  const beforeCap = Math.max(0, DAILY_SOFT_CAP - earnedToday);
+  if (raw <= beforeCap) return raw;
+  return settle(beforeCap + (raw - beforeCap) * OVER_CAP_RATE);
 }
 
 /** Человеческое объяснение, почему монет меньше обычного. */
@@ -140,9 +157,9 @@ export const AWARD_EXPLANATION: Record<
     en: "This book is easy for you — fewer coins. Try a harder one!",
   },
   daily_cap: {
-    ru: "На сегодня монет заработано достаточно. Завтра снова можно копить!",
-    kk: "Бүгінге монета жеткілікті. Ертең қайта жинауға болады!",
-    en: "You have earned enough coins today. Come back tomorrow!",
+    ru: "Ты сегодня много прочитал! Дальше монет за книгу меньше — завтра снова полная награда.",
+    kk: "Бүгін көп оқыдың! Әрі қарай монета азырақ — ертең тағы толық сыйақы.",
+    en: "You have read a lot today! Coins are smaller now — full rewards return tomorrow.",
   },
   none: { ru: "", kk: "", en: "" },
 };

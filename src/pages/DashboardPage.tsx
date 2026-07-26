@@ -62,18 +62,24 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-dvh px-4 py-4 max-w-3xl mx-auto pb-16">
-      <header className="flex items-center justify-between mb-5">
-        <button
-          className="w-10 h-10 rounded-2xl bg-white/70 dark:bg-white/10 shadow-soft grid place-items-center"
-          onClick={() => navigate("/profiles")}
-          aria-label="Назад"
-        >
-          <ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} />
-        </button>
-        <h1 className="font-display font-extrabold text-lg text-ink dark:text-white">
+      {/* Та же сетка, что и на экране профилей: заголовок точно по центру
+          независимо от того, что стоит по бокам. */}
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-5 gap-2">
+        <div className="justify-self-start">
+          <button
+            className="w-10 h-10 rounded-2xl bg-white/70 dark:bg-white/10 shadow-soft grid place-items-center"
+            onClick={() => navigate("/profiles")}
+            aria-label="Назад"
+          >
+            <ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} />
+          </button>
+        </div>
+        <h1 className="justify-self-center font-display font-extrabold text-lg text-ink dark:text-white text-center">
           Родительский дашборд
         </h1>
-        <ThemeToggle />
+        <div className="justify-self-end">
+          <ThemeToggle />
+        </div>
       </header>
 
       {profiles.length > 1 && (

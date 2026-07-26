@@ -7,7 +7,7 @@ const src = readFileSync("src/lib/coins.ts", "utf8")
   .replace(/import type \{[^}]*\} from "[^"]*";/g, "");
 const { code } = await transform(src, { loader: "ts", format: "esm" });
 const m = await import("data:text/javascript;base64," + Buffer.from(code).toString("base64"));
-const { awardForCompletion, coinsForWords, DAILY_COIN_CAP } = m;
+const { awardForCompletion, coinsForWords, DAILY_SOFT_CAP, OVER_CAP_RATE } = m;
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -67,15 +67,41 @@ console.log("\n── книга выше уровня — небольшая н
   eq("за вызов платят чуть больше", above > match, true);
 }
 
-console.log("\n── дневной потолок ──");
+console.log("\n── дневной порог: мягкий, а не жёсткий ──");
 {
-  const nearCap = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_COIN_CAP - 10 });
-  const atCap = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_COIN_CAP });
-  console.log(`    осталось 10 → начислено ${nearCap.coins}; потолок исчерпан → ${atCap.coins}`);
-  eq("у потолка срезается", nearCap.coins, 10);
-  eq("за потолком ноль", atCap.coins, 0);
-  eq("причина объяснена", atCap.reason, "daily_cap");
-  eq("промежуточное начисление тоже уважает потолок", coinsForWords(400, DAILY_COIN_CAP - 5), 5);
+  const under = A({ wordsRead: 200, band: "8-9", earnedToday: 0 });
+  const over = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_SOFT_CAP });
+  console.log(`    до порога ${under.coins}, за порогом ${over.coins}`);
+  // Главное требование: за порогом награда УМЕНЬШАЕТСЯ, но не обнуляется —
+  // иначе увлечённый ребёнок читает лишние книги бесплатно и теряет мотивацию.
+  eq("за порогом всё ещё что-то начисляют", over.coins > 0, true);
+  eq("за порогом заметно меньше", over.coins < under.coins * 0.5, true);
+  eq("причина объяснена", over.reason, "daily_cap");
+
+  // Награда, попавшая на границу, считается по частям.
+  const straddling = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_SOFT_CAP - 10 });
+  eq("часть до порога — полностью, остаток — по сниженной ставке",
+     straddling.coins > 10 && straddling.coins < under.coins, true);
+
+  eq("промежуточный расчёт тоже мягкий", coinsForWords(400, DAILY_SOFT_CAP) > 0, true);
+}
+
+console.log("\n── марафон должен давать убывающую отдачу ──");
+{
+  // Пять книг честно против восьми книг подряд.
+  let five = 0, eight = 0, earned = 0;
+  for (let i = 0; i < 5; i++) {
+    const r = A({ wordsRead: 130, band: "6-7", earnedToday: earned });
+    five += r.coins; earned += r.coins;
+  }
+  earned = 0;
+  for (let i = 0; i < 8; i++) {
+    const r = A({ wordsRead: 130, band: "6-7", earnedToday: earned });
+    eight += r.coins; earned += r.coins;
+  }
+  console.log(`    5 книг → ${five}, 8 книг → ${eight}`);
+  eq("восемь книг дают больше пяти", eight > five, true);
+  eq("но далеко не пропорционально", eight < five * 1.4, true);
 }
 
 console.log("\n── сколько книг до награды (проверка здравого смысла) ──");

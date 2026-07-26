@@ -41,14 +41,21 @@ export default function ProfileSelectPage() {
 
   return (
     <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto">
-      <header className="flex items-center justify-between mb-10">
-        <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => void logout()}>
-          Выйти
-        </button>
-        <span className="font-display font-extrabold text-lg text-ink dark:text-white">
-          Read<span className="text-brand-500">Aloud</span>
+      {/* Сетка 1fr auto 1fr: боковые колонки всегда равной ширины, поэтому
+          логотип стоит точно по центру страницы. При flex justify-between он
+          съезжал вправо, потому что кнопка «Выйти» шире переключателя темы. */}
+      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-10">
+        <div className="justify-self-start">
+          <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => void logout()}>
+            Выйти
+          </button>
+        </div>
+        <span className="justify-self-center font-display font-extrabold text-lg text-ink dark:text-white">
+          Book<span className="text-brand-500">ser</span>
         </span>
-        <ThemeToggle />
+        <div className="justify-self-end">
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="text-center mb-8 animate-fade-up">
