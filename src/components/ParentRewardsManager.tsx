@@ -19,12 +19,19 @@ import type { ParentReward, RewardRequest } from "@/lib/types";
 /** Быстрый выбор эмодзи для новой награды. */
 const EMOJI_CHOICES = ["🍦", "🍿", "⚽️", "🎮", "🍕", "🎁", "🧸", "🚲", "📱", "🎨", "🍫", "🎢"];
 
-/** Готовые примеры — чтобы родителю было с чего начать. */
-const PRESETS: { emoji: string; title: string; price: number }[] = [
-  { emoji: "🍦", title: "Мороженое", price: 300 },
-  { emoji: "🎮", title: "30 минут PlayStation", price: 500 },
-  { emoji: "🍿", title: "Поход в кино", price: 4000 },
-  { emoji: "⚽️", title: "Футбольный мяч", price: 5000 },
+/**
+ * Готовые примеры — чтобы родителю было с чего начать.
+ * Цены подобраны под текущую экономику: обычная книга приносит ~50 монет,
+ * поэтому в скобках указано, сколько это примерно книг. Родитель может
+ * поменять любую цену — это лишь ориентир, чтобы награда не доставалась
+ * за один вечер и не становилась недостижимой.
+ */
+const PRESETS: { emoji: string; title: string; price: number; books: string }[] = [
+  { emoji: "🍦", title: "Мороженое", price: 150, books: "≈3 книги" },
+  { emoji: "🎮", title: "30 минут PlayStation", price: 250, books: "≈5 книг" },
+  { emoji: "🍿", title: "Поход в кино", price: 800, books: "≈16 книг" },
+  { emoji: "⚽️", title: "Футбольный мяч", price: 1500, books: "≈30 книг" },
+  { emoji: "🥋", title: "Футбольная форма", price: 3000, books: "≈60 книг" },
 ];
 
 export function ParentRewardsManager({ uid }: { uid: string }) {
@@ -260,7 +267,9 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
                 <span className="text-2xl">{p.emoji}</span>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-ink dark:text-white truncate">{p.title}</p>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">{p.price} монет</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {p.price} монет · {p.books}
+                  </p>
                 </div>
                 <Plus className="w-4 h-4 text-brand-400 ml-auto shrink-0" strokeWidth={2.6} />
               </button>

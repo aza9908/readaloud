@@ -32,6 +32,8 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { awardForCompletion, type AwardResult } from "./coins";
+import { bandForText, fitFor, type AgeBand } from "./readingLevel";
 import {
   EMPTY_BY_LANGUAGE,
   type Achievement,
@@ -79,6 +81,8 @@ export async function createProfile(
     booksCompleted: 0,
     coins: 0,
     unlockedAvatars: [],
+    bookCompletions: {},
+    coinsToday: 0,
     byLanguage: EMPTY_BY_LANGUAGE,
   });
   return ref.id;
@@ -185,6 +189,8 @@ export async function createCustomBook(
     totalWords,
     estimatedMinutes: Math.max(1, Math.round(totalWords / 60)),
     difficulty: "custom",
+    // Категория считается из текста — она и используется для фильтров.
+    band: bandForText(pages.join(" "), data.language),
     ageMin: 6,
     ageMax: 10,
     coverEmoji: data.coverEmoji || "📖",
@@ -200,7 +206,13 @@ export async function deleteCustomBook(bookId: string): Promise<void> {
   await deleteDoc(doc(db, "books", bookId));
 }
 
-/** Coins awarded on finishing a whole book, on top of per-word coins. */
+/**
+ * УСТАРЕЛО. Раньше за книгу давали фиксированные 50 монет сверх монеты
+ * за каждое слово. Теперь награда считается в `src/lib/coins.ts` и зависит
+ * от сложности книги, повторов и возраста ребёнка. Константа оставлена
+ * только чтобы не ломать старые импорты.
+ * @deprecated используйте awardForCompletion из "@/lib/coins"
+ */
 export const BOOK_COMPLETION_BONUS = 50;
 
 /** Локальная дата в формате YYYY-MM-DD (не UTC — важно для «сегодня»). */
@@ -323,36 +335,88 @@ export async function saveSessionProgress(
     }),
   ];
   if (deltas.words > 0 || deltas.ms > 0) {
+    // Монеты здесь НЕ начисляются: вся награда выдаётся один раз при
+    // завершении книги (см. completeSession). Иначе перечитывание страниц
+    // обходило бы ограничения на повторы и дневной потолок.
     ops.push(
       updateDoc(doc(db, "users", uid, "profiles", pid), {
         totalWords: increment(deltas.words),
         totalMs: increment(deltas.ms),
-        coins: increment(deltas.coins ?? deltas.words),
       }),
     );
   }
   await Promise.all(ops);
 }
 
+/**
+ * Завершение книги: единственное место, где начисляются монеты.
+ *
+ * Раньше монеты капали ещё и по ходу чтения (за каждое слово). Из-за этого
+ * ребёнок мог перечитывать одни и те же страницы и бесконечно копить, минуя
+ * любые ограничения. Теперь награда выдаётся один раз — за дочитанную книгу,
+ * и считается в `awardForCompletion`, где учитываются повторы, соответствие
+ * возрасту и дневной потолок.
+ *
+ * Всё делается в транзакции: без неё два быстрых завершения (или две вкладки)
+ * начислили бы награду дважды.
+ */
 export async function completeSession(
   uid: string,
   pid: string,
   sessionId: string,
   language: Language,
   finalMs: number,
-): Promise<void> {
-  await Promise.all([
-    updateDoc(doc(sessionsCol(uid, pid), sessionId), {
-      completed: true,
-      updatedAt: Date.now(),
-    }),
-    updateDoc(doc(db, "users", uid, "profiles", pid), {
-      booksCompleted: increment(1),
-      coins: increment(BOOK_COMPLETION_BONUS),
-      [`byLanguage.${language}.books`]: increment(1),
-      [`byLanguage.${language}.ms`]: increment(finalMs),
-    }),
-  ]);
+  award: {
+    bookId: string;
+    wordsRead: number;
+    band: AgeBand;
+    childAge: number;
+  },
+): Promise<{ coins: number; baseCoins: number; reason: AwardResult["reason"] }> {
+  const profRef = doc(db, "users", uid, "profiles", pid);
+  const sessRef = doc(sessionsCol(uid, pid), sessionId);
+  const today = localDay();
+
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(profRef);
+      if (!snap.exists()) return { coins: 0, baseCoins: 0, reason: "none" as const };
+      const p = snap.data() as ChildProfile;
+
+      const completions = p.bookCompletions ?? {};
+      const previousCompletions = completions[award.bookId] ?? 0;
+      // Счётчик за сегодня сбрасывается, если наступил новый день.
+      const earnedToday = p.coinsTodayDay === today ? (p.coinsToday ?? 0) : 0;
+
+      const fit = fitFor(award.childAge, award.band);
+      const result = awardForCompletion({
+        wordsRead: award.wordsRead,
+        band: award.band,
+        fit,
+        previousCompletions,
+        earnedToday,
+      });
+
+      tx.update(sessRef, { completed: true, updatedAt: Date.now() });
+      tx.update(profRef, {
+        booksCompleted: increment(1),
+        coins: increment(result.coins),
+        coinsToday: earnedToday + result.coins,
+        coinsTodayDay: today,
+        [`bookCompletions.${award.bookId}`]: previousCompletions + 1,
+        lastBookFit: fit,
+        [`byLanguage.${language}.books`]: increment(1),
+        [`byLanguage.${language}.ms`]: increment(finalMs),
+      });
+
+      return result;
+    });
+  } catch {
+    // Награду не начислили — сессию всё равно отмечаем дочитанной,
+    // чтобы прогресс ребёнка не потерялся из-за сетевого сбоя.
+    await updateDoc(sessRef, { completed: true, updatedAt: Date.now() }).catch(() => {});
+    return { coins: 0, baseCoins: 0, reason: "none" };
+  }
 }
 
 export async function getSessions(

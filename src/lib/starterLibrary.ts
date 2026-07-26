@@ -9,6 +9,7 @@
 
 import { collection, getDocs, query, where, writeBatch, doc } from "firebase/firestore";
 import { db } from "./firebase";
+import { bandForText } from "./readingLevel";
 import { paginateText, countWords } from "./firestore";
 import type { Book, Language } from "./types";
 import starter from "./starterBooks.json";
@@ -57,6 +58,7 @@ export async function installStarterLibrary(uid: string): Promise<number> {
       totalWords,
       estimatedMinutes: Math.max(1, Math.round(totalWords / 60)),
       difficulty: (b.difficulty ?? "easy") as Book["difficulty"],
+      band: bandForText(pages.join(" "), b.language as Book["language"]),
       ageMin: b.ageMin ?? 6,
       ageMax: b.ageMax ?? 10,
       coverEmoji: b.coverEmoji ?? "📖",
@@ -101,6 +103,7 @@ export async function saveDiscoveredBook(
     totalWords,
     estimatedMinutes: Math.max(1, Math.round(totalWords / 60)),
     difficulty: "custom",
+    band: bandForText(book.pages.join(" "), book.language),
     ageMin: Math.max(5, book.age - 1),
     ageMax: Math.min(12, book.age + 2),
     coverEmoji: book.coverEmoji ?? (book.origin === "generated" ? "✨" : "🌐"),

@@ -1,9 +1,9 @@
 ---
 name: readaloud
-description: Work on the ReadAloud children's read-aloud app (React + Vite + Firebase, RU/KK/EN karaoke reading for ages 6-10). Use when the task touches this repo — reading engine, speech recognition, karaoke highlighting, book library, custom uploads, Wikisource import, story generation, coins, quizzes, retelling, Firestore rules, or the GitHub Actions deploy to Firebase Hosting.
+description: Work on the Bookser children's read-aloud app (React + Vite + Firebase, RU/KK/EN karaoke reading for ages 6-10). Use when the task touches this repo — reading engine, speech recognition, karaoke highlighting, book library, custom uploads, Wikisource import, story generation, coins, quizzes, retelling, Firestore rules, or the GitHub Actions deploy to Firebase Hosting.
 ---
 
-# ReadAloud
+# Bookser (ранее ReadAloud)
 
 Gamified web app teaching children 6–10 to read aloud. Words highlight in real
 time as the child speaks (Web Speech API). Russian, Kazakh, English.
@@ -75,9 +75,11 @@ books/{bookId}   ownerId=null → shared, ownerId=uid → that family only
 
 ## Rewards economy
 
-Coins: 1 per word read + 50 per completed book, so one ~130-word book is
-about 180 coins. Shop prices are set against that: common 400–700 (2–4 books),
-rare 800–1200 (4–7), legendary 2000–2400 (11–13). Whole collection ≈ 87 books.
+Coins come from `awardForCompletion` (~50 for a typical book). Hero prices are
+set against that: common 160–280 (3–6 books), rare 320–480 (6–10), legendary
+800–960 (16–19). Whole collection ≈ 125 books. If the earning rate changes,
+rebalance hero prices and the parent-reward presets together, or progression
+silently breaks.
 15 characters, 7 of them Kazakh-themed; keep the girls/boys/neutral split
 roughly even when adding more.
 
@@ -99,6 +101,32 @@ Two separate reward tracks, do not conflate them:
   outside a transaction, or a double tap double-charges). Rewards and requests
   live at account level (`users/{uid}/rewards`, `users/{uid}/rewardRequests`),
   since one parent sets the list for all their children.
+
+## Reading level & coin economy
+
+Two pure, tested modules own these rules. Do not scatter the logic elsewhere.
+
+**`src/lib/readingLevel.ts`** — a book's age band (`4-5` / `6-7` / `8-9` / `10-12`)
+is computed **from its text**, never from `ageMin`/`ageMax` (those are legacy and
+hardcoded to 6 nearly everywhere). Syllables-per-word differs systematically by
+language (en ~1.6, ru ~2.0, kk ~2.25), so word complexity is measured *relative to
+that language's baseline* — otherwise every Kazakh book reads as "hard" purely
+from orthography. Very short texts damp the complexity terms: six long words are
+still only six words. `bandForBook()` prefers a stored `book.band`, else computes.
+
+**`src/lib/coins.ts`** — the single place deciding coin awards. Rates: 0.25/word
+plus a completion bonus that grows with band (8/18/30/45), so a typical book pays
+~50 (it paid ~180 before, which let a child buy a real parent reward in under two
+books). Four anti-farm rules: re-reads pay 100%/30%/0, below-level books pay 35%,
+above-level pay 115%, and a 260/day cap.
+
+**Coins are awarded only on book completion** (`completeSession`, transactional).
+Never award per word during reading again — that path let a child re-read pages
+and bypass every limit above.
+
+`pickBlockReason()` blocks two below-level books in a row. It is a hard block, not
+just reduced pay: a child who finds a profitable loop will use it even for few
+coins. Always surface `PICK_BLOCK_MESSAGE` so the block is explained, never silent.
 
 ## Retention & parent value
 

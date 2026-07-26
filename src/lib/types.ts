@@ -33,6 +33,12 @@ export interface Book {
   totalWords: number;
   estimatedMinutes: number;
   difficulty: "easy" | "medium" | "hard" | "custom";
+  /**
+   * Возрастная категория, вычисленная из текста при добавлении книги.
+   * Поля ageMin/ageMax ниже остались от ранней версии и ненадёжны
+   * (почти везде захардкожено 6) — для фильтров используйте band.
+   */
+  band?: "4-5" | "6-7" | "8-9" | "10-12";
   ageMin: number;
   ageMax: number;
   coverEmoji: string;
@@ -65,6 +71,18 @@ export interface ChildProfile {
   hardWords?: Record<string, number>;
   /** Всего монет потрачено на награды (для истории). */
   coinsSpent?: number;
+  /** Сколько раз дочитана каждая книга: bookId → число. Ограничивает повторы. */
+  bookCompletions?: Record<string, number>;
+  /** Монет начислено за сегодня — для дневного потолка. */
+  coinsToday?: number;
+  /** Локальная дата (YYYY-MM-DD), к которой относится coinsToday. */
+  coinsTodayDay?: string;
+  /**
+   * Уровень последней дочитанной книги относительно возраста ребёнка.
+   * Нужен для правила «нельзя брать простое подряд»: после книги ниже
+   * уровня следующая должна быть по возрасту.
+   */
+  lastBookFit?: "below" | "match" | "above";
   byLanguage: Record<Language, { books: number; ms: number }>;
 }
 

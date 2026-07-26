@@ -20,7 +20,9 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
-import { BOOK_COMPLETION_BONUS, updateStreakAndHardWords } from "@/lib/firestore";
+import { updateStreakAndHardWords } from "@/lib/firestore";
+import { bandForBook } from "@/lib/readingLevel";
+import { AWARD_EXPLANATION } from "@/lib/coins";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -168,6 +170,10 @@ export default function ReadingPage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [coins, setCoins] = useState(0);
   const [streakInfo, setStreakInfo] = useState<{ streak: number; grew: boolean } | null>(null);
+  /** Что реально начислено за книгу — с причиной, если срезали. */
+  const [awardInfo, setAwardInfo] = useState<{
+    coins: number; baseCoins: number; reason: keyof typeof AWARD_EXPLANATION;
+  } | null>(null);
   const baseCoinsRef = useRef(0);
 
   /* ── Session bookkeeping (base + delta model) ──
@@ -296,15 +302,24 @@ export default function ReadingPage() {
     void (async () => {
       if (!user || !sessionId || !book || !profile) return;
       persist(latestSnapRef.current, true); // final flush
-      await completeSession(
+      // Награда считается на сервере с учётом повторов, уровня и дневного
+      // потолка — здесь только показываем, что реально начислено.
+      const award = await completeSession(
         user.uid,
         profileId,
         sessionId,
         book.language,
         savedMsRef.current,
+        {
+          bookId: book.id,
+          wordsRead: savedWordsRef.current,
+          band: bandForBook(book),
+          childAge: profile.age,
+        },
       );
+      setAwardInfo(award);
       const before = profileBeforeRef.current ?? profile;
-      setCoins((c) => c + BOOK_COMPLETION_BONUS);
+      setCoins((c) => c + award.coins);
       // Обновляем серию и копилку трудных слов — результат покажем на итоге.
       const streakRes = await updateStreakAndHardWords(
         user.uid,
@@ -365,11 +380,11 @@ export default function ReadingPage() {
   // Поделиться результатом: Web Share API на телефоне, иначе копирование.
   const shareResult = useCallback(async () => {
     const wpm = reader.wpm || latestSnapRef.current.wpm || 0;
-    const text = `${profile?.name ?? "Ребёнок"} прочитал книгу «${book?.title ?? ""}» в ReadAloud` +
+    const text = `${profile?.name ?? "Ребёнок"} прочитал книгу «${book?.title ?? ""}» в Bookser` +
       (wpm ? ` — скорость ${wpm} слов/мин! 📚` : " 📚");
     try {
       if (navigator.share) {
-        await navigator.share({ title: "ReadAloud", text });
+        await navigator.share({ title: "Bookser", text });
       } else {
         await navigator.clipboard.writeText(text);
         toast({ icon: "📋", title: "Скопировано", description: "Можно отправить в мессенджер" });
@@ -623,7 +638,7 @@ export default function ReadingPage() {
                 <div className="rounded-2xl bg-amber-400/15 border border-amber-400/30 px-3 py-2.5">
                   <div className="text-2xl">🪙</div>
                   <div className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
-                    +{savedWordsRef.current + BOOK_COMPLETION_BONUS}
+                    +{awardInfo?.coins ?? 0}
                   </div>
                   <div className="text-[11px] text-ink-faint">монет</div>
                 </div>
@@ -635,6 +650,18 @@ export default function ReadingPage() {
                   <div className="text-[11px] text-ink-faint">слов/мин</div>
                 </div>
               </div>
+
+              {/* Если награду срезали — честно объясняем ребёнку почему,
+                  иначе он решит, что приложение сломалось. */}
+              {awardInfo && awardInfo.reason !== "full" && awardInfo.reason !== "none" && (
+                <div className="rounded-2xl bg-brand-500/8 border border-brand-500/20 px-3 py-2.5 text-left">
+                  <p className="text-xs text-ink-soft dark:text-ink-faint leading-relaxed">
+                    {AWARD_EXPLANATION[awardInfo.reason][
+                      (book?.language ?? "ru") as "ru" | "kk" | "en"
+                    ]}
+                  </p>
+                </div>
+              )}
 
               <p className="text-xs text-ink-faint leading-relaxed px-2">
                 Монеты можно потратить в магазине героев или обменять у родителей

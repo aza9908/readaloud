@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -18,6 +18,10 @@ import { AvatarShop } from "@/components/AvatarShop";
 import { RewardsStore } from "@/components/RewardsStore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { StreakBadge } from "@/components/StreakBadge";
+import {
+  AGE_BANDS, BAND_LABEL, BAND_HINT, bandForAge, bandForBook, fitFor,
+  pickBlockReason, PICK_BLOCK_MESSAGE, type AgeBand,
+} from "@/lib/readingLevel";
 import { installStarterLibrary, STARTER_COUNT } from "@/lib/starterLibrary";
 
 function fmtDuration(ms: number): string {
@@ -46,6 +50,9 @@ export default function LibraryPage() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showShop, setShowShop] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
+  const [bandFilter, setBandFilter] = useState<AgeBand | "all">("all");
+  /** Открываем категорию ребёнка при первой загрузке профиля. */
+  const bandInitedRef = useRef(false);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -58,7 +65,14 @@ export default function LibraryPage() {
     if (!user || !profileId) return;
     void getProfile(user.uid, profileId).then((p) => {
       setProfile(p);
-      if (p) setLanguage(p.defaultLanguage);
+      if (p) {
+        setLanguage(p.defaultLanguage);
+        // Первый раз показываем категорию ребёнка, дальше не мешаем выбору.
+        if (!bandInitedRef.current) {
+          bandInitedRef.current = true;
+          setBandFilter(bandForAge(p.age));
+        }
+      }
     });
   }, [user, profileId]);
 
@@ -93,6 +107,29 @@ export default function LibraryPage() {
   }, [sessions]);
 
   const completedSessions = sessions.filter((s) => s.completed);
+
+  /**
+   * Книги, обогащённые возрастной категорией и признаком блокировки.
+   * Категория считается из текста, потому что поля ageMin/ageMax в старых
+   * книгах захардкожены и не отражают реальную сложность.
+   */
+  const decorated = useMemo(() => {
+    if (!books || !profile) return null;
+    return books.map((book) => {
+      const band = bandForBook(book);
+      return {
+        book,
+        band,
+        fit: fitFor(profile.age, band),
+        block: pickBlockReason(profile.age, band, profile.lastBookFit),
+      };
+    });
+  }, [books, profile]);
+
+  const visible = useMemo(() => {
+    if (!decorated) return null;
+    return bandFilter === "all" ? decorated : decorated.filter((d) => d.band === bandFilter);
+  }, [decorated, bandFilter]);
   const avgWpm = profile && profile.totalMs > 3000
     ? Math.round(profile.totalWords / (profile.totalMs / 60000)) : 0;
 
@@ -175,6 +212,31 @@ export default function LibraryPage() {
         </button>
       </div>
 
+      {/* Возрастные категории. По умолчанию открыта категория ребёнка —
+          так он сразу видит подходящее, а не весь список вперемешку. */}
+      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
+        <span className="text-xs font-bold text-ink-faint shrink-0 mr-0.5">Возраст:</span>
+        <button
+          onClick={() => setBandFilter("all")}
+          className={`chip shrink-0 ${bandFilter === "all" ? "chip-on" : "chip-off"}`}
+        >
+          Все
+        </button>
+        {AGE_BANDS.map((b) => {
+          const isMine = b === bandForAge(profile.age);
+          return (
+            <button
+              key={b}
+              onClick={() => setBandFilter(b)}
+              className={`chip shrink-0 ${bandFilter === b ? "chip-on" : "chip-off"}`}
+            >
+              {BAND_LABEL[b].ru}
+              {isMine && <span className="ml-1 text-[10px] opacity-70">твой</span>}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid sm:grid-cols-2 gap-4">
         {books === null && (
           Array.from({ length: 4 }).map((_, i) => (
@@ -187,6 +249,32 @@ export default function LibraryPage() {
             </div>
           ))
         )}
+        {/* Книги есть, но в выбранной категории пусто. Частый случай для
+            малышей: готовые сказки в основном для 6–7 лет и старше. */}
+        {books && books.length > 0 && visible && visible.length === 0 && (
+          <div className="card p-8 text-center sm:col-span-2 space-y-4">
+            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
+            <div>
+              <p className="font-display font-bold text-lg text-ink dark:text-white">
+                В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
+              </p>
+              <p className="text-sm text-ink-faint mt-1">
+                Можно подобрать сказку под этот возраст — она сгенерируется специально
+                для {profile.name}.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button className="btn-ghost flex-1" onClick={() => setBandFilter("all")}>
+                Показать все
+              </button>
+              <button className="btn-primary flex-1" onClick={() => setShowGuide(true)}>
+                <Sparkles className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />
+                Подобрать книгу
+              </button>
+            </div>
+          </div>
+        )}
+
         {books?.length === 0 && (
           <div className="card p-8 text-center sm:col-span-2 space-y-4">
             <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
@@ -206,22 +294,30 @@ export default function LibraryPage() {
             <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
           </div>
         )}
-        {(highlightId && books
-            ? [...books].sort((a, b) => (a.id === highlightId ? -1 : b.id === highlightId ? 1 : 0))
-            : books
-          )?.map((book, i) => {
+        {(highlightId && visible
+            ? [...visible].sort((a, b) =>
+                a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
+            : visible
+          )?.map(({ book, band, fit, block }, i) => {
           const prog = progressByBook.get(book.id);
           const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
+          const openBook = () => {
+            if (block) {
+              toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
+              return;
+            }
+            navigate(`/read/${book.id}?profile=${profile.id}`);
+          };
           return (
             <div
               key={book.id}
               data-book-id={book.id}
-              className={`card p-4 flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200 animate-fade-up ${
-                book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""
-              }`}
+              className={`card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
+                block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
+              } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
               style={{ animationDelay: `${i * 40}ms` }}
             >
-              <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={() => navigate(`/read/${book.id}?profile=${profile.id}`)}>
+              <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
                 <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
                   {book.coverUrl
                     ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover rounded-2xl" loading="lazy" />
@@ -237,10 +333,35 @@ export default function LibraryPage() {
                     )}
                     {prog?.completed && <span className="text-amber-500">⭐</span>}
                   </div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {/* Возрастная категория книги — считается из текста */}
+                    <span
+                      className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 ${
+                        fit === "below"
+                          ? "bg-black/[0.06] dark:bg-white/10 text-ink-faint"
+                          : fit === "above"
+                            ? "bg-brand-500/12 text-brand-600 dark:text-brand-300"
+                            : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
+                      }`}
+                    >
+                      {BAND_LABEL[band].ru}
+                    </span>
+                    {fit === "below" && (
+                      <span className="text-[10px] text-ink-faint">{BAND_HINT[band].ru}</span>
+                    )}
+                    {fit === "above" && (
+                      <span className="text-[10px] text-brand-500 font-bold">вызов</span>
+                    )}
+                  </div>
                   <p className="text-xs text-ink-faint mt-0.5">
                     {book.totalWords} слов · {book.pages.length} стр.
                     {book.isCustom && " · своя"}
                   </p>
+                  {block && (
+                    <p className="text-[11px] text-ink-faint mt-1 leading-snug">
+                      🔒 Сначала прочитай книгу по возрасту
+                    </p>
+                  )}
                   {pct > 0 && !prog?.completed && (
                     <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
                       <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />

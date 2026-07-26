@@ -8,7 +8,7 @@ export default function LandingPage() {
     <div className="min-h-dvh flex flex-col">
       <header className="flex justify-between items-center px-5 py-4">
         <span className="font-display font-extrabold text-xl text-ink dark:text-white">
-          Read<span className="text-brand-500">Aloud</span>
+          Book<span className="text-brand-500">ser</span>
         </span>
         <ThemeToggle />
       </header>
@@ -24,7 +24,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <p className="eyebrow mb-3">Чтение вслух · 6–10 лет</p>
+          <p className="eyebrow mb-3">Чтение вслух · 4–12 лет</p>
           <h1 className="font-display font-extrabold text-[2.6rem] leading-[1.05] text-ink dark:text-white">
             Слова, которые<br />зажигаются
           </h1>
