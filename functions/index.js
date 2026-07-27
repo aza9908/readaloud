@@ -1,5 +1,5 @@
 /**
- * ReadAloud AI endpoints (Firebase Cloud Functions v2).
+ * Bookser AI endpoints (Firebase Cloud Functions v2).
  *
  * Three callable functions, all authenticated (works with anonymous users too):
  *   generateQuiz    — comprehension questions after finishing a book
@@ -15,6 +15,14 @@
  */
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
+import { initializeApp, getApps } from "firebase-admin/app";
+
+// Admin SDK нужен прокси Freedom STT для проверки месячного бюджета минут.
+if (!getApps().length) initializeApp();
+
+// Прокси к Freedom Speech STT вынесен в отдельный файл — там же живёт
+// защита от перерасхода платных минут.
+export { transcribeFallback } from "./freedomStt.js";
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const MODEL = "claude-sonnet-4-6";
