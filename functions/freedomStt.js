@@ -24,17 +24,21 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 const FREEDOM_STT_KEY = defineSecret("FREEDOM_STT_KEY");
 
 /**
- * Адрес API. По результатам диагностики: домен freedomspeech.kz не отвечает
- * (HTTP 000), а api.freedomspeech.kz не существует вовсе. Рабочий хост —
- * qazlm.space, но точный путь ещё не подтверждён: сайт является
- * одностраничным приложением и отдаёт HTML на любой путь, поэтому перебор
- * по кодам ответа даёт ложные срабатывания.
+ * Адрес API — подтверждён диагностикой JS-бандла самого сайта.
+ * Эндпоинт отвечает JSON: {"error":"Audio file is required"}, то есть
+ * ожидает файл в multipart-запросе.
  *
- * Задаётся переменной окружения, чтобы поменять без правки кода:
- *   firebase functions:config:set  — либо через .env функции.
+ * Домен freedomspeech.kz не отвечает вовсе, рабочий хост — qazlm.space.
  */
 const FREEDOM_STT_URL =
-  process.env.FREEDOM_STT_URL || "https://qazlm.space/api/v1/recognize";
+  process.env.FREEDOM_STT_URL || "https://qazlm.space/api/speech-to-text";
+
+/**
+ * Имя поля с файлом. Сообщение «Audio file is required» не раскрывает его,
+ * поэтому проверочный скрипт определяет его опытным путём, а здесь оно
+ * задаётся переменной окружения без правки кода.
+ */
+const AUDIO_FIELD = process.env.FREEDOM_AUDIO_FIELD || "file";
 
 /** Месячный лимит минут на одного ребёнка. 60 мин ≈ 150 ₸ — верхняя граница. */
 const MONTHLY_MINUTE_BUDGET = 60;
@@ -128,7 +132,7 @@ export const transcribeFallback = onCall(opts, async (req) => {
     const bytes = Buffer.from(audioBase64, "base64");
     const form = new FormData();
     form.append(
-      "file",
+      AUDIO_FIELD,
       new Blob([bytes], { type: mimeType || "audio/webm" }),
       "audio.webm",
     );

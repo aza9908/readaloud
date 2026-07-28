@@ -102,6 +102,25 @@ Two separate reward tracks, do not conflate them:
   live at account level (`users/{uid}/rewards`, `users/{uid}/rewardRequests`),
   since one parent sets the list for all their children.
 
+## Architecture critic
+
+`npm test` ends with `test/architecture.test.mjs`, which checks invariants that
+have already broken in production here — each rule exists because that exact
+bug shipped:
+
+- a component imported but never rendered (the parent rewards panel sat invisible
+  in the dashboard; the build stayed silent),
+- a rename applied to some pages only,
+- a centred header built on `justify-between` (measured 20px off-centre),
+- a server secret or a hardcoded RunPod URL reaching the client bundle
+  (pod ids change on restart — one already changed mid-integration),
+- coins awarded from more than one place, which would bypass the re-read limits.
+
+The rules are deliberately precise rather than broad: an earlier version flagged
+every `justify-between` header, including the landing page where the logo is
+correctly left-aligned. A critic that cries wolf gets ignored. Validate any new
+rule by reintroducing the bug it targets and confirming it fires.
+
 ## Kazakh recognition
 
 `normalizeWord` folds Kazakh-specific letters (ә ғ қ ң ө ұ ү һ і) to their
