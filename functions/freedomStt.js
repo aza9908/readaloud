@@ -23,9 +23,18 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 const FREEDOM_STT_KEY = defineSecret("FREEDOM_STT_KEY");
 
-/** Базовый адрес API. Уточнить по документации freedomspeech.kz/docs. */
+/**
+ * Адрес API. По результатам диагностики: домен freedomspeech.kz не отвечает
+ * (HTTP 000), а api.freedomspeech.kz не существует вовсе. Рабочий хост —
+ * qazlm.space, но точный путь ещё не подтверждён: сайт является
+ * одностраничным приложением и отдаёт HTML на любой путь, поэтому перебор
+ * по кодам ответа даёт ложные срабатывания.
+ *
+ * Задаётся переменной окружения, чтобы поменять без правки кода:
+ *   firebase functions:config:set  — либо через .env функции.
+ */
 const FREEDOM_STT_URL =
-  process.env.FREEDOM_STT_URL || "https://api.freedomspeech.kz/v1/stt";
+  process.env.FREEDOM_STT_URL || "https://qazlm.space/api/v1/recognize";
 
 /** Месячный лимит минут на одного ребёнка. 60 мин ≈ 150 ₸ — верхняя граница. */
 const MONTHLY_MINUTE_BUDGET = 60;
@@ -112,29 +121,42 @@ export const transcribeFallback = onCall(opts, async (req) => {
   }
 
   try {
-    // ── Формат запроса уточнить по документации ──
-    // Ожидаемая форма: multipart или JSON с полем audio в base64.
-    // После первого успешного вызова зафиксировать здесь точную схему.
+    // ── Формат отправки: multipart/form-data ──
+    // Не JSON с base64: диагностика показала HTTP 413 «request entity too
+    // large». Base64 увеличивает объём примерно на треть, и звук перестаёт
+    // помещаться в лимит тела запроса. Multipart отправляет байты как есть.
+    const bytes = Buffer.from(audioBase64, "base64");
+    const form = new FormData();
+    form.append(
+      "file",
+      new Blob([bytes], { type: mimeType || "audio/webm" }),
+      "audio.webm",
+    );
+    form.append("language", "kk");
+
     const res = await fetch(FREEDOM_STT_URL, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${FREEDOM_STT_KEY.value()}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        audio: audioBase64,
-        format: mimeType || "audio/webm",
-        language: "kk",
-      }),
+      // Content-Type проставит сам FormData вместе с boundary.
+      headers: { Authorization: `Bearer ${FREEDOM_STT_KEY.value()}` },
+      body: form,
     });
 
     if (!res.ok) {
-      console.error("Freedom STT ответил", res.status, await res.text().catch(() => ""));
-      return { ok: false, reason: "provider_error", transcript: "" };
+      const detail = await res.text().catch(() => "");
+      console.error("Freedom STT ответил", res.status, detail.slice(0, 300));
+      return { ok: false, reason: "provider_error", status: res.status, transcript: "" };
+    }
+
+    const ctype = res.headers.get("content-type") || "";
+    if (!ctype.includes("json")) {
+      // Признак того, что адрес указывает на страницу, а не на API:
+      // сайт — одностраничное приложение и отдаёт HTML на любой путь.
+      console.error("Freedom STT вернул не JSON:", ctype);
+      return { ok: false, reason: "not_an_api", transcript: "" };
     }
 
     const json = await res.json();
-    // Поле с текстом уточнить по документации: text / transcript / result.
+    // Имя поля с текстом уточняется по первому реальному ответу.
     const transcript = json.text || json.transcript || json.result || "";
 
     return {
