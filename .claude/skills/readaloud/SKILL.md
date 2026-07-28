@@ -102,6 +102,31 @@ Two separate reward tracks, do not conflate them:
   live at account level (`users/{uid}/rewards`, `users/{uid}/rewardRequests`),
   since one parent sets the list for all their children.
 
+## Freedom STT integration (Kazakh fallback)
+
+Confirmed contract (freedom_verify2.sh against the real API): endpoint
+`POST https://qazlm.space/api/speech-to-text`, file field `audio` (multipart,
+not JSON base64 — base64 tripped a 413), response field `text`, real Kazakh
+speech transcribes. The key is not validated on this HTTP endpoint, so billing
+attaches elsewhere — treat the endpoint as open and rely on the server budget.
+
+Wiring, all fail-open (any error → stay on the free browser engine):
+- `functions/freedomStt.js` — proxy; key in `FREEDOM_STT_KEY` secret, monthly
+  minute budget per child enforced transactionally.
+- `src/lib/sttEscalation.ts` — pure policy, when to spend (tested).
+- `src/lib/freedomStt.ts` — client: records a segment from a **separate**
+  getUserMedia stream (Web Speech holds the mic and won't share raw audio) and
+  calls the proxy. Never contains the key or the provider URL.
+- `src/hooks/useSttEscalation.ts` — orchestrates policy + record + proxy.
+- `useSpeechReader` exposes `feedExternal(text)`, which runs the paid transcript
+  through the same aligner path as speech, and calls `sttFallback.onStall` when
+  the cursor is stuck on Kazakh.
+
+**Off by default.** Gated behind `VITE_STT_FALLBACK=1` and `language === "kk"`.
+Shipping the code does not activate the paid path; it needs the Blaze plan, the
+secret set, and the flag. This let the integration land and deploy before the
+billing model was confirmed.
+
 ## Architecture critic
 
 `npm test` ends with `test/architecture.test.mjs`, which checks invariants that

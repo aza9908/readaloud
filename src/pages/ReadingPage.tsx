@@ -12,6 +12,7 @@ import {
 import { checkAndAwardBadges } from "@/lib/achievements";
 import { SPEECH_LANG_TAGS, type Book, type ChildProfile } from "@/lib/types";
 import { useSpeechReader, type ProgressSnapshot } from "@/hooks/useSpeechReader";
+import { useSttEscalation } from "@/hooks/useSttEscalation";
 import { KaraokeText } from "@/components/KaraokeText";
 import { Fireworks } from "@/components/Fireworks";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -143,6 +144,14 @@ function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
+
+/**
+ * Платное распознавание казахского как подстраховка. Выключено по умолчанию:
+ * требует тарифа Blaze и ключа Freedom в секретах функций. Включается сборкой
+ * с VITE_STT_FALLBACK=1, когда всё готово. Так код можно влить и задеплоить,
+ * не активируя платный путь, пока не подтверждена биллинговая модель.
+ */
+const STT_FALLBACK_ENABLED = import.meta.env.VITE_STT_FALLBACK === "1";
 
 export default function ReadingPage() {
   const { user } = useAuth();
@@ -375,7 +384,23 @@ export default function ReadingPage() {
     lang: SPEECH_LANG_TAGS[book?.language ?? "ru"],
     onPageComplete: handlePageComplete,
     onProgress: handleProgress,
+    sttFallback:
+      STT_FALLBACK_ENABLED && book?.language === "kk"
+        ? { profileId, onStall: () => void sttStallRef.current?.() }
+        : undefined,
   });
+
+  // Платная подстраховка для казахского. Полностью опциональна: при выключенном
+  // флаге ничего не создаётся и движок работает как прежде.
+  const { handleStall } = useSttEscalation({
+    enabled: STT_FALLBACK_ENABLED && book?.language === "kk",
+    language: book?.language ?? "ru",
+    profileId,
+    bookId: bookId ?? "",
+    onTranscript: (text) => reader.feedExternal(text),
+  });
+  const sttStallRef = useRef<(() => void) | null>(null);
+  sttStallRef.current = handleStall;
 
   // Поделиться результатом: Web Share API на телефоне, иначе копирование.
   const shareResult = useCallback(async () => {

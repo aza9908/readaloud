@@ -25,6 +25,16 @@ export interface SpeechReaderOptions {
   lang: string;
   onPageComplete: () => void;
   onProgress?: (state: ProgressSnapshot) => void;
+  /**
+   * Платное распознавание казахского как подстраховка. Полностью опционально:
+   * без него движок работает ровно как раньше. Передаётся только для книг на
+   * казахском и только когда функция включена (флаг + тариф Blaze).
+   */
+  sttFallback?: {
+    profileId: string;
+    /** Вызывается движком, когда чтение застряло на казахском тексте. */
+    onStall: (recentWords: string[]) => void;
+  };
 }
 
 export interface ProgressSnapshot {
@@ -50,6 +60,12 @@ export interface SpeechReaderApi {
   pause: () => void;
   skipWord: () => void;
   seek: (index: number) => void;
+  /**
+   * Подать текст, распознанный внешним (платным) движком, в тот же
+   * выравниватель. Используется подстраховкой для казахского: когда браузер
+   * не справился, текст приходит отсюда и двигает курсор так же, как речь.
+   */
+  feedExternal: (text: string) => void;
   registerWordEl: (index: number, el: HTMLElement | null) => void;
 }
 
@@ -80,6 +96,14 @@ function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
     | null;
 }
 
+/**
+ * После скольких тактов речи без движения курсора считаем, что чтение
+ * застряло, и уведомляем внешнюю политику эскалации. Число намеренно
+ * заметное: платный путь — крайняя мера, сначала пусть отработает
+ * бесплатное восстановление выравнивателя.
+ */
+const STALL_NUDGE_AT = 5;
+
 export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const { words, lang, onPageComplete, onProgress } = opts;
 
@@ -94,6 +118,10 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const wordsReadRef = useRef(0);
   /** Words the child struggled on this session (deduped, capped). */
   const struggledRef = useRef<string[]>([]);
+  /** Подряд идущие такты речи без движения курсора — сигнал застревания. */
+  const stallCountRef = useRef(0);
+  const sttFallbackRef = useRef(opts.sttFallback);
+  sttFallbackRef.current = opts.sttFallback;
   const startedAtRef = useRef<number | null>(null);
   const accumulatedMsRef = useRef(0);
   const listeningRef = useRef(false);
@@ -259,9 +287,27 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
           }
         }
       }
-      if (advanced > 0) applyAdvance(before, advanced);
+      if (advanced > 0) {
+        applyAdvance(before, advanced);
+        stallCountRef.current = 0; // курсор пошёл — сбрасываем счётчик застревания
+      } else if (finalText.trim()) {
+        // Речь была, но курсор не сдвинулся — возможное застревание.
+        // Копим счётчик; политика решит, звать ли платный движок.
+        stallCountRef.current += 1;
+        const fb = sttFallbackRef.current;
+        if (fb && stallCountRef.current >= STALL_NUDGE_AT) {
+          stallCountRef.current = 0;
+          // Отдаём последние слова вокруг курсора — контекст для распознавания.
+          const cur = alignerRef.current.cursor;
+          const recent: string[] = [];
+          for (let i = cur; i < Math.min(cur + 3, words.length); i++) {
+            recent.push(alignerRef.current.wordAt(i));
+          }
+          fb.onStall(recent);
+        }
+      }
     },
-    [applyAdvance],
+    [applyAdvance, words],
   );
   const handleResultsRef = useRef(handleResults);
   handleResultsRef.current = handleResults;
@@ -388,6 +434,25 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     [paintWord, syncStateNow, notifyCursor],
   );
 
+  /**
+   * Прогоняет внешне распознанный текст через тот же выравниватель, что и
+   * обычную речь. Реализация намеренно совпадает с обработкой микрофона:
+   * платный результат не «особенный», он просто ещё один источник слов.
+   */
+  const feedExternal = useCallback(
+    (text: string) => {
+      if (!text.trim()) return;
+      const before = alignerRef.current.cursor;
+      const { advanced } = alignerRef.current.feed(text, "");
+      if (advanced > 0) {
+        applyAdvance(before, advanced);
+        stallCountRef.current = 0;
+        syncStateNow();
+      }
+    },
+    [applyAdvance, syncStateNow],
+  );
+
   useEffect(() => {
     const timers = cascadeTimersRef.current;
     return () => timers.forEach(clearTimeout);
@@ -406,6 +471,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     pause,
     skipWord,
     seek,
+    feedExternal,
     registerWordEl,
   };
 }
