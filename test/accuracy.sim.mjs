@@ -27,9 +27,10 @@ const PAGES_RU = [
   "Тянут, потянут, а вытянуть не могут. Позвала бабка внучку.",
 ];
 const PAGES_KK = [
-  "Орманда кішкентай қоян тұрды. Оның аты Ақжол еді.",
-  "Ақжол өте қорқақ болатын. Ол желден де қорқатын.",
-  "Бір күні орманға қатты жаңбыр жауды.",
+  "Ертеде бір кемпір мен шал болыпты.",
+  "Олардың сегіз ұлы бар еді.",
+  "Ең кішісі Ер Төстік батыр болып өсті.",
+  "Ол өте күшті әрі ақылды бала еді.",
 ];
 const PAGES_EN = [
   "Once there was a little cloud named Puff. Puff lived high in the sky.",
@@ -45,6 +46,21 @@ function mulberry(seed) {
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+/** Русские приближения казахских букв — так их часто возвращает браузер. */
+const KZ_TO_RU = { "ә":"а","ғ":"г","қ":"к","ң":"н","ө":"о","ұ":"у","ү":"у","һ":"х","і":"и" };
+
+/**
+ * Заменяет казахские буквы русскими — самая частая систематическая ошибка
+ * распознавания kk-KZ, и именно она ломала выравнивание.
+ */
+function russify(word, rate, rnd) {
+  let out = "";
+  for (const ch of word) {
+    out += (KZ_TO_RU[ch] && rnd() < rate) ? KZ_TO_RU[ch] : ch;
+  }
+  return out;
 }
 
 /** Портит слово так, как это делает реальный ASR. */
@@ -79,6 +95,8 @@ function simulatePage(aligner, words, profile, rnd) {
   for (let truePos = 0; truePos < words.length; truePos++) {
     const word = words[truePos];
     let spoken = word.toLowerCase().replace(/[^\p{L}\p{N}-]/gu, "");
+    // Казахские буквы часто приходят русскими — воспроизводим это.
+    if (profile.russifyRate) spoken = russify(spoken, profile.russifyRate, rnd);
 
     // Пропуск слова — ребёнок промолчал или ASR не расслышал
     if (rnd() < profile.deletionRate) {
@@ -152,7 +170,8 @@ const PROFILES = {
   "Русский, шумная комната":
     { errorRate: 0.22, deletionRate: 0.12, insertionRate: 0.10, repeatRate: 0.12 },
   "Казахский (ASR слабее)":
-    { errorRate: 0.30, deletionRate: 0.15, insertionRate: 0.10, repeatRate: 0.12 },
+    { errorRate: 0.30, deletionRate: 0.15, insertionRate: 0.10, repeatRate: 0.12,
+      russifyRate: 0.7 },
   "Тяжёлый случай (плохой микрофон)":
     { errorRate: 0.40, deletionRate: 0.22, insertionRate: 0.15, repeatRate: 0.15 },
 };

@@ -102,6 +102,18 @@ Two separate reward tracks, do not conflate them:
   live at account level (`users/{uid}/rewards`, `users/{uid}/rewardRequests`),
   since one parent sets the list for all their children.
 
+## Kazakh recognition
+
+`normalizeWord` folds Kazakh-specific letters (ә ғ қ ң ө ұ ү һ і) to their
+Russian look-alikes on **both** sides of every comparison. This is not cosmetic:
+Chrome's kk-KZ recogniser routinely returns Kazakh words spelled with Russian
+letters ("бүркітші" comes back as "буркитши"), and 21% of words in real Kazakh
+books carry two or more Kazakh letters — more than the one edit `matchStrength`
+tolerates. Without folding those words never matched at all and the cursor
+froze. Measured in isolation: page completion went 76% → 100% for a child
+reading perfectly. Losing the "қар"/"кар" distinction is harmless here — we
+match speech against a known page, not disambiguate meaning.
+
 ## Reading level & coin economy
 
 Two pure, tested modules own these rules. Do not scatter the logic elsewhere.

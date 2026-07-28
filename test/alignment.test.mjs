@@ -141,6 +141,38 @@ console.log("\n── full realistic read-through ──");
   eq("page complete", a.isPageComplete, true);
 }
 
+console.log("\n── КАЗАХСКИЙ: браузер возвращает русские буквы ──");
+{
+  // Это была главная причина, почему казахский не работал: слова с
+  // несколькими казахскими буквами не совпадали вовсе.
+  const pairs = [
+    ["бүркітші", "буркитши"], ["жүгіру", "жугиру"], ["өмір", "омир"],
+    ["қоян", "коян"], ["сәукеле", "саукеле"], ["тұрды", "турды"],
+  ];
+  for (const [kazakh, asHeard] of pairs) {
+    eq(`«${kazakh}» слышится как «${asHeard}»`,
+       normalizeWord(kazakh) === normalizeWord(asHeard), true);
+  }
+
+  // И на уровне выравнивания: целая казахская страница должна прочитаться,
+  // даже если распознаватель вернул всё русскими буквами.
+  const page = "Бүркітші өмір сүрді. Ол қоянды жүгіріп қуды.".split(/\s+/);
+  const a = new ReadingAligner();
+  a.setPage(page);
+  a.feed("буркитши омир сурди ол коянды жугирип куды", "");
+  eq("казахская страница дочитывается до конца", a.cursor, page.length);
+}
+
+console.log("\n── сворачивание не ломает русский ──");
+{
+  eq("русские слова не пострадали", normalizeWord("здравствуйте"), "здравствуйте");
+  eq("ё по-прежнему сводится к е", normalizeWord("ёжик"), "ежик");
+  const a = new ReadingAligner();
+  a.setPage(PAGE1);
+  a.feed("Радость длилась недолго перед стартом задрожали коленки", "");
+  eq("русская страница читается как раньше", a.cursor, PAGE1.length);
+}
+
 console.log("\n── struggle detection (for the parent report) ──");
 {
   const a = new ReadingAligner();
