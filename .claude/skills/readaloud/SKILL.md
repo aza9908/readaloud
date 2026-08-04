@@ -158,6 +158,28 @@ froze. Measured in isolation: page completion went 76% → 100% for a child
 reading perfectly. Losing the "қар"/"кар" distinction is harmless here — we
 match speech against a known page, not disambiguate meaning.
 
+## Coin economy — pay for new ground, not for finishing
+
+The earlier design awarded everything on book completion to block re-read
+farming. That shipped a motivation bug: a 10,000-word book paid nothing for
+~77 days of reading and children stopped using the app.
+
+Now `awardPage` pays for each page the FIRST time it is completed, tracked in
+`profile.pagesAwarded[bookId]` (highest page paid). Re-reading pays nothing, so
+farming stays closed, but a long book feeds the child the whole way. Rates were
+doubled (0.5/word); a typical tale now pays ~139 coins instead of 50.
+
+Two motivation mechanics sit on top:
+- **Golden words** (`goldenWordIndexes`) — a few words per page are highlighted
+  and pay a bonus. Selection is deterministic from bookId+pageIndex so the same
+  page always shows the same words; random-per-visit would teach children the
+  highlights are meaningless. Short words are excluded.
+- **Streak multiplier** — up to x1.5 for consecutive days, capped so one missed
+  day does not erase progress.
+
+If the earning rate changes, rebalance hero prices AND parent-reward presets in
+the same commit, or progression silently breaks.
+
 ## Reading level & coin economy
 
 Two pure, tested modules own these rules. Do not scatter the logic elsewhere.

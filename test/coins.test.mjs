@@ -1,116 +1,100 @@
-// Проверяет новую экономику монет: адекватные суммы и работающие
-// ограничения против «фарма» (повторы, лёгкие книги, дневной потолок).
+// Экономика монет: щедрость по ходу чтения + защита от накрутки.
 import { readFileSync } from "node:fs";
 import { transform } from "esbuild";
 
-const src = readFileSync("src/lib/coins.ts", "utf8")
-  .replace(/import type \{[^}]*\} from "[^"]*";/g, "");
+const src = readFileSync("src/lib/coins.ts", "utf8").replace(/import type \{[^}]*\} from "[^"]*";/g, "");
 const { code } = await transform(src, { loader: "ts", format: "esm" });
 const m = await import("data:text/javascript;base64," + Buffer.from(code).toString("base64"));
-const { awardForCompletion, coinsForWords, DAILY_SOFT_CAP, OVER_CAP_RATE } = m;
+const { awardForPage, awardForCompletion, goldenWordIndexes,
+        streakMultiplier, DAILY_SOFT_CAP } = m;
 
 let pass = 0, fail = 0;
-const eq = (name, got, want) => {
-  const ok = JSON.stringify(got) === JSON.stringify(want);
-  console.log(`${ok ? "  ok  " : "  FAIL"} ${name}${ok ? "" : ` — получили ${JSON.stringify(got)}, ждали ${JSON.stringify(want)}`}`);
-  ok ? pass++ : fail++;
-};
-const A = (o) => awardForCompletion({ previousCompletions: 0, earnedToday: 0, fit: "match", ...o });
+const eq = (n, g, w) => { const ok = JSON.stringify(g)===JSON.stringify(w);
+  console.log(`${ok?"  ok  ":"  FAIL"} ${n}${ok?"":` — ${JSON.stringify(g)} ≠ ${JSON.stringify(w)}`}`); ok?pass++:fail++; };
+const P = (o) => awardForPage({ wordsOnPage:22, goldenWordsRead:1, alreadyAwarded:false,
+  fit:"match", streakDays:1, earnedToday:0, ...o });
 
-console.log("\n── сколько монет за типичные книги (первое чтение, по возрасту) ──");
-const cases = [
-  ["Репка (128 сл, 6-7)", { wordsRead: 128, band: "6-7" }],
-  ["короткая малышам (40 сл, 4-5)", { wordsRead: 40, band: "4-5" }],
-  ["книга 8-9 (200 сл)", { wordsRead: 200, band: "8-9" }],
-  ["длинная 10-12 (400 сл)", { wordsRead: 400, band: "10-12" }],
-];
-for (const [label, inp] of cases) {
-  const r = A(inp);
-  const old = inp.wordsRead + 50; // прежняя формула: 1 монета/слово + 50
-  console.log(`  ${label.padEnd(30)} ${String(r.coins).padStart(4)} монет   (было бы ${old}, в ${(old / r.coins).toFixed(1)}× больше)`);
-}
-
-console.log("\n── сложнее книга = выше награда (стимул расти) ──");
+console.log("\n── ГЛАВНОЕ: длинная книга платит СРАЗУ, а не в конце ──");
 {
-  const easy = A({ wordsRead: 150, band: "4-5" }).coins;
-  const mid = A({ wordsRead: 150, band: "6-7" }).coins;
-  const hard = A({ wordsRead: 150, band: "8-9" }).coins;
-  console.log(`    при равном объёме: 4-5 → ${easy}, 6-7 → ${mid}, 8-9 → ${hard}`);
-  eq("награда растёт со сложностью", easy < mid && mid < hard, true);
-}
+  // Это и была причина, по которой дети бросали чтение: книга на 10 000 слов
+  // не приносила ничего до самого конца.
+  const first = P({});
+  eq("первая же страница приносит монеты", first.coins > 0, true);
+  eq("причина — новая страница", first.reason, "new_page");
 
-console.log("\n── повторное чтение той же книги ──");
-{
-  const first = A({ wordsRead: 128, band: "6-7", previousCompletions: 0 });
-  const second = A({ wordsRead: 128, band: "6-7", previousCompletions: 1 });
-  const third = A({ wordsRead: 128, band: "6-7", previousCompletions: 2 });
-  console.log(`    1-й раз ${first.coins}, 2-й раз ${second.coins}, 3-й раз ${third.coins}`);
-  eq("второй раз заметно меньше", second.coins < first.coins * 0.4, true);
-  eq("третий раз — ноль", third.coins, 0);
-  eq("причина объяснена", third.reason, "reread");
-}
-
-console.log("\n── лёгкая книга для старшего ребёнка ──");
-{
-  const match = A({ wordsRead: 60, band: "4-5", fit: "match" });
-  const below = A({ wordsRead: 60, band: "4-5", fit: "below" });
-  console.log(`    по возрасту ${match.coins}, ниже уровня ${below.coins}`);
-  eq("ниже уровня платят меньше", below.coins < match.coins, true);
-  eq("причина объяснена", below.reason, "below_level");
-}
-
-console.log("\n── книга выше уровня — небольшая надбавка ──");
-{
-  const match = A({ wordsRead: 200, band: "8-9", fit: "match" }).coins;
-  const above = A({ wordsRead: 200, band: "8-9", fit: "above" }).coins;
-  console.log(`    по возрасту ${match}, выше уровня ${above}`);
-  eq("за вызов платят чуть больше", above > match, true);
-}
-
-console.log("\n── дневной порог: мягкий, а не жёсткий ──");
-{
-  const under = A({ wordsRead: 200, band: "8-9", earnedToday: 0 });
-  const over = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_SOFT_CAP });
-  console.log(`    до порога ${under.coins}, за порогом ${over.coins}`);
-  // Главное требование: за порогом награда УМЕНЬШАЕТСЯ, но не обнуляется —
-  // иначе увлечённый ребёнок читает лишние книги бесплатно и теряет мотивацию.
-  eq("за порогом всё ещё что-то начисляют", over.coins > 0, true);
-  eq("за порогом заметно меньше", over.coins < under.coins * 0.5, true);
-  eq("причина объяснена", over.reason, "daily_cap");
-
-  // Награда, попавшая на границу, считается по частям.
-  const straddling = A({ wordsRead: 200, band: "8-9", earnedToday: DAILY_SOFT_CAP - 10 });
-  eq("часть до порога — полностью, остаток — по сниженной ставке",
-     straddling.coins > 10 && straddling.coins < under.coins, true);
-
-  eq("промежуточный расчёт тоже мягкий", coinsForWords(400, DAILY_SOFT_CAP) > 0, true);
-}
-
-console.log("\n── марафон должен давать убывающую отдачу ──");
-{
-  // Пять книг честно против восьми книг подряд.
-  let five = 0, eight = 0, earned = 0;
-  for (let i = 0; i < 5; i++) {
-    const r = A({ wordsRead: 130, band: "6-7", earnedToday: earned });
-    five += r.coins; earned += r.coins;
+  // 455 страниц большой книги — каждая платит.
+  let total = 0, earned = 0;
+  for (let i = 0; i < 50; i++) {
+    const r = P({ earnedToday: earned });
+    total += r.coins; earned += r.coins;
   }
-  earned = 0;
-  for (let i = 0; i < 8; i++) {
-    const r = A({ wordsRead: 130, band: "6-7", earnedToday: earned });
-    eight += r.coins; earned += r.coins;
-  }
-  console.log(`    5 книг → ${five}, 8 книг → ${eight}`);
-  eq("восемь книг дают больше пяти", eight > five, true);
-  eq("но далеко не пропорционально", eight < five * 1.4, true);
+  eq("50 страниц длинной книги приносят заметную сумму", total > 300, true);
 }
 
-console.log("\n── сколько книг до награды (проверка здравого смысла) ──");
+console.log("\n── перечитывание не приносит ничего ──");
 {
-  const perBook = A({ wordsRead: 128, band: "6-7" }).coins;
-  for (const [name, price] of [["Мороженое", 300], ["30 мин PlayStation", 500], ["Поход в кино", 4000]]) {
-    console.log(`    ${name.padEnd(20)} ${price} монет = ${(price / perBook).toFixed(0)} книг`);
+  const again = P({ alreadyAwarded: true });
+  eq("уже пройденная страница = 0 монет", again.coins, 0);
+  eq("причина объяснена", again.reason, "already_read");
+}
+
+console.log("\n── награда стала заметно щедрее ──");
+{
+  // Типичная сказка ~130 слов = 6 страниц.
+  let total = 0, earned = 0;
+  for (let i = 0; i < 6; i++) { const r = P({ earnedToday: earned }); total += r.coins; earned += r.coins; }
+  const done = awardForCompletion({ wordsRead:130, band:"6-7", fit:"match",
+    previousCompletions:0, earnedToday:earned, streakDays:1 });
+  const sum = total + done.coins;
+  console.log(`    типичная сказка: ${sum} монет (раньше было 50)`);
+  eq("сказка приносит существенно больше прежнего", sum > 100, true);
+}
+
+console.log("\n── серия дней увеличивает награду ──");
+{
+  eq("день 1 без множителя", streakMultiplier(1), 1);
+  eq("множитель растёт", streakMultiplier(7) > streakMultiplier(2), true);
+  eq("множитель ограничен сверху", streakMultiplier(365), 1.5);
+  const d1 = P({ streakDays: 1 }).coins;
+  const d14 = P({ streakDays: 14 }).coins;
+  eq("на серии платят больше", d14 > d1, true);
+}
+
+console.log("\n── золотые слова ──");
+{
+  const page = "Ертеде бір кемпір мен шал болыпты жақсы өмір сүрді бақытты".split(" ");
+  const a = [...goldenWordIndexes("b1", 0, page)].sort();
+  const b = [...goldenWordIndexes("b1", 0, page)].sort();
+  eq("выбор стабилен между заходами", a, b);
+  eq("на странице есть хотя бы одно", a.length >= 1, true);
+  // Короткие слова не должны попадать: бонус за настоящее слово.
+  for (const i of a) {
+    eq(`слово «${page[i]}» достаточно длинное`, page[i].replace(/[^\p{L}\p{N}]/gu,"").length >= 4, true);
   }
-  eq("одна книга даёт разумную сумму", perBook > 20 && perBook < 80, true);
+  const withGold = P({ goldenWordsRead: 3 }).coins;
+  const noGold = P({ goldenWordsRead: 0 }).coins;
+  eq("золотые слова прибавляют монет", withGold > noGold, true);
+}
+
+console.log("\n── лёгкая книга для старшего платит меньше ──");
+{
+  eq("ниже уровня — меньше", P({ fit:"below" }).coins < P({ fit:"match" }).coins, true);
+  eq("выше уровня — больше", P({ fit:"above" }).coins > P({ fit:"match" }).coins, true);
+}
+
+console.log("\n── дневной порог мягкий ──");
+{
+  const over = P({ earnedToday: DAILY_SOFT_CAP });
+  eq("за порогом всё ещё платят", over.coins > 0, true);
+  eq("но меньше", over.coins < P({}).coins, true);
+}
+
+console.log("\n── бонус за книгу: повтор обесценивается ──");
+{
+  const B = (n) => awardForCompletion({ wordsRead:130, band:"6-7", fit:"match",
+    previousCompletions:n, earnedToday:0, streakDays:1 }).coins;
+  eq("второй раз меньше первого", B(1) < B(0), true);
+  eq("третий раз ноль", B(2), 0);
 }
 
 console.log(`\n${pass} прошло, ${fail} упало\n`);

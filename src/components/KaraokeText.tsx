@@ -10,9 +10,15 @@ interface KaraokeTextProps {
   paragraphSizes?: number[];
   registerWordEl: (index: number, el: HTMLElement | null) => void;
   fontSizePx: number;
+  /**
+   * Индексы «золотых слов» — они приносят бонусные монеты. Подсвечиваем их
+   * заранее, чтобы ребёнок ВИДЕЛ награду впереди по строке: это превращает
+   * страницу в дорожку с монетками и заметно тянет читать дальше.
+   */
+  goldenWords?: Set<number>;
 }
 
-function KaraokeTextInner({ words, paragraphSizes, registerWordEl, fontSizePx }: KaraokeTextProps) {
+function KaraokeTextInner({ words, paragraphSizes, registerWordEl, fontSizePx, goldenWords }: KaraokeTextProps) {
   const sizes = paragraphSizes?.length ? paragraphSizes : [words.length];
   let cursor = 0;
   return (
@@ -29,7 +35,7 @@ function KaraokeTextInner({ words, paragraphSizes, registerWordEl, fontSizePx }:
                 <span key={wordIndex}>
                   <span
                     ref={(el) => registerWordEl(wordIndex, el)}
-                    className="karaoke-word word-pending"
+                    className={`karaoke-word word-pending${goldenWords?.has(wordIndex) ? " word-golden" : ""}`}
                     data-word-index={wordIndex}
                   >
                     {word}
@@ -46,5 +52,8 @@ function KaraokeTextInner({ words, paragraphSizes, registerWordEl, fontSizePx }:
 
 export const KaraokeText = memo(
   KaraokeTextInner,
-  (prev, next) => prev.words === next.words && prev.fontSizePx === next.fontSizePx,
+  (prev, next) =>
+    prev.words === next.words &&
+    prev.fontSizePx === next.fontSizePx &&
+    prev.goldenWords === next.goldenWords,
 );

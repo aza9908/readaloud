@@ -32,7 +32,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { awardForCompletion, type AwardResult } from "./coins";
+import { awardForCompletion, awardForPage, type AwardResult, type PageAwardResult } from "./coins";
 import { bandForText, fitFor, type AgeBand } from "./readingLevel";
 import {
   EMPTY_BY_LANGUAGE,
@@ -629,4 +629,79 @@ export async function declineRewardRequest(uid: string, requestId: string): Prom
     status: "declined",
     resolvedAt: Date.now(),
   });
+}
+
+/**
+ * Начисляет монеты за ВПЕРВЫЕ дочитанную страницу.
+ *
+ * Ключевое отличие от прежней модели: ребёнок получает монеты по ходу чтения,
+ * а не только в конце книги. Раньше книга на 10 000 слов не приносила ничего
+ * почти три месяца — дети закономерно бросали.
+ *
+ * Защита от накрутки сохранена за счёт `pagesAwarded`: платим только за
+ * страницы дальше уже оплаченной. Перечитывание не приносит ничего.
+ * Всё в транзакции, иначе два быстрых перелистывания начислят дважды.
+ */
+export async function awardPage(
+  uid: string,
+  pid: string,
+  args: {
+    bookId: string;
+    pageIndex: number;
+    wordsOnPage: number;
+    goldenWordsRead: number;
+    band: AgeBand;
+    childAge: number;
+  },
+): Promise<PageAwardResult> {
+  const profRef = doc(db, "users", uid, "profiles", pid);
+  const today = localDay();
+
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(profRef);
+      const empty = { words: 0, milestone: 0, golden: 0, streakBonus: 0 };
+      if (!snap.exists()) {
+        return { coins: 0, breakdown: empty, reason: "already_read" as const };
+      }
+      const p = snap.data() as ChildProfile;
+
+      const awarded = p.pagesAwarded ?? {};
+      // Страницы нумеруются с 0; -1 означает «ещё ничего не оплачено».
+      const highest = awarded[args.bookId] ?? -1;
+      const alreadyAwarded = args.pageIndex <= highest;
+
+      const earnedToday = p.coinsTodayDay === today ? (p.coinsToday ?? 0) : 0;
+      const fit = fitFor(args.childAge, args.band);
+
+      const result = awardForPage({
+        wordsOnPage: args.wordsOnPage,
+        goldenWordsRead: args.goldenWordsRead,
+        alreadyAwarded,
+        fit,
+        streakDays: p.streak ?? 0,
+        earnedToday,
+      });
+
+      if (result.coins > 0) {
+        tx.update(profRef, {
+          coins: increment(result.coins),
+          coinsToday: earnedToday + result.coins,
+          coinsTodayDay: today,
+          [`pagesAwarded.${args.bookId}`]: Math.max(highest, args.pageIndex),
+        });
+      } else if (!alreadyAwarded) {
+        // Награда обнулилась порогом, но территорию всё равно отмечаем
+        // пройденной — иначе за неё заплатят завтра повторно.
+        tx.update(profRef, {
+          [`pagesAwarded.${args.bookId}`]: Math.max(highest, args.pageIndex),
+        });
+      }
+
+      return result;
+    });
+  } catch {
+    return { coins: 0, breakdown: { words: 0, milestone: 0, golden: 0, streakBonus: 0 },
+             reason: "already_read" };
+  }
 }

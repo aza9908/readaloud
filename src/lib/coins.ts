@@ -1,40 +1,47 @@
 /**
- * coins.ts — единственное место, где решается, сколько монет заработано.
+ * coins.ts — экономика монет.
  *
- * ЗАЧЕМ ПЕРЕСЧИТАНО. Раньше давали 1 монету за слово + 50 за книгу, то есть
- * ~180 монет за обычную сказку. При таких числах ребёнок «покупал» настоящую
- * награду (мороженое за 300) меньше чем за две книги — родитель не успевал
- * ничего заметить, а награда обесценивалась. Теперь начисление примерно
- * в 3,5 раза скромнее, и главное — оно зависит не от объёма текста, а от
- * приложенного усилия.
+ * ЧТО БЫЛО НЕ ТАК. Прошлая версия выдавала всю награду ТОЛЬКО при завершении
+ * книги — так закрывалась накрутка через перечитывание страниц. Для сказки на
+ * 130 слов это работало, но для книги на 10 000 слов означало 77 дней чтения
+ * без единой монеты. Ребёнок не видит отдачи и бросает. Именно это и произошло.
  *
- * ЧЕТЫРЕ ПРАВИЛА ПРОТИВ «ФАРМА»:
- *   1. За слова платим по дробной ставке, а не по монете за слово.
- *   2. Бонус за книгу растёт со сложностью — выгоднее читать по возрасту,
- *      чем перечитывать простое.
- *   3. Повторное чтение той же книги почти не приносит монет.
- *   4. Книга сильно ниже уровня ребёнка оплачивается частично.
- *   5. Дневной потолок — чтобы нельзя было «нафармить» дорогую награду
- *      за один вечер. Читать сверх потолка можно, монеты просто не капают.
+ * КАК ИСПРАВЛЕНО. Платим за НОВУЮ ТЕРРИТОРИЮ, а не за факт чтения:
+ * каждая впервые дочитанная страница приносит монеты сразу. Перечитывание
+ * уже пройденных страниц не приносит ничего — накрутка по-прежнему закрыта,
+ * но длинная книга теперь кормит ребёнка всю дорогу.
+ *
+ * ЧТО ЕЩЁ ДОБАВЛЕНО, чтобы вернуть интерес:
+ *   • ставка поднята вдвое — прошлая была слишком скупой;
+ *   • «золотые слова»: несколько слов на странице подсвечены и дают бонус —
+ *     ребёнок ВИДИТ награду впереди по строке и хочет дочитать до неё;
+ *   • множитель за серию дней: читаешь каждый день — получаешь больше;
+ *   • бонус за завершение книги остаётся как крупная цель.
  *
  * Модуль чистый и покрыт тестами: test/coins.test.mjs
  */
 
 import type { AgeBand, LevelFit } from "./readingLevel";
 
-/** Монет за одно прочитанное слово. */
-export const COINS_PER_WORD = 0.25;
+/** Монет за слово. Вдвое выше прошлой ставки (была 0.25 — слишком скупо). */
+export const COINS_PER_WORD = 0.5;
 
-/** Бонус за дочитанную книгу — тем больше, чем сложнее книга. */
+/** Монет за каждую ВПЕРВЫЕ дочитанную страницу — мгновенная отдача. */
+export const PAGE_MILESTONE = 5;
+
+/** Бонус за дочитанную книгу — тем больше, чем сложнее. */
 export const COMPLETION_BONUS: Record<AgeBand, number> = {
-  "4-5": 8,
-  "6-7": 18,
-  "8-9": 30,
-  "10-12": 45,
+  "4-5": 12,
+  "6-7": 25,
+  "8-9": 40,
+  "10-12": 60,
 };
 
-/** Доля от награды при повторном чтении: 1-й раз, 2-й раз, дальше. */
-export const REREAD_FACTORS = [1, 0.3, 0];
+/** Сколько стоит одно «золотое слово». */
+export const GOLDEN_WORD_BONUS = 3;
+
+/** Примерно одно золотое слово на столько слов текста. */
+export const GOLDEN_WORD_EVERY = 25;
 
 /** Книга заметно ниже уровня ребёнка оплачивается частично. */
 export const BELOW_LEVEL_FACTOR = 0.35;
@@ -43,61 +50,127 @@ export const BELOW_LEVEL_FACTOR = 0.35;
 export const ABOVE_LEVEL_FACTOR = 1.15;
 
 /**
- * Порог, после которого награда за день резко уменьшается (≈5 книг по
- * возрасту). Именно уменьшается, а не обнуляется: жёсткий ноль наказывал бы
- * увлечённого ребёнка — прочитал восемь книг вместо пяти и не получил ничего.
- * Симуляция показала, что при жёстком потолке 8 книг давали 260 монет против
- * 250 за пять, то есть три лишние книги стоили 10 монет. Теперь сверх порога
- * монеты продолжают капать, но по сниженной ставке — марафон даёт убывающую
- * отдачу, а ребёнок всегда видит награду за труд.
+ * Множитель за серию дней подряд. Растёт медленно и упирается в потолок,
+ * чтобы пропуск одного дня не обесценивал накопленное.
  */
-export const DAILY_SOFT_CAP = 260;
-
-/** Доля награды за книги сверх дневного порога. */
-export const OVER_CAP_RATE = 0.25;
-
-/** Совместимость со старым именем. @deprecated используйте DAILY_SOFT_CAP */
-export const DAILY_COIN_CAP = DAILY_SOFT_CAP;
-
-export interface AwardInput {
-  /** Сколько слов реально прочитано вслух. */
-  wordsRead: number;
-  /** Категория сложности книги. */
-  band: AgeBand;
-  /** Насколько книга подходит ребёнку. */
-  fit: LevelFit;
-  /** Сколько раз эта книга уже была дочитана раньше (0 = впервые). */
-  previousCompletions: number;
-  /** Сколько монет уже начислено сегодня. */
-  earnedToday: number;
-}
-
-export interface AwardResult {
-  /** Итог к начислению — уже с учётом всех правил и потолка. */
-  coins: number;
-  /** Награда до ограничений — для объяснения в интерфейсе. */
-  baseCoins: number;
-  /** Почему срезали, если срезали. */
-  reason: "full" | "reread" | "below_level" | "daily_cap" | "none";
-}
-
-/** Округляем вниз, но не даём уйти в ноль за честно прочитанную книгу. */
-function settle(value: number): number {
-  return Math.max(0, Math.floor(value));
+export function streakMultiplier(streakDays: number): number {
+  if (streakDays <= 1) return 1;
+  if (streakDays <= 3) return 1.1;
+  if (streakDays <= 6) return 1.2;
+  if (streakDays <= 13) return 1.35;
+  return 1.5;
 }
 
 /**
- * Считает награду за дочитанную книгу.
- * Функция чистая: одни и те же входные данные всегда дают один результат,
- * поэтому её легко проверить тестами и объяснить родителю.
+ * Порог, после которого награда за день уменьшается. Мягкий: сверх порога
+ * монеты продолжают капать по сниженной ставке, потому что жёсткий ноль
+ * наказывал бы увлечённого читателя.
+ */
+export const DAILY_SOFT_CAP = 400;
+export const OVER_CAP_RATE = 0.25;
+
+/** Совместимость со старым именем. @deprecated */
+export const DAILY_COIN_CAP = DAILY_SOFT_CAP;
+
+function settle(v: number): number {
+  return Math.max(0, Math.floor(v));
+}
+
+/** Применяет мягкий дневной порог к сырой награде. */
+function applySoftCap(coins: number, earnedToday: number): { coins: number; capped: boolean } {
+  const beforeCap = Math.max(0, DAILY_SOFT_CAP - earnedToday);
+  if (coins <= beforeCap) return { coins: settle(coins), capped: false };
+  return { coins: settle(beforeCap + (coins - beforeCap) * OVER_CAP_RATE), capped: true };
+}
+
+// ───────────────────── Награда за страницу ─────────────────────
+
+export interface PageAwardInput {
+  wordsOnPage: number;
+  goldenWordsRead: number;
+  alreadyAwarded: boolean;
+  fit: LevelFit;
+  streakDays: number;
+  earnedToday: number;
+}
+
+export interface PageAwardResult {
+  coins: number;
+  breakdown: { words: number; milestone: number; golden: number; streakBonus: number };
+  reason: "new_page" | "already_read" | "daily_cap";
+}
+
+/**
+ * Награда за дочитанную страницу. Это главное изменение: ребёнок получает
+ * монеты СРАЗУ, а не в конце книги, поэтому длинные книги больше не выглядят
+ * бесплатной работой.
+ */
+export function awardForPage(input: PageAwardInput): PageAwardResult {
+  const empty = { words: 0, milestone: 0, golden: 0, streakBonus: 0 };
+
+  // Перечитывание уже пройденной страницы не приносит ничего — так закрыта
+  // накрутка, ради которой раньше приходилось откладывать всю награду на конец.
+  if (input.alreadyAwarded) {
+    return { coins: 0, breakdown: empty, reason: "already_read" };
+  }
+
+  const levelFactor =
+    input.fit === "below" ? BELOW_LEVEL_FACTOR
+    : input.fit === "above" ? ABOVE_LEVEL_FACTOR
+    : 1;
+
+  const words = input.wordsOnPage * COINS_PER_WORD * levelFactor;
+  const milestone = PAGE_MILESTONE * levelFactor;
+  const golden = input.goldenWordsRead * GOLDEN_WORD_BONUS;
+
+  const base = words + milestone + golden;
+  const mult = streakMultiplier(input.streakDays);
+  const withStreak = base * mult;
+
+  const { coins, capped } = applySoftCap(withStreak, input.earnedToday);
+
+  return {
+    coins,
+    breakdown: {
+      words: settle(words),
+      milestone: settle(milestone),
+      golden: settle(golden),
+      streakBonus: settle(withStreak - base),
+    },
+    reason: capped ? "daily_cap" : "new_page",
+  };
+}
+
+// ───────────────────── Награда за книгу ─────────────────────
+
+export interface AwardInput {
+  wordsRead: number;
+  band: AgeBand;
+  fit: LevelFit;
+  previousCompletions: number;
+  earnedToday: number;
+  streakDays?: number;
+}
+
+export interface AwardResult {
+  coins: number;
+  baseCoins: number;
+  reason: "full" | "reread" | "below_level" | "daily_cap" | "none";
+}
+
+/** Доля бонуса за повторное завершение: 1-й раз, 2-й, дальше. */
+export const REREAD_FACTORS = [1, 0.3, 0];
+
+/**
+ * Бонус за ДОЧИТАННУЮ книгу. Теперь это именно бонус сверх постраничных
+ * начислений, а не вся награда: основное ребёнок уже получил по дороге.
  */
 export function awardForCompletion(input: AwardInput): AwardResult {
-  const { wordsRead, band, fit, previousCompletions, earnedToday } = input;
+  const { band, fit, previousCompletions, earnedToday, streakDays = 0 } = input;
 
-  const base = wordsRead * COINS_PER_WORD + COMPLETION_BONUS[band];
-  const baseCoins = settle(base);
+  const bonus = COMPLETION_BONUS[band];
+  const baseCoins = settle(bonus);
 
-  // Повторное чтение — главный ограничитель.
   const rereadFactor =
     REREAD_FACTORS[Math.min(previousCompletions, REREAD_FACTORS.length - 1)];
   if (rereadFactor === 0) {
@@ -107,59 +180,98 @@ export function awardForCompletion(input: AwardInput): AwardResult {
   const levelFactor =
     fit === "below" ? BELOW_LEVEL_FACTOR : fit === "above" ? ABOVE_LEVEL_FACTOR : 1;
 
-  let coins = settle(base * rereadFactor * levelFactor);
+  const raw = bonus * rereadFactor * levelFactor * streakMultiplier(streakDays);
+  const { coins, capped } = applySoftCap(raw, earnedToday);
 
   let reason: AwardResult["reason"] = "full";
   if (rereadFactor < 1) reason = "reread";
   else if (fit === "below") reason = "below_level";
-
-  // Дневной порог применяем последним: часть награды до порога считаем
-  // полностью, остаток — по сниженной ставке.
-  const beforeCap = Math.max(0, DAILY_SOFT_CAP - earnedToday);
-  if (coins > beforeCap) {
-    const over = coins - beforeCap;
-    coins = settle(beforeCap + over * OVER_CAP_RATE);
-    reason = "daily_cap";
-  }
+  if (capped) reason = "daily_cap";
 
   return { coins, baseCoins, reason };
 }
 
-/**
- * Монеты за чтение по ходу страницы (промежуточное начисление).
- * Держим ту же ставку, что и в итоговом расчёте, чтобы сумма сходилась.
- */
-export function coinsForWords(words: number, earnedToday: number): number {
-  const raw = settle(words * COINS_PER_WORD);
-  const beforeCap = Math.max(0, DAILY_SOFT_CAP - earnedToday);
-  if (raw <= beforeCap) return raw;
-  return settle(beforeCap + (raw - beforeCap) * OVER_CAP_RATE);
+// ───────────────────── Золотые слова ─────────────────────
+
+/** Небольшая стабильная хеш-функция (не криптография, только для раскладки). */
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
 }
 
-/** Человеческое объяснение, почему монет меньше обычного. */
-export const AWARD_EXPLANATION: Record<
-  AwardResult["reason"],
-  { ru: string; kk: string; en: string }
-> = {
+/**
+ * Детерминированный выбор «золотых слов» на странице.
+ *
+ * Зачем детерминированный: если бы слова выбирались случайно при каждом
+ * открытии, ребёнок видел бы разные подсветки на одной странице и перестал
+ * бы им доверять. Здесь набор зависит только от книги и номера страницы,
+ * поэтому одинаков при любом заходе, но выглядит непредсказуемо.
+ *
+ * Короткие слова пропускаем: бонус должен доставаться за настоящее слово,
+ * а не за «и» или «на».
+ */
+export function goldenWordIndexes(
+  bookId: string,
+  pageIndex: number,
+  words: string[],
+): Set<number> {
+  const picked = new Set<number>();
+  const candidates: number[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const clean = words[i].replace(/[^\p{L}\p{N}]/gu, "");
+    if (clean.length >= 4) candidates.push(i);
+  }
+  if (candidates.length === 0) return picked;
+
+  const count = Math.max(1, Math.round(words.length / GOLDEN_WORD_EVERY));
+  const seedBase = hash(`${bookId}:${pageIndex}`);
+  const stride = Math.max(1, Math.floor(candidates.length / count));
+
+  for (let k = 0; k < count && picked.size < candidates.length; k++) {
+    // Разносим выбор по странице, чтобы бонусы не слипались в начале.
+    const jitter = hash(`${seedBase}:${k}`) % stride;
+    const pos = Math.min(candidates.length - 1, k * stride + jitter);
+    picked.add(candidates[pos]);
+  }
+  return picked;
+}
+
+// ───────────────────── Пояснения для ребёнка ─────────────────────
+
+export const AWARD_EXPLANATION: Record<string, { ru: string; kk: string; en: string }> = {
   full: {
     ru: "Отлично! Полная награда за книгу.",
     kk: "Тамаша! Кітап үшін толық сыйақы.",
     en: "Great! Full reward for the book.",
   },
+  new_page: {
+    ru: "Страница прочитана — монеты твои!",
+    kk: "Бет оқылды — монеталар сенікі!",
+    en: "Page done — coins are yours!",
+  },
+  already_read: {
+    ru: "Эту страницу ты уже читал. Новые страницы приносят монеты!",
+    kk: "Бұл бетті бұрын оқығансың. Жаңа беттер монета әкеледі!",
+    en: "You have read this page already. New pages earn coins!",
+  },
   reread: {
-    ru: "Эту книгу ты уже читал — за повтор монет меньше. Попробуй новую!",
-    kk: "Бұл кітапты бұрын оқығансың — қайталағанда монета аз. Жаңасын байқа!",
-    en: "You have read this book before — repeats earn less. Try a new one!",
+    ru: "Книга уже прочитана — бонус за повтор меньше. Попробуй новую!",
+    kk: "Кітап оқылған — қайталағанда бонус аз. Жаңасын байқа!",
+    en: "Already finished this book — repeat bonus is smaller. Try a new one!",
   },
   below_level: {
-    ru: "Книга простовата для тебя — за неё монет меньше. Возьми посложнее!",
+    ru: "Книга простовата для тебя — монет меньше. Возьми посложнее!",
     kk: "Бұл кітап саған оңай — монета аз. Күрделірегін ал!",
     en: "This book is easy for you — fewer coins. Try a harder one!",
   },
   daily_cap: {
-    ru: "Ты сегодня много прочитал! Дальше монет за книгу меньше — завтра снова полная награда.",
-    kk: "Бүгін көп оқыдың! Әрі қарай монета азырақ — ертең тағы толық сыйақы.",
-    en: "You have read a lot today! Coins are smaller now — full rewards return tomorrow.",
+    ru: "Ты сегодня много прочитал! Дальше монет меньше — завтра снова полная награда.",
+    kk: "Бүгін көп оқыдың! Әрі қарай монета азырақ — ертең толық сыйақы.",
+    en: "You have read a lot today! Coins are smaller now — full rewards tomorrow.",
   },
   none: { ru: "", kk: "", en: "" },
 };

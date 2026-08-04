@@ -27,11 +27,11 @@ const EMOJI_CHOICES = ["🍦", "🍿", "⚽️", "🎮", "🍕", "🎁", "🧸",
  * за один вечер и не становилась недостижимой.
  */
 const PRESETS: { emoji: string; title: string; price: number; books: string }[] = [
-  { emoji: "🍦", title: "Мороженое", price: 150, books: "≈3 книги" },
-  { emoji: "🎮", title: "30 минут PlayStation", price: 250, books: "≈5 книг" },
-  { emoji: "🍿", title: "Поход в кино", price: 800, books: "≈16 книг" },
-  { emoji: "⚽️", title: "Футбольный мяч", price: 1500, books: "≈30 книг" },
-  { emoji: "🥋", title: "Футбольная форма", price: 3000, books: "≈60 книг" },
+  { emoji: "🍦", title: "Мороженое", price: 400, books: "≈3 книги" },
+  { emoji: "🎮", title: "30 минут PlayStation", price: 700, books: "≈5 книг" },
+  { emoji: "🍿", title: "Поход в кино", price: 2200, books: "≈16 книг" },
+  { emoji: "⚽️", title: "Футбольный мяч", price: 4200, books: "≈30 книг" },
+  { emoji: "🥋", title: "Футбольная форма", price: 8300, books: "≈60 книг" },
 ];
 
 export function ParentRewardsManager({ uid }: { uid: string }) {

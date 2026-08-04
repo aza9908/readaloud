@@ -21,9 +21,9 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
-import { updateStreakAndHardWords } from "@/lib/firestore";
+import { updateStreakAndHardWords, awardPage } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
-import { AWARD_EXPLANATION } from "@/lib/coins";
+import { AWARD_EXPLANATION, goldenWordIndexes, type PageAwardResult } from "@/lib/coins";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -110,6 +110,7 @@ const ReadingSurface = memo(
     paragraphSizes,
     registerWordEl,
     fontSizePx,
+    goldenWords,
   }: {
     illustrationSrc: string | null;
     sceneTitle?: string;
@@ -118,6 +119,7 @@ const ReadingSurface = memo(
     paragraphSizes: number[];
     registerWordEl: (index: number, el: HTMLElement | null) => void;
     fontSizePx: number;
+    goldenWords?: Set<number>;
   }) {
     return (
       <main className="flex-1 px-4 pt-5 pb-64 max-w-2xl mx-auto w-full">
@@ -128,6 +130,7 @@ const ReadingSurface = memo(
             paragraphSizes={paragraphSizes}
             registerWordEl={registerWordEl}
             fontSizePx={fontSizePx}
+            goldenWords={goldenWords}
           />
         </div>
       </main>
@@ -179,6 +182,8 @@ export default function ReadingPage() {
   const [showQuiz, setShowQuiz] = useState(false);
   const [coins, setCoins] = useState(0);
   const [streakInfo, setStreakInfo] = useState<{ streak: number; grew: boolean } | null>(null);
+  /** Всплывающая награда за только что дочитанную страницу. */
+  const [pageAward, setPageAward] = useState<PageAwardResult | null>(null);
   /** Что реально начислено за книгу — с причиной, если срезали. */
   const [awardInfo, setAwardInfo] = useState<{
     coins: number; baseCoins: number; reason: keyof typeof AWARD_EXPLANATION;
@@ -254,6 +259,18 @@ export default function ReadingPage() {
     const perPara = paras.map((p) => p.split(/\s+/).filter(Boolean));
     return { words: perPara.flat(), paragraphSizes: perPara.map((w) => w.length) };
   }, [pageContent]);
+
+  /**
+   * Золотые слова текущей страницы — приносят бонусные монеты.
+   * Набор детерминирован (книга + номер страницы), поэтому при возврате на
+   * страницу подсветка та же: ребёнок не решит, что приложение «жульничает».
+   */
+  const goldenWords = useMemo(
+    () => (bookId ? goldenWordIndexes(bookId, pageIndex, words) : new Set<number>()),
+    [bookId, pageIndex, words],
+  );
+  const goldenWordsRef = useRef(goldenWords);
+  goldenWordsRef.current = goldenWords;
 
   // ── Persistence: throttled autosave + incremental aggregates ──
   const pageIndexRef = useRef(pageIndex);
@@ -361,6 +378,26 @@ export default function ReadingPage() {
     wordsBeforePageRef.current += wordsLenRef.current;
     const justFinished = pageIndexRef.current; // 0-based index of the page read
     const isLastPage = justFinished + 1 >= pagesLenRef.current;
+
+    // Начисляем монеты СРАЗУ за дочитанную страницу — это главное изменение:
+    // ребёнок видит награду по ходу чтения, а не только в конце книги.
+    if (user && book && profile && bookId) {
+      void awardPage(user.uid, profileId, {
+        bookId,
+        pageIndex: justFinished,
+        wordsOnPage: wordsLenRef.current,
+        goldenWordsRead: goldenWordsRef.current.size,
+        band: bandForBook(book),
+        childAge: profile.age,
+      }).then((res) => {
+        if (res.coins > 0) {
+          setCoins((c) => c + res.coins);
+          setPageAward(res);
+          // Всплывающая награда живёт пару секунд и уходит сама.
+          window.setTimeout(() => setPageAward(null), 2600);
+        }
+      });
+    }
 
     if (isLastPage) {
       finishBookRef.current();
@@ -531,6 +568,7 @@ export default function ReadingPage() {
         words={words}
         paragraphSizes={paragraphSizes}
         registerWordEl={reader.registerWordEl}
+        goldenWords={goldenWords}
         fontSizePx={fontSizePx}
       />
 
@@ -637,6 +675,27 @@ export default function ReadingPage() {
       )}
 
       {/* GAME-01: completion */}
+      {/* Награда за дочитанную страницу. Показываем сразу и с разбивкой:
+          ребёнок должен ВИДЕТЬ, что чтение приносит монеты прямо сейчас,
+          а не когда-то в конце длинной книги. */}
+      {pageAward && pageAward.coins > 0 && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none animate-pop">
+          <div className="sheet !py-3 !px-5 flex items-center gap-3 !shadow-lift">
+            <span className="text-3xl">🪙</span>
+            <div>
+              <p className="font-display font-extrabold text-xl text-amber-600 dark:text-amber-400 leading-none">
+                +{pageAward.coins}
+              </p>
+              <p className="text-[11px] text-ink-faint mt-1">
+                Страница прочитана
+                {pageAward.breakdown.golden > 0 && ` · золотые слова +${pageAward.breakdown.golden}`}
+                {pageAward.breakdown.streakBonus > 0 && ` · серия +${pageAward.breakdown.streakBonus}`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {finished && (
         <>
           <Fireworks />

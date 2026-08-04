@@ -108,3 +108,21 @@ h1, h2, h3, .font-display {
   .karaoke-word { transition: none; }
   *, *::before, *::after { animation-duration: 0.001ms !important; }
 }
+
+/* Золотые слова — приносят бонусные монеты.
+   Подсвечены заранее, чтобы ребёнок видел награду впереди по строке.
+   Оформление мягкое: подчёркивание и тёплый фон, а не кричащий цвет,
+   иначе они перебивали бы курсор текущего слова. */
+.word-golden {
+  background-color: rgba(245, 158, 11, 0.16);
+  box-shadow: inset 0 -0.15em 0 rgba(245, 158, 11, 0.5);
+}
+.word-golden.word-current {
+  background-color: #6d4aff;
+  box-shadow: 0 4px 10px -3px rgba(109, 74, 255, 0.5);
+}
+/* Уже прочитанное золотое слово — гасим фон, монета «собрана». */
+.word-golden.word-read {
+  background-color: transparent;
+  box-shadow: none;
+}
