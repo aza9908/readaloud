@@ -11,7 +11,7 @@ import {
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift } from "lucide-react";
+import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -208,7 +208,11 @@ export default function LibraryPage() {
             {l.flag} {l.label}
           </button>
         ))}
-        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowRewards(true)}>
+        <button className="chip chip-off shrink-0 ml-auto"
+          onClick={() => navigate(`/math?profile=${profile.id}`)}>
+          <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
+        </button>
+        <button className="chip chip-off shrink-0" onClick={() => setShowRewards(true)}>
           <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
         </button>
         <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>

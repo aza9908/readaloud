@@ -6,6 +6,7 @@ import ProfileSelectPage from "@/pages/ProfileSelectPage";
 import LibraryPage from "@/pages/LibraryPage";
 import ReadingPage from "@/pages/ReadingPage";
 import DashboardPage from "@/pages/DashboardPage";
+import MathPage from "@/pages/MathPage";
 
 export default function App() {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/profiles" component={ProfileSelectPage} />
           <Route path="/library" component={LibraryPage} />
           <Route path="/read/:bookId" component={ReadingPage} />
+          <Route path="/math" component={MathPage} />
           <Route path="/dashboard" component={DashboardPage} />
           <Route><Redirect to="/profiles" /></Route>
         </Switch>

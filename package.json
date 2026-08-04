@@ -10,7 +10,7 @@
     "seed": "tsx scripts/seed.ts",
     "export:postgres": "tsx scripts/export-from-postgres.ts",
     "deploy": "npm run build && firebase deploy",
-    "test": "node test/alignment.test.mjs && node test/readingLevel.test.mjs && node test/coins.test.mjs && node test/sttEscalation.test.mjs && node test/sttIntegration.test.mjs && node test/architecture.test.mjs",
+    "test": "node test/alignment.test.mjs && node test/readingLevel.test.mjs && node test/coins.test.mjs && node test/sttEscalation.test.mjs && node test/sttIntegration.test.mjs && node test/parentGate.test.mjs && node test/photoAuthenticity.test.mjs && node test/architecture.test.mjs",
     "test:critic": "node test/architecture.test.mjs"
   },
   "dependencies": {

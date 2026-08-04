@@ -127,6 +127,30 @@ Shipping the code does not activate the paid path; it needs the Blaze plan, the
 secret set, and the flag. This let the integration land and deploy before the
 billing model was confirmed.
 
+## Parent gate & Math section
+
+**Parent gate.** The dashboard controls rewards and deducts coins, so a child
+with the phone could grant themselves anything. `ParentGate` asks for a 4-digit
+code before the dashboard renders. The code is stored **hashed** (SHA-256 salted
+with the account uid) so it cannot be read out of Firestore or the console; this
+is a lock against a child, not a cryptographic defence — 4 digits is 10,000
+combinations. Five wrong tries triggers a 60-second pause, and the unlock
+expires after 10 minutes so the child cannot walk up behind the parent.
+
+**Math section.** Peterson workbooks are copyrighted; `mathTasks.ts` contains
+ORIGINAL problems written to the same programme and method (reasoning and
+pattern-finding over drill), grades 1-4, difficulty A/B/C.
+
+**Photo authenticity — know the limits.** `photoAuthenticity.ts` reliably
+detects screenshots and photos-of-screens: missing camera EXIF, exact screen
+resolutions, PNG format, near-pure-white background, unnaturally uniform
+lighting. It **cannot** detect an AI answer copied out by hand, and the code
+must never claim it does. The real defence there is requiring visible working,
+which a child who copied an answer usually cannot produce. Thresholds favour the
+child: a genuine photo in bad light is marked "suspicious" (parent reviews), never
+rejected outright. Authenticity is checked on the ORIGINAL file before
+compression, because compression strips the EXIF the check depends on.
+
 ## Architecture critic
 
 `npm test` ends with `test/architecture.test.mjs`, which checks invariants that

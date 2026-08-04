@@ -16,6 +16,8 @@ import { RewardsPanel } from "@/components/RewardsPanel";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { WeeklyReport } from "@/components/WeeklyReport";
 import { ParentRewardsManager } from "@/components/ParentRewardsManager";
+import { ParentGate } from "@/components/ParentGate";
+import { isUnlockFresh } from "@/lib/parentGate";
 
 function fmtDuration(ms: number): string {
   if (ms < 1000) return "—";
@@ -34,6 +36,13 @@ export default function DashboardPage() {
   const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [langFilter, setLangFilter] = useState<Language | "all">("all");
+  /**
+   * Когда родитель ввёл код. Разрешение живёт ограниченное время, иначе
+   * ребёнок откроет дашборд следом за родителем на том же телефоне.
+   * Держим в памяти, а не в localStorage: закрыл вкладку — код нужен снова.
+   */
+  const [unlockedAt, setUnlockedAt] = useState<number | null>(null);
+  const unlocked = isUnlockFresh(unlockedAt, Date.now());
 
   useEffect(() => {
     if (!user) return;
@@ -59,6 +68,18 @@ export default function DashboardPage() {
   );
 
   if (!user) return null;
+
+  // Дашборд закрыт кодом: здесь управление наградами и списание монет,
+  // и без замка ребёнок мог бы сам себе всё выдать.
+  if (!unlocked) {
+    return (
+      <ParentGate
+        uid={user.uid}
+        onUnlocked={() => setUnlockedAt(Date.now())}
+        onCancel={() => navigate("/profiles")}
+      />
+    );
+  }
 
   return (
     <div className="min-h-dvh px-4 py-4 max-w-3xl mx-auto pb-16">

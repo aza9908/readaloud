@@ -705,3 +705,33 @@ export async function awardPage(
              reason: "already_read" };
   }
 }
+
+/**
+ * Родительский код доступа к дашборду. Хранится ХЕШЕМ, а не цифрами:
+ * ребёнок не должен подсмотреть его, открыв консоль или экспорт данных.
+ */
+export async function getParentPinHash(uid: string): Promise<string | null> {
+  const snap = await getDoc(doc(db, "users", uid));
+  return (snap.exists() ? (snap.data() as { parentPinHash?: string }).parentPinHash : null) ?? null;
+}
+
+export async function setParentPinHash(uid: string, hash: string): Promise<void> {
+  await setDoc(doc(db, "users", uid), { parentPinHash: hash }, { merge: true });
+}
+
+/** Работа по математике, отправленная ребёнком на проверку родителю. */
+export async function submitMathSolution(
+  uid: string,
+  profileId: string,
+  data: {
+    taskId: string; photo: string; difficulty: string; grade: number;
+    coins: number; authenticity: string; authenticityReasons: string[];
+  },
+): Promise<void> {
+  await addDoc(collection(db, "users", uid, "mathSolutions"), {
+    ...data,
+    profileId,
+    status: "pending",
+    submittedAt: Date.now(),
+  });
+}
