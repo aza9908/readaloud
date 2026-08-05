@@ -51,6 +51,24 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       <g clipPath={`url(#clip-${uid})`}>
         <rect width="100" height="100" fill={`url(#bg-${uid})`} />
 
+        {/* Турнирные герои двигаются: вращающееся сияние и искры.
+            Анимация только у них — это визуальный знак того, что героя
+            нельзя купить, его выиграли. Уважаем prefers-reduced-motion. */}
+        {def.animated && !locked && (
+          <g className="avatar-anim">
+            <circle cx="50" cy="50" r="46" fill="none" stroke={p.accent}
+              strokeWidth="2" strokeDasharray="6 10" opacity="0.7">
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 50 50" to="360 50 50" dur="8s" repeatCount="indefinite" />
+            </circle>
+            <circle cx="50" cy="8" r="2.5" fill={p.accent}>
+              <animateTransform attributeName="transform" type="rotate"
+                from="0 50 50" to="360 50 50" dur="4s" repeatCount="indefinite" />
+              <animate attributeName="opacity" values="1;0.3;1" dur="1.5s" repeatCount="indefinite" />
+            </circle>
+          </g>
+        )}
+
         {/* лёгкое свечение за персонажем */}
         <circle cx="50" cy="46" r="30" fill="#ffffff" opacity="0.28" />
 

@@ -130,3 +130,10 @@ h1, h2, h3, .font-display {
   background-color: transparent;
   box-shadow: none;
 }
+
+/* Уважаем системную настройку «меньше движения»: анимированные герои
+   не должны мешать детям, которым движение неприятно. */
+@media (prefers-reduced-motion: reduce) {
+  .avatar-anim animateTransform,
+  .avatar-anim animate { display: none; }
+}

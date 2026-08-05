@@ -87,11 +87,17 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
   const [equipped, setEquipped] = useState(profile.avatar);
 
   const list = useMemo(() => {
+    /**
+     * Турнирные герои в продажу не попадают: их нельзя купить, только
+     * выиграть. Уже открытые показываем — ребёнок должен видеть свой трофей
+     * в коллекции.
+     */
+    const sellable = AVATARS.filter((a) => !a.tournamentOnly || owned.includes(a.id));
     const arr = filter === "all"
-      ? AVATARS
-      : AVATARS.filter((a) => a.appeal === filter || a.appeal === "neutral");
+      ? sellable
+      : sellable.filter((a) => a.appeal === filter || a.appeal === "neutral");
     // Доступные к покупке — выше, чтобы цель была видна сразу.
-    const order: Record<Rarity, number> = { common: 0, rare: 1, legendary: 2 };
+    const order: Record<Rarity, number> = { common: 0, rare: 1, legendary: 2, mythic: 3 };
     return [...arr].sort((a, b) => {
       const ao = owned.includes(a.id) ? 1 : 0;
       const bo = owned.includes(b.id) ? 1 : 0;
@@ -199,7 +205,11 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
                   {RARITY_LABEL[def.rarity][language] ?? RARITY_LABEL[def.rarity].ru}
                 </span>
 
-                {isOwned ? (
+                {def.tournamentOnly && !isOwned ? (
+                  <span className="mt-2 text-[11px] font-bold text-red-500">
+                    Только за победу в турнире
+                  </span>
+                ) : isOwned ? (
                   isOn ? (
                     <span className="mt-2 flex items-center gap-1 text-xs font-bold text-brand-500">
                       <Check className="w-3.5 h-3.5" strokeWidth={3} /> {c.equipped}

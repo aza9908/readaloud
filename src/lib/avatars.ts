@@ -12,7 +12,13 @@
  * выглядят как единая коллекция, а не как случайный набор картинок.
  */
 
-export type Rarity = "common" | "rare" | "legendary";
+/**
+ * Редкости. "mythic" — только за победы в турнирах: такого героя нельзя
+ * купить за монеты, и это делает его настоящим знаком отличия. Купленное
+ * за накопленное есть у всех, кто усидчив; выигранное — только у тех, кто
+ * победил.
+ */
+export type Rarity = "common" | "rare" | "legendary" | "mythic";
 
 export interface AvatarDef {
   id: string;
@@ -22,6 +28,10 @@ export interface AvatarDef {
   /** Ориентировочная адресация, чтобы витрина была сбалансированной. */
   appeal: "girls" | "boys" | "neutral";
   palette: { bg1: string; bg2: string; suit: string; suitDark: string; accent: string };
+  /** Анимированный герой — двигается. Только у турнирных наград. */
+  animated?: boolean;
+  /** Нельзя купить за монеты: выдаётся только за победы. */
+  tournamentOnly?: boolean;
   skin: string;
   hair: { color: string; style: HairStyle };
   headwear?: Headwear;
@@ -168,19 +178,52 @@ export const AVATARS: AvatarDef[] = [
     skin: SKIN.tan, hair: { color: "#1F1A17", style: "braids" },
     headwear: "saka_helmet", accessory: "sword",
   },
+  // ── Турнирные награды: только за победы, купить нельзя ──
+  {
+    id: "flame_champion",
+    name: { ru: "Огненный чемпион", kk: "Отты чемпион", en: "Flame Champion" },
+    price: 0, rarity: "mythic", appeal: "neutral",
+    animated: true, tournamentOnly: true,
+    palette: { bg1: "#FEE2E2", bg2: "#FCA5A5", suit: "#DC2626", suitDark: "#991B1B", accent: "#FBBF24" },
+    skin: SKIN.tan, hair: { color: "#1F1A17", style: "short" },
+    headwear: "saka_helmet", accessory: "sword",
+  },
+  {
+    id: "storm_runner",
+    name: { ru: "Молния", kk: "Найзағай", en: "Storm Runner" },
+    price: 0, rarity: "mythic", appeal: "neutral",
+    animated: true, tournamentOnly: true,
+    palette: { bg1: "#DBEAFE", bg2: "#93C5FD", suit: "#1D4ED8", suitDark: "#1E3A8A", accent: "#FDE047" },
+    skin: SKIN.light, hair: { color: "#312E81", style: "curly" },
+    headwear: "goggles", accessory: "stars",
+  },
+  {
+    id: "golden_mind",
+    name: { ru: "Золотой ум", kk: "Алтын ақыл", en: "Golden Mind" },
+    price: 0, rarity: "mythic", appeal: "neutral",
+    animated: true, tournamentOnly: true,
+    palette: { bg1: "#FEF3C7", bg2: "#FCD34D", suit: "#B45309", suitDark: "#78350F", accent: "#FDE047" },
+    skin: SKIN.deep, hair: { color: "#1F1A17", style: "bun" },
+    headwear: "crown", accessory: "book",
+  },
 ];
 
 export const RARITY_LABEL: Record<Rarity, { ru: string; kk: string; en: string }> = {
   common: { ru: "Обычный", kk: "Қарапайым", en: "Common" },
   rare: { ru: "Редкий", kk: "Сирек", en: "Rare" },
   legendary: { ru: "Легендарный", kk: "Аңызға айналған", en: "Legendary" },
+  mythic: { ru: "Турнирный", kk: "Турнирлік", en: "Tournament" },
 };
 
 export const RARITY_COLOR: Record<Rarity, string> = {
   common: "#6B7280",
   rare: "#6D4AFF",
   legendary: "#F5A623",
+  mythic: "#DC2626",
 };
+
+/** Герои, которые выдаются только за победы в турнирах. */
+export const TOURNAMENT_AVATARS = () => AVATARS.filter((a) => a.tournamentOnly);
 
 export const avatarById = (id: string): AvatarDef | undefined =>
   AVATARS.find((a) => a.id === id);
