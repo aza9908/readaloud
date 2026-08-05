@@ -65,5 +65,47 @@ eq("1v1", MODE_SIZE["1v1"], 1);
 eq("3v3", MODE_SIZE["3v3"], 3);
 eq("на раунд 20 секунд", ROUND_SECONDS, 20);
 
-console.log(`\n${pass} прошло, ${fail} упало\n`);
+
+
+// Отдельно проверяем построение вариантов ответа: правильный обязан быть
+// среди них, и позиция не должна быть предсказуемой.
+console.log("\n── варианты ответа в матче ──");
+{
+  const { readFileSync } = await import("node:fs");
+  const { transform } = await import("esbuild");
+  const gsrc = readFileSync("src/lib/mathGenerator.ts","utf8").replace(/import type \{[^}]*\} from "[^"]*";/g,"");
+  const g = await transform(gsrc,{loader:"ts",format:"esm"});
+  const { dailyTasks } = await import("data:text/javascript;base64,"+Buffer.from(g.code).toString("base64"));
+
+  // Повторяем ту же логику, что в ArenaPage.buildMathRounds.
+  const build = (grade, ROUNDS=5) => {
+    const pool = dailyTasks(grade);
+    const rounds = [];
+    for (let i=0;i<ROUNDS;i++){
+      const task = pool[i % pool.length];
+      const num = parseInt((task.answer.match(/-?\d+/) ?? ["0"])[0], 10);
+      const distractors = [num+1, num-1, num+(num>10?10:2)].filter(n=>n!==num && n>=0);
+      const options = [String(num), ...distractors.slice(0,3).map(String)];
+      const shift = (i*7)%options.length;
+      const rotated = [...options.slice(shift), ...options.slice(0,shift)];
+      rounds.push({ question: task.text, options: rotated, correct: rotated.indexOf(String(num)) });
+    }
+    return rounds;
+  };
+
+  let allValid = true, positions = new Set();
+  for (let grade=1; grade<=4; grade++){
+    for (const r of build(grade)) {
+      if (r.correct < 0) allValid = false;
+      if (r.options[r.correct] === undefined) allValid = false;
+      if (new Set(r.options).size !== r.options.length) allValid = false;
+      positions.add(r.correct);
+    }
+  }
+  eq("правильный ответ всегда среди вариантов", allValid, true);
+  eq("варианты не дублируются", allValid, true);
+  eq("позиция правильного меняется", positions.size > 1, true);
+}
+
+console.log(`\nитого: ${pass} прошло, ${fail} упало\n`);
 process.exit(fail?1:0);

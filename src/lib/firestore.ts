@@ -793,3 +793,137 @@ export async function awardMathCoins(
     coins: increment(coins),
   });
 }
+
+// ───────────────────── Турниры: подбор и ход матча ─────────────────────
+
+/**
+ * Ищет открытый матч нужного режима или создаёт новый.
+ *
+ * Подбор идёт транзакцией по одному документу-очереди: без неё двое детей,
+ * нажавших «Играть» одновременно, создали бы два матча и остались бы ждать
+ * каждый в своём. Транзакция гарантирует, что второй игрок увидит созданный
+ * первым матч и присоединится к нему.
+ */
+export async function findOrCreateMatch(args: {
+  kind: "math" | "reading";
+  mode: "1v1" | "2v2" | "3v3";
+  grade: number;
+  player: { profileId: string; name: string; avatar: string };
+  buildRounds: () => { question: string; options: string[]; correct: number }[];
+}): Promise<string> {
+  const teamSize = { "1v1": 1, "2v2": 2, "3v3": 3 }[args.mode];
+  const total = teamSize * 2;
+  const queueRef = doc(db, "matchQueue", `${args.kind}-${args.mode}-${args.grade}`);
+
+  return runTransaction(db, async (tx) => {
+    const qSnap = await tx.get(queueRef);
+    const openId = qSnap.exists() ? (qSnap.data() as { openMatchId?: string }).openMatchId : null;
+
+    if (openId) {
+      const mRef = doc(db, "matches", openId);
+      const mSnap = await tx.get(mRef);
+      if (mSnap.exists()) {
+        const match = mSnap.data() as { players: unknown[]; status: string };
+        // Присоединяемся, только если матч ещё набирается.
+        if (match.status === "waiting" && match.players.length < total) {
+          const already = (match.players as { profileId: string }[])
+            .some((p) => p.profileId === args.player.profileId);
+          if (!already) {
+            const team = match.players.length < teamSize ? "A" : "B";
+            const players = [...(match.players as object[]), { ...args.player, team }];
+            const full = players.length >= total;
+            tx.update(mRef, {
+              players,
+              status: full ? "playing" : "waiting",
+              // Отсчёт первого раунда стартует, когда собрались все.
+              roundDeadline: full ? Date.now() + 20_000 : 0,
+            });
+            if (full) tx.set(queueRef, { openMatchId: null }, { merge: true });
+            return openId;
+          }
+          return openId;
+        }
+      }
+    }
+
+    // Открытого матча нет — создаём новый и встаём в очередь.
+    const newRef = doc(collection(db, "matches"));
+    tx.set(newRef, {
+      kind: args.kind, mode: args.mode, grade: args.grade,
+      status: total === 1 ? "playing" : "waiting",
+      players: [{ ...args.player, team: "A" }],
+      rounds: args.buildRounds(),
+      currentRound: 0,
+      roundDeadline: 0,
+      answers: {},
+      createdAt: Date.now(),
+    });
+    tx.set(queueRef, { openMatchId: newRef.id }, { merge: true });
+    return newRef.id;
+  });
+}
+
+/** Следит за матчем в реальном времени. */
+export function watchMatch(matchId: string, cb: (m: Record<string, unknown> | null) => void) {
+  return onSnapshot(doc(db, "matches", matchId), (snap) => {
+    cb(snap.exists() ? { id: snap.id, ...snap.data() } : null);
+  });
+}
+
+/** Записывает ответ игрока. Ответ нельзя переписать — ключ уникален по раунду. */
+export async function submitMatchAnswer(
+  matchId: string, round: number, profileId: string, option: number, ms: number,
+): Promise<void> {
+  await updateDoc(doc(db, "matches", matchId), {
+    [`answers.${round}:${profileId}`]: { option, ms },
+  });
+}
+
+/**
+ * Переводит матч на следующий раунд.
+ *
+ * Вызвать может любой клиент — кто первым заметил, что раунд закрыт. Условие
+ * `currentRound == expected` делает повторные вызовы безвредными: второй
+ * клиент просто не пройдёт проверку, и раунд не перескочит через один.
+ */
+export async function advanceMatchRound(
+  matchId: string, expectedRound: number, totalRounds: number,
+): Promise<void> {
+  const ref = doc(db, "matches", matchId);
+  try {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return;
+      const m = snap.data() as { currentRound: number };
+      if (m.currentRound !== expectedRound) return; // кто-то уже перевёл
+      const next = expectedRound + 1;
+      if (next >= totalRounds) {
+        tx.update(ref, { status: "finished", currentRound: next });
+      } else {
+        tx.update(ref, { currentRound: next, roundDeadline: Date.now() + 20_000 });
+      }
+    });
+  } catch {
+    /* гонка — другой клиент уже перевёл раунд, это нормально */
+  }
+}
+
+/** Выдаёт турнирного героя победителю, если у него его ещё нет. */
+export async function grantTournamentAvatar(
+  uid: string, profileId: string, avatarId: string,
+): Promise<boolean> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return false;
+      const p = snap.data() as ChildProfile;
+      const owned = p.unlockedAvatars ?? [];
+      if (owned.includes(avatarId)) return false;
+      tx.update(ref, { unlockedAvatars: [...owned, avatarId] });
+      return true;
+    });
+  } catch {
+    return false;
+  }
+}

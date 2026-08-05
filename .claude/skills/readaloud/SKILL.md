@@ -151,6 +151,33 @@ child: a genuine photo in bad light is marked "suspicious" (parent reviews), nev
 rejected outright. Authenticity is checked on the ORIGINAL file before
 compression, because compression strips the EXIF the check depends on.
 
+## Tournaments (Arena)
+
+A match is ONE Firestore document all participants watch via `onSnapshot`; no
+server is needed for five short rounds and at most six players. Each player
+writes only their own answer, and the winner is derived identically on every
+client from the shared document, so clients cannot disagree.
+
+Two race conditions are handled deliberately and must stay handled:
+- **Matchmaking** goes through a transaction on a per-mode queue document.
+  Without it, two children pressing Play at the same moment each create a match
+  and both wait forever.
+- **Round advance** can be triggered by any client, guarded by
+  `currentRound == expected` inside a transaction, so duplicate calls are
+  harmless and rounds cannot skip.
+
+Every round has a deadline, so a player who closes the tab cannot hang the
+match. Ties break on total answer time.
+
+**Interface**: modelled on a sports scoreboard, not a card table. Deliberately
+absent: stakes, pots, felt, chips, any win/lose-money language. The timer is a
+calm ring rather than a draining red bar — children do not need winding up, and
+the loser still earns coins.
+
+**Tournament avatars** (`tournamentOnly: true`) are animated and cannot be
+bought at any price. Keep them out of the shop: bought-with-savings is available
+to anyone patient, won-in-a-match is not, and that distinction is the reward.
+
 ## Architecture critic
 
 `npm test` ends with `test/architecture.test.mjs`, which checks invariants that
