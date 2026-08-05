@@ -784,3 +784,12 @@ export async function publishToLeaderboard(
     updatedAt: Date.now(),
   }, { merge: true });
 }
+
+/** Монеты за решённую задачу по математике. */
+export async function awardMathCoins(
+  uid: string, profileId: string, coins: number,
+): Promise<void> {
+  await updateDoc(doc(db, "users", uid, "profiles", profileId), {
+    coins: increment(coins),
+  });
+}

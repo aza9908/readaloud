@@ -24,6 +24,9 @@ if (!getApps().length) initializeApp();
 // защита от перерасхода платных минут.
 export { transcribeFallback } from "./freedomStt.js";
 
+// Проверка решений по математике моделью Claude (с дневным лимитом).
+export { checkMathSolution } from "./mathCheck.js";
+
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
 const MODEL = "claude-sonnet-4-6";
 

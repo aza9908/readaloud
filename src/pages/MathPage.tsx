@@ -11,14 +11,16 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { ArrowLeft, Camera, Check, Loader2, Coins, Lightbulb, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { getProfile, submitMathSolution } from "@/lib/firestore";
+import { getProfile, submitMathSolution, awardMathCoins } from "@/lib/firestore";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { compressImage } from "@/lib/imageCompress";
 import { inspectPhoto } from "@/lib/photoInspect";
 import {
-  MATH_TASKS, DIFFICULTY_LABEL, DIFFICULTY_COLOR, gradeForAge,
+  DIFFICULTY_LABEL, DIFFICULTY_COLOR, gradeForAge,
   type Difficulty, type Grade, type MathTask,
 } from "@/lib/mathTasks";
+import { dailyTasks, DAILY_TASK_LIMIT } from "@/lib/mathGenerator";
+import { checkSolution, CHECK_ERROR_MESSAGE, type MathVerdict } from "@/lib/mathCheck";
 import { VERDICT_MESSAGE } from "@/lib/photoAuthenticity";
 import type { ChildProfile } from "@/lib/types";
 
@@ -44,10 +46,16 @@ export default function MathPage() {
     });
   }, [user, profileId]);
 
-  const tasks = useMemo(
-    () => MATH_TASKS.filter((t) => t.grade === grade && (level === "all" || t.difficulty === level)),
-    [grade, level],
-  );
+  /**
+   * Комплект задач на сегодня. Генерируется от даты, поэтому в течение дня
+   * он один и тот же (можно закрыть приложение и вернуться), а назавтра
+   * будет другой. Задач ровно шесть — столько же, сколько разрешено
+   * проверок в сутки.
+   */
+  const tasks = useMemo(() => {
+    const day = dailyTasks(grade);
+    return level === "all" ? day : day.filter((t) => t.difficulty === level);
+  }, [grade, level]);
 
   if (!user || !profile) return null;
 
@@ -65,6 +73,16 @@ export default function MathPage() {
         </h1>
         <div className="justify-self-end"><ThemeToggle /></div>
       </header>
+
+      <div className="card p-3 mb-4 flex items-center gap-3">
+        <span className="text-2xl">📅</span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-ink dark:text-white">Задачи на сегодня</p>
+          <p className="text-[11px] text-ink-faint">
+            Каждый день новые. Проверок с ИИ: {DAILY_TASK_LIMIT} в сутки
+          </p>
+        </div>
+      </div>
 
       {/* Класс */}
       <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
@@ -134,7 +152,12 @@ function TaskSheet({ task, uid, profileId, onClose }: {
   const [checking, setChecking] = useState(false);
   const [verdict, setVerdict] = useState<null | { kind: string; text: string; reasons: string[] }>(null);
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [ai, setAi] = useState<MathVerdict | null>(null);
+  const [aiCoins, setAiCoins] = useState(0);
+  const [aiUsed, setAiUsed] = useState(0);
+  const [aiError, setAiError] = useState("");
 
   const onPick = async (f: File | undefined) => {
     if (!f) return;
@@ -156,18 +179,48 @@ function TaskSheet({ task, uid, profileId, onClose }: {
     }
   };
 
+  /**
+   * Отправка на проверку. Порядок важен: сначала бесплатная проверка
+   * подлинности снимка (скриншот дальше не пойдёт и не потратит платный
+   * вызов), и только потом модель смотрит на решение.
+   */
   const send = async () => {
     if (!file || !verdict || verdict.kind === "rejected") return;
-    await submitMathSolution(uid, profileId, {
-      taskId: task.id,
-      photo: file,
-      difficulty: task.difficulty,
-      grade: task.grade,
-      coins: task.coins,
-      authenticity: verdict.kind,
-      authenticityReasons: verdict.reasons,
-    });
-    setSent(true);
+    setSending(true);
+    try {
+      const res = await checkSolution({
+        profileId,
+        photoDataUrl: file,
+        taskText: task.text,
+        correctAnswer: task.answer,
+        difficulty: task.difficulty,
+      });
+
+      setAiUsed(res.used);
+      if (res.ok && res.verdict) {
+        setAi(res.verdict);
+        // Монеты начисляем только за верное решение С показанным ходом:
+        // иначе достаточно списать ответ, а это ровно то, чего мы избегаем.
+        const earned = res.verdict.correct
+          ? (res.verdict.hasWorking ? task.coins : Math.round(task.coins / 2))
+          : 0;
+        setAiCoins(earned);
+        if (earned > 0) await awardMathCoins(uid, profileId, earned);
+      } else {
+        setAiError(CHECK_ERROR_MESSAGE[res.reason ?? "network"]);
+      }
+
+      // Работа сохраняется в любом случае — даже если ИИ не ответил,
+      // родитель должен увидеть её в дашборде.
+      await submitMathSolution(uid, profileId, {
+        taskId: task.id, photo: file, difficulty: task.difficulty,
+        grade: task.grade, coins: task.coins,
+        authenticity: verdict.kind, authenticityReasons: verdict.reasons,
+      });
+      setSent(true);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -200,12 +253,53 @@ function TaskSheet({ task, uid, profileId, onClose }: {
         )}
 
         {sent ? (
-          <div className="text-center py-6">
-            <div className="text-5xl mb-3">📸</div>
-            <p className="font-display font-bold text-lg text-ink dark:text-white">Работа отправлена!</p>
-            <p className="text-sm text-ink-faint mt-1">
-              Родители проверят решение и начислят {task.coins} монет.
-            </p>
+          <div className="text-center py-4">
+            {ai ? (
+              <>
+                <div className="text-5xl mb-2">{ai.correct ? "🎉" : "💪"}</div>
+                <p className="font-display font-bold text-xl text-ink dark:text-white">
+                  {ai.correct ? "Верно!" : "Почти получилось"}
+                </p>
+                <p className="text-sm text-ink-soft dark:text-ink-faint mt-2 leading-relaxed px-2">
+                  {ai.feedback}
+                </p>
+
+                {!ai.correct && ai.mistake && (
+                  <div className="rounded-2xl bg-amber-400/10 border border-amber-400/25 p-3 mt-3 text-left">
+                    <p className="text-xs font-bold text-ink dark:text-white mb-1">Где ошибка</p>
+                    <p className="text-sm text-ink-soft dark:text-ink-faint">{ai.mistake}</p>
+                  </div>
+                )}
+
+                {ai.correct && !ai.hasWorking && (
+                  <div className="rounded-2xl bg-brand-500/8 border border-brand-500/20 p-3 mt-3">
+                    <p className="text-xs text-ink-soft dark:text-ink-faint leading-relaxed">
+                      Ответ правильный, но не видно, как ты его получил. Покажи вычисления —
+                      и получишь полную награду.
+                    </p>
+                  </div>
+                )}
+
+                {aiCoins > 0 && (
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-400/15 border border-amber-400/30 px-4 py-2 mt-3">
+                    <Coins className="w-4 h-4 text-amber-500" strokeWidth={2.4} />
+                    <span className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
+                      +{aiCoins}
+                    </span>
+                  </div>
+                )}
+
+                <p className="text-[11px] text-ink-faint mt-3">
+                  Проверок сегодня: {aiUsed} из {DAILY_TASK_LIMIT}
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="text-5xl mb-2">📸</div>
+                <p className="font-display font-bold text-lg text-ink dark:text-white">Работа отправлена</p>
+                <p className="text-sm text-ink-faint mt-1">{aiError || "Родители проверят решение."}</p>
+              </>
+            )}
             <button className="btn-primary w-full mt-4" onClick={onClose}>Готово</button>
           </div>
         ) : (
@@ -253,9 +347,11 @@ function TaskSheet({ task, uid, profileId, onClose }: {
             )}
 
             <button className="btn-primary w-full mt-4"
-              disabled={!file || checking || verdict?.kind === "rejected"}
+              disabled={!file || checking || sending || verdict?.kind === "rejected"}
               onClick={() => void send()}>
-              Отправить на проверку
+              {sending
+                ? <><Loader2 className="w-4 h-4 inline mr-2 animate-spin" />Проверяю решение…</>
+                : "Отправить на проверку"}
             </button>
             <p className="text-[11px] text-ink-faint mt-3 leading-relaxed">
               Решение проверяют родители. Фотография должна быть из твоей тетради —
