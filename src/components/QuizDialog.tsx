@@ -62,9 +62,11 @@ interface Props {
   language: Language;
   age: number;
   onClose: () => void;
+  /** Сообщает результат наружу — награда за книгу зависит от ответов. */
+  onFinished?: (score: { correct: number; total: number }) => void;
 }
 
-export function QuizDialog({ open, title, text, language, age, onClose }: Props) {
+export function QuizDialog({ open, title, text, language, age, onClose, onFinished }: Props) {
   const c = COPY[language] ?? COPY.ru;
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
@@ -115,7 +117,13 @@ export function QuizDialog({ open, title, text, language, age, onClose }: Props)
           <div className="py-8 text-center space-y-4">
             <div className="text-5xl">🎉</div>
             <p className="text-ink-soft dark:text-ink-faint">{c.none}</p>
-            <button className="btn-primary w-full" onClick={onClose}>{c.close}</button>
+            <button
+              className="btn-primary w-full"
+              onClick={() => {
+                onFinished?.({ correct: score, total: questions.length });
+                onClose();
+              }}
+            >{c.close}</button>
           </div>
         ) : done ? (
           <div className="py-6 text-center space-y-4">
@@ -127,7 +135,13 @@ export function QuizDialog({ open, title, text, language, age, onClose }: Props)
             <p className="text-ink-soft dark:text-ink-faint">
               {score === total ? c.great : score >= total / 2 ? c.good : c.ok}
             </p>
-            <button className="btn-primary w-full" onClick={onClose}>{c.close}</button>
+            <button
+              className="btn-primary w-full"
+              onClick={() => {
+                onFinished?.({ correct: score, total: questions.length });
+                onClose();
+              }}
+            >{c.close}</button>
           </div>
         ) : q ? (
           <>

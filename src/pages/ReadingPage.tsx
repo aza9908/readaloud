@@ -23,7 +23,7 @@ import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
 import { updateStreakAndHardWords, awardPage } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
-import { AWARD_EXPLANATION, goldenWordIndexes, type PageAwardResult } from "@/lib/coins";
+import { AWARD_EXPLANATION, goldenWordIndexes, COMPREHENSION_BONUS, type PageAwardResult } from "@/lib/coins";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -180,6 +180,8 @@ export default function ReadingPage() {
   const [finished, setFinished] = useState(false);
   const [retellFor, setRetellFor] = useState<{ from: number; to: number } | null>(null);
   const [showQuiz, setShowQuiz] = useState(false);
+  /** Результат вопросов — влияет на бонус и показывается в итоге. */
+  const [quizResult, setQuizResult] = useState<{ correct: number; total: number } | null>(null);
   const [coins, setCoins] = useState(0);
   const [streakInfo, setStreakInfo] = useState<{ streak: number; grew: boolean } | null>(null);
   /** Всплывающая награда за только что дочитанную страницу. */
@@ -313,18 +315,33 @@ export default function ReadingPage() {
   const handleProgress = useCallback(
     (s: ProgressSnapshot) => {
       latestSnapRef.current = s;
-      // 1 coin per word read this session, on top of what the child already had.
-      setCoins(baseCoinsRef.current + baseWordsRef.current + s.wordsRead);
+      // Счётчик монет НЕ увеличиваем здесь. Раньше он рос на монету за слово,
+      // хотя награда давно начисляется постранично, — ребёнок видел одно
+      // число, а получал другое. Теперь счётчик двигают только реальные
+      // начисления (awardPage и completeSession).
       persist(s);
     },
     [persist],
   );
 
   // ── Page / book completion ──
+  /**
+   * Завершение книги идёт в два такта:
+   *   1) вопросы по прочитанному,
+   *   2) только потом подсчёт награды и празднование.
+   * Раньше празднование с монетами показывалось сразу, а вопросы задавались
+   * поверх него: ребёнок видел награду до того, как ответил, и его ответы ни
+   * на что не влияли. Теперь награда — итог всей работы, включая вопросы.
+   */
   const finishBook = useCallback(() => {
+    setShowQuiz(true);
+  }, []);
+
+  /** Вызывается после вопросов: считаем награду и показываем празднование. */
+  const finalizeBook = useCallback((quizScore?: { correct: number; total: number }) => {
+    setShowQuiz(false);
+    setQuizResult(quizScore ?? null);
     setFinished(true);
-    // Comprehension questions after a short celebration beat.
-    window.setTimeout(() => setShowQuiz(true), 2600);
     void (async () => {
       if (!user || !sessionId || !book || !profile) return;
       persist(latestSnapRef.current, true); // final flush
@@ -667,9 +684,12 @@ export default function ReadingPage() {
           text={book.pages.join("\n\n")}
           language={book.language}
           age={profile?.age ?? 8}
+          onFinished={(score) => finalizeBook(score)}
           onClose={() => {
-            setShowQuiz(false);
-            navigate(`/library?profile=${profileId}`);
+            // Ребёнок закрыл вопросы, не ответив — награду всё равно считаем,
+            // но без бонуса за понимание. Чтение состоялось, и оставлять его
+            // совсем без итога нельзя.
+            if (!finished) finalizeBook();
           }}
         />
       )}
@@ -714,6 +734,27 @@ export default function ReadingPage() {
                   <span className="font-display font-extrabold text-lg text-orange-600 dark:text-orange-400">
                     {streakInfo.streak} {streakPlural(streakInfo.streak)} подряд!
                   </span>
+                </div>
+              )}
+
+              {/* Результат вопросов — теперь он ЧАСТЬ итога, а не приходит
+                  после награды, как было раньше. */}
+              {quizResult && (
+                <div className={`rounded-2xl px-4 py-2.5 border ${
+                  quizResult.correct === quizResult.total
+                    ? "bg-emerald-500/12 border-emerald-500/30"
+                    : "bg-brand-500/8 border-brand-500/20"
+                }`}>
+                  <p className="text-sm font-bold text-ink dark:text-white">
+                    {quizResult.correct === quizResult.total
+                      ? `Все ответы верные — ${quizResult.correct} из ${quizResult.total}!`
+                      : `Вопросы: ${quizResult.correct} из ${quizResult.total}`}
+                  </p>
+                  {quizResult.correct === quizResult.total && quizResult.total > 0 && (
+                    <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-0.5">
+                      +{COMPREHENSION_BONUS} монет за понимание
+                    </p>
+                  )}
                 </div>
               )}
 

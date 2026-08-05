@@ -11,7 +11,8 @@ import {
   isValidPin, hashPin, initialGateState, registerFailure, registerSuccess,
   isLockedOut, lockoutSecondsLeft, attemptsLeft, type GateState,
 } from "@/lib/parentGate";
-import { getParentPinHash, setParentPinHash } from "@/lib/firestore";
+import { getParentPinHash, setParentPinHash, clearParentPinHash } from "@/lib/firestore";
+import { reauthenticateParent } from "@/lib/auth";
 
 interface Props {
   uid: string;
@@ -27,6 +28,26 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
   const [gate, setGate] = useState<GateState>(initialGateState());
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [resetting, setResetting] = useState(false);
+  const [resetError, setResetError] = useState("");
+
+  /**
+   * Сброс кода через повторный вход в аккаунт. Ребёнок не знает пароля от
+   * почты родителя, поэтому это работает как доказательство права.
+   */
+  const doReset = async () => {
+    setResetError("");
+    try {
+      await reauthenticateParent();
+      await clearParentPinHash(uid);
+      setStored(null);
+      setStage("create");
+      setPin(""); setConfirmPin("");
+      setResetting(false);
+    } catch {
+      setResetError("Не удалось подтвердить вход. Попробуйте ещё раз.");
+    }
+  };
 
   // Тикаем, пока действует блокировка, чтобы обратный отсчёт был живым.
   useEffect(() => {
@@ -175,9 +196,43 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
         </div>
 
         {stage === "enter" && (
-          <p className="text-[11px] text-ink-faint mt-4 leading-relaxed">
-            Код защищает награды и статистику от самого ребёнка.
-          </p>
+          <>
+            <button
+              className="text-xs text-brand-500 font-bold mt-4"
+              onClick={() => setResetting(true)}
+            >
+              Забыли код?
+            </button>
+            <p className="text-[11px] text-ink-faint mt-2 leading-relaxed">
+              Код защищает награды и статистику от самого ребёнка.
+            </p>
+          </>
+        )}
+
+        {/* Сброс кода. Право на сброс подтверждается повторным входом в
+            аккаунт Google: владелец аккаунта — родитель, а ребёнок пароля
+            от почты не знает. Это надёжнее «секретного вопроса», который
+            ребёнок наверняка угадает. */}
+        {resetting && (
+          <div className="mt-4 rounded-2xl border-2 border-brand-500/20 p-4 text-left">
+            <p className="text-sm font-bold text-ink dark:text-white mb-1">Сброс кода</p>
+            <p className="text-xs text-ink-faint leading-relaxed mb-3">
+              Чтобы задать новый код, подтвердите, что вы владелец аккаунта —
+              войдите в него ещё раз.
+            </p>
+            {resetError && <p className="text-xs text-red-500 mb-2">{resetError}</p>}
+            <div className="flex gap-2">
+              <button
+                className="btn-primary flex-1 !py-2 text-sm"
+                onClick={() => void doReset()}
+              >
+                Подтвердить вход
+              </button>
+              <button className="btn-ghost !py-2 text-sm" onClick={() => setResetting(false)}>
+                Отмена
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

@@ -37,6 +37,13 @@ export const COMPLETION_BONUS: Record<AgeBand, number> = {
   "10-12": 60,
 };
 
+/**
+ * Бонус за все верные ответы на вопросы по книге. Небольшой, но осмысленный:
+ * он платит за ПОНИМАНИЕ, а не за проговаривание слов, и тем самым не даёт
+ * превратить чтение вслух в механическое озвучивание ради монет.
+ */
+export const COMPREHENSION_BONUS = 20;
+
 /** Сколько стоит одно «золотое слово». */
 export const GOLDEN_WORD_BONUS = 3;
 
@@ -54,12 +61,16 @@ export const ABOVE_LEVEL_FACTOR = 1.15;
  * чтобы пропуск одного дня не обесценивал накопленное.
  */
 export function streakMultiplier(streakDays: number): number {
-  if (streakDays <= 1) return 1;
-  if (streakDays <= 3) return 1.1;
-  if (streakDays <= 6) return 1.2;
-  if (streakDays <= 13) return 1.35;
-  return 1.5;
+  // Надбавка идёт ПО НЕДЕЛЯМ: полная неделя подряд даёт +0.2, две недели +0.4,
+  // и так далее. Растёт заметно, но упирается в потолок — иначе ребёнок,
+  // пропустивший один день после трёх месяцев, терял бы слишком много,
+  // и это било бы сильнее, чем мотивировало.
+  const fullWeeks = Math.floor(streakDays / 7);
+  return Math.min(1 + fullWeeks * 0.2, STREAK_MULTIPLIER_CAP);
 }
+
+/** Потолок множителя: втрое — дальше экономика перестаёт сходиться. */
+export const STREAK_MULTIPLIER_CAP = 3;
 
 /**
  * Порог, после которого награда за день уменьшается. Мягкий: сверх порога

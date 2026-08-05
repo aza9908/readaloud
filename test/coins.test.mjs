@@ -6,7 +6,7 @@ const src = readFileSync("src/lib/coins.ts", "utf8").replace(/import type \{[^}]
 const { code } = await transform(src, { loader: "ts", format: "esm" });
 const m = await import("data:text/javascript;base64," + Buffer.from(code).toString("base64"));
 const { awardForPage, awardForCompletion, goldenWordIndexes,
-        streakMultiplier, DAILY_SOFT_CAP } = m;
+        streakMultiplier, DAILY_SOFT_CAP, STREAK_MULTIPLIER_CAP } = m;
 
 let pass = 0, fail = 0;
 const eq = (n, g, w) => { const ok = JSON.stringify(g)===JSON.stringify(w);
@@ -52,9 +52,13 @@ console.log("\n── награда стала заметно щедрее ─�
 
 console.log("\n── серия дней увеличивает награду ──");
 {
+  // Надбавка начисляется по ПОЛНЫМ неделям: +0.2 за каждую.
   eq("день 1 без множителя", streakMultiplier(1), 1);
-  eq("множитель растёт", streakMultiplier(7) > streakMultiplier(2), true);
-  eq("множитель ограничен сверху", streakMultiplier(365), 1.5);
+  eq("шесть дней — ещё без надбавки", streakMultiplier(6), 1);
+  eq("неделя даёт +0.2", Number(streakMultiplier(7).toFixed(1)), 1.2);
+  eq("две недели дают +0.4", Number(streakMultiplier(14).toFixed(1)), 1.4);
+  eq("месяц даёт +0.8", Number(streakMultiplier(28).toFixed(1)), 1.8);
+  eq("множитель ограничен сверху", streakMultiplier(365), 3);
   const d1 = P({ streakDays: 1 }).coins;
   const d14 = P({ streakDays: 14 }).coins;
   eq("на серии платят больше", d14 > d1, true);

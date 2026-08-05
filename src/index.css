@@ -93,7 +93,11 @@ h1, h2, h3, .font-display {
   border-radius: 0.4rem;
   padding: 0.02em 0.18em;
   margin: 0 -0.04em;
-  transition: color 240ms ease, background-color 240ms ease;
+  /* Фон гаснет БЫСТРЕЕ, чем шагает курсор (см. CASCADE_MS = 130 мс).
+     При 240 мс предыдущее слово ещё светилось, когда загоралось следующее,
+     и ребёнок видел два курсора одновременно. Цвет текста может гаснуть
+     плавно — он не создаёт впечатления второго курсора. */
+  transition: color 200ms ease, background-color 90ms ease;
 }
 .word-pending { color: inherit; }
 .word-current {

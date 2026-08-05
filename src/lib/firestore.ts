@@ -23,6 +23,7 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
   onSnapshot,
   orderBy,
   query,
@@ -690,6 +691,13 @@ export async function awardPage(
           coinsTodayDay: today,
           [`pagesAwarded.${args.bookId}`]: Math.max(highest, args.pageIndex),
         });
+        // Обновляем публичный рейтинг вне транзакции: он не критичен,
+        // и его сбой не должен отменять честно заработанные монеты.
+        void publishToLeaderboard(pid, {
+          name: p.name,
+          avatar: p.avatar,
+          coins: (p.coins ?? 0) + result.coins,
+        }).catch(() => {});
       } else if (!alreadyAwarded) {
         // Награда обнулилась порогом, но территорию всё равно отмечаем
         // пройденной — иначе за неё заплатят завтра повторно.
@@ -734,4 +742,45 @@ export async function submitMathSolution(
     status: "pending",
     submittedAt: Date.now(),
   });
+}
+
+/** Сброс родительского кода (после подтверждения владения аккаунтом). */
+export async function clearParentPinHash(uid: string): Promise<void> {
+  await setDoc(doc(db, "users", uid), { parentPinHash: null }, { merge: true });
+}
+
+export interface LeaderboardRow {
+  profileId: string;
+  name: string;
+  avatar: string;
+  coins: number;
+}
+
+/**
+ * Общий рейтинг детей по монетам.
+ *
+ * Читается из отдельной коллекции `leaderboard`, а не из профилей: профили
+ * лежат под users/{uid} и закрыты правилами так, что чужие данные не видны —
+ * и это правильно. Поэтому публикуем ровно тот минимум, который нужен для
+ * рейтинга: имя, аватар, монеты. Ни возраста, ни статистики чтения.
+ */
+export async function getLeaderboard(limitCount = 50): Promise<LeaderboardRow[]> {
+  const snap = await getDocs(
+    query(collection(db, "leaderboard"), orderBy("coins", "desc"), limit(limitCount)),
+  );
+  return snap.docs.map((d) => {
+    const v = d.data() as Omit<LeaderboardRow, "profileId">;
+    return { profileId: d.id, name: v.name, avatar: v.avatar, coins: v.coins };
+  });
+}
+
+/** Публикует запись ребёнка в общий рейтинг. */
+export async function publishToLeaderboard(
+  profileId: string,
+  row: { name: string; avatar: string; coins: number },
+): Promise<void> {
+  await setDoc(doc(db, "leaderboard", profileId), {
+    ...row,
+    updatedAt: Date.now(),
+  }, { merge: true });
 }

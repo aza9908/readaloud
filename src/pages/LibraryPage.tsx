@@ -16,6 +16,7 @@ import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
 import { RewardsStore } from "@/components/RewardsStore";
+import { Leaderboard } from "@/components/Leaderboard";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { StreakBadge } from "@/components/StreakBadge";
 import {
@@ -50,6 +51,7 @@ export default function LibraryPage() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const [showShop, setShowShop] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
+  const [showRating, setShowRating] = useState(false);
   const [bandFilter, setBandFilter] = useState<AgeBand | "all">("all");
   /** Открываем категорию ребёнка при первой загрузке профиля. */
   const bandInitedRef = useRef(false);
@@ -208,7 +210,10 @@ export default function LibraryPage() {
             {l.flag} {l.label}
           </button>
         ))}
-        <button className="chip chip-off shrink-0 ml-auto"
+        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowRating(true)}>
+          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Рейтинг
+        </button>
+        <button className="chip chip-off shrink-0"
           onClick={() => navigate(`/math?profile=${profile.id}`)}>
           <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
         </button>
@@ -394,6 +399,12 @@ export default function LibraryPage() {
       >
         <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
       </button>
+
+      <Leaderboard
+        open={showRating}
+        currentProfileId={profile.id}
+        onClose={() => setShowRating(false)}
+      />
 
       <RewardsStore
         open={showRewards}

@@ -248,6 +248,27 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
         cascadeTimersRef.current.push(t);
       }
 
+      /**
+       * Сверка после каскада. Каскад красит слова по таймерам, и если его
+       * прервать (новая речь, перемотка, смена страницы), часть таймеров не
+       * успевает отработать — на экране остаётся лишняя подсветка, хотя
+       * курсор уже в другом месте. Здесь мы приводим DOM к тому, что реально
+       * говорит выравниватель: ровно одно текущее слово, всё до него —
+       * прочитано. Это дешёвая операция и она делает рассинхрон невозможным.
+       */
+      const reconcile = window.setTimeout(() => {
+        const cursor = alignerRef.current.cursor;
+        for (const [idx, el] of wordElsRef.current) {
+          const want = idx < cursor ? "read" : idx === cursor ? "current" : "pending";
+          const has =
+            el.classList.contains("word-current") ? "current"
+            : el.classList.contains("word-read") ? "read"
+            : "pending";
+          if (has !== want) paintWord(idx, want);
+        }
+      }, advanced * CASCADE_MS + 40);
+      cascadeTimersRef.current.push(reconcile);
+
       wordsReadRef.current += advanced;
       notifyCursor(to); // immediate — the prompt must not wait for the tick
 
