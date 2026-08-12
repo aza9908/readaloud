@@ -169,6 +169,18 @@ Two race conditions are handled deliberately and must stay handled:
 Every round has a deadline, so a player who closes the tab cannot hang the
 match. Ties break on total answer time.
 
+**Matchmaking queue must NOT be segmented.** The queue key is
+`${kind}-${mode}` — grade is deliberately excluded. It used to include grade,
+and that broke the feature completely: a 10-year-old and a 7-year-old sat in
+separate queues and could never meet, each staring at "1 of 2". With a small
+user base any extra dimension empties the pool. Questions are built from the
+YOUNGEST player's grade once the match fills, which keeps it fair without
+splitting the queue.
+
+A waiting match also expires (`STALE_MATCH_MS`): without it, one abandoned
+match leaves the queue pointing at a dead room forever and everyone waits in
+it. Players are removed from a waiting match when they leave the search screen.
+
 **Interface**: modelled on a sports scoreboard, not a card table. Deliberately
 absent: stakes, pots, felt, chips, any win/lose-money language. The timer is a
 calm ring rather than a draining red bar — children do not need winding up, and

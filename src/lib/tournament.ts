@@ -136,3 +136,72 @@ export function rewardFor(outcome: MatchOutcome, myTeam: "A" | "B"): number {
   if (outcome === "draw") return MATCH_REWARD.draw;
   return outcome === myTeam ? MATCH_REWARD.win : MATCH_REWARD.loss;
 }
+
+// ───────────────────── Подбор соперников ─────────────────────
+
+/**
+ * Ключ очереди подбора.
+ *
+ * ВАЖНО: класс в ключ НЕ входит. Раньше входил, и это была настоящая ошибка:
+ * десятилетний и семилетний попадали в разные очереди и не могли встретиться
+ * никогда. При небольшом числе игроков дробить очередь нельзя — соперника
+ * просто не окажется. Задачи подбираются по младшему из участников, поэтому
+ * матч остаётся честным и без разделения очередей.
+ */
+export function queueKey(kind: MatchKind, mode: MatchMode): string {
+  return `${kind}-${mode}`;
+}
+
+/** Через сколько брошенный матч перестаёт считаться живым. */
+export const STALE_MATCH_MS = 3 * 60_000;
+
+export interface JoinCandidate {
+  status: MatchStatus;
+  players: { profileId: string }[];
+  createdAt: number;
+}
+
+export type JoinDecision =
+  | { action: "join" }
+  | { action: "create"; reason: "no_open" | "stale" | "full" | "already_in" };
+
+/**
+ * Решает, присоединяться к найденному матчу или создавать новый.
+ *
+ * Отдельная чистая функция, потому что здесь легко ошибиться, а ошибка
+ * проявляется как «игроки не видят друг друга» — то есть фича просто не
+ * работает, и понять почему по интерфейсу невозможно.
+ */
+export function decideJoin(
+  candidate: JoinCandidate | null,
+  myProfileId: string,
+  mode: MatchMode,
+  now: number,
+): JoinDecision {
+  if (!candidate) return { action: "create", reason: "no_open" };
+
+  // Брошенный матч: создатель ушёл, а указатель в очереди остался. Без этой
+  // проверки очередь навсегда указывает на мёртвый матч, и все новые игроки
+  // бесконечно ждут в нём.
+  if (now - candidate.createdAt > STALE_MATCH_MS) {
+    return { action: "create", reason: "stale" };
+  }
+
+  if (candidate.status !== "waiting") return { action: "create", reason: "full" };
+
+  const total = MODE_SIZE[mode] * 2;
+  if (candidate.players.length >= total) return { action: "create", reason: "full" };
+
+  // Уже стоим в этом матче — второй раз добавляться нельзя, иначе окажемся
+  // сами себе соперником.
+  if (candidate.players.some((p) => p.profileId === myProfileId)) {
+    return { action: "create", reason: "already_in" };
+  }
+
+  return { action: "join" };
+}
+
+/** В какую команду попадает следующий игрок. */
+export function teamForNextPlayer(currentCount: number, mode: MatchMode): "A" | "B" {
+  return currentCount < MODE_SIZE[mode] ? "A" : "B";
+}

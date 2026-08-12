@@ -34,6 +34,10 @@ import {
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { awardForCompletion, awardForPage, type AwardResult, type PageAwardResult } from "./coins";
+import {
+  queueKey, decideJoin, teamForNextPlayer,
+  type JoinCandidate, type MatchStatus,
+} from "./tournament";
 import { bandForText, fitFor, type AgeBand } from "./readingLevel";
 import {
   EMPTY_BY_LANGUAGE,
@@ -867,58 +871,92 @@ export async function findOrCreateMatch(args: {
   mode: "1v1" | "2v2" | "3v3";
   grade: number;
   player: { profileId: string; name: string; avatar: string };
-  buildRounds: () => { question: string; options: string[]; correct: number }[];
+  /** Строит раунды по классу — вызывается, когда состав известен. */
+  buildRounds: (grade: number) => { question: string; options: string[]; correct: number }[];
 }): Promise<string> {
   const teamSize = { "1v1": 1, "2v2": 2, "3v3": 3 }[args.mode];
   const total = teamSize * 2;
-  const queueRef = doc(db, "matchQueue", `${args.kind}-${args.mode}-${args.grade}`);
+  // Ключ БЕЗ класса: иначе дети разного возраста стоят в разных очередях
+  // и не находят друг друга — именно так и было.
+  const queueRef = doc(db, "matchQueue", queueKey(args.kind, args.mode));
+  const now = Date.now();
 
   return runTransaction(db, async (tx) => {
     const qSnap = await tx.get(queueRef);
     const openId = qSnap.exists() ? (qSnap.data() as { openMatchId?: string }).openMatchId : null;
 
+    // Все чтения выполняем ДО записей — этого требует Firestore.
+    let candidate: JoinCandidate | null = null;
+    let mRef = null as ReturnType<typeof doc> | null;
     if (openId) {
-      const mRef = doc(db, "matches", openId);
+      mRef = doc(db, "matches", openId);
       const mSnap = await tx.get(mRef);
       if (mSnap.exists()) {
-        const match = mSnap.data() as { players: unknown[]; status: string };
-        // Присоединяемся, только если матч ещё набирается.
-        if (match.status === "waiting" && match.players.length < total) {
-          const already = (match.players as { profileId: string }[])
-            .some((p) => p.profileId === args.player.profileId);
-          if (!already) {
-            const team = match.players.length < teamSize ? "A" : "B";
-            const players = [...(match.players as object[]), { ...args.player, team }];
-            const full = players.length >= total;
-            tx.update(mRef, {
-              players,
-              status: full ? "playing" : "waiting",
-              // Отсчёт первого раунда стартует, когда собрались все.
-              roundDeadline: full ? Date.now() + 20_000 : 0,
-            });
-            if (full) tx.set(queueRef, { openMatchId: null }, { merge: true });
-            return openId;
-          }
-          return openId;
-        }
+        const d = mSnap.data() as { status: MatchStatus; players: { profileId: string }[]; createdAt: number };
+        candidate = { status: d.status, players: d.players ?? [], createdAt: d.createdAt ?? 0 };
       }
     }
 
-    // Открытого матча нет — создаём новый и встаём в очередь.
+    const decision = decideJoin(candidate, args.player.profileId, args.mode, now);
+
+    if (decision.action === "join" && openId && mRef && candidate) {
+      const team = teamForNextPlayer(candidate.players.length, args.mode);
+      const players = [...(candidate.players as object[]), { ...args.player, team, grade: args.grade }];
+      const full = players.length >= total;
+
+      const update: Record<string, unknown> = { players };
+      if (full) {
+        update.status = "playing";
+        update.roundDeadline = now + 20_000;
+        // Задачи подбираем по МЛАДШЕМУ участнику: старшему лёгкая задача
+        // не навредит, а младшему непосильная испортит игру.
+        const grades = players.map((p) => (p as { grade?: number }).grade ?? args.grade);
+        update.rounds = args.buildRounds(Math.min(...grades));
+      }
+      tx.update(mRef, update);
+      if (full) tx.set(queueRef, { openMatchId: null }, { merge: true });
+      return openId;
+    }
+
+    // Создаём новый матч и делаем его открытым в очереди.
     const newRef = doc(collection(db, "matches"));
     tx.set(newRef, {
       kind: args.kind, mode: args.mode, grade: args.grade,
       status: total === 1 ? "playing" : "waiting",
-      players: [{ ...args.player, team: "A" }],
-      rounds: args.buildRounds(),
+      players: [{ ...args.player, team: "A", grade: args.grade }],
+      // Раунды пока по своему классу; при заполнении пересчитаются по младшему.
+      rounds: args.buildRounds(args.grade),
       currentRound: 0,
-      roundDeadline: 0,
+      roundDeadline: total === 1 ? now + 20_000 : 0,
       answers: {},
-      createdAt: Date.now(),
+      createdAt: now,
     });
     tx.set(queueRef, { openMatchId: newRef.id }, { merge: true });
     return newRef.id;
   });
+}
+
+/** Убирает игрока из ожидающего матча — при выходе с экрана поиска. */
+export async function leaveWaitingMatch(matchId: string, profileId: string): Promise<void> {
+  const ref = doc(db, "matches", matchId);
+  try {
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return;
+      const d = snap.data() as { status: string; players: { profileId: string }[] };
+      if (d.status !== "waiting") return; // матч уже начался — выходить поздно
+      const players = (d.players ?? []).filter((p) => p.profileId !== profileId);
+      if (players.length === 0) {
+        // Последний ушёл — матч больше не нужен, и очередь на него указывать
+        // не должна, иначе следующий игрок будет ждать в пустой комнате.
+        tx.delete(ref);
+      } else {
+        tx.update(ref, { players });
+      }
+    });
+  } catch {
+    /* не критично: устаревший матч всё равно отсеется по времени */
+  }
 }
 
 /** Следит за матчем в реальном времени. */

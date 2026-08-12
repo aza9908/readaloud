@@ -107,5 +107,44 @@ console.log("\n── варианты ответа в матче ──");
   eq("позиция правильного меняется", positions.size > 1, true);
 }
 
-console.log(`\nитого: ${pass} прошло, ${fail} упало\n`);
+
+
+console.log("\n── ПОДБОР СОПЕРНИКОВ (тут был баг) ──");
+{
+  const { queueKey, decideJoin, teamForNextPlayer, STALE_MATCH_MS } = m;
+  const now = 1_000_000;
+
+  // Главная ошибка: очередь была разбита по классам, и дети разного
+  // возраста не могли встретиться никогда.
+  eq("класс НЕ влияет на очередь", queueKey("math","1v1"), "math-1v1");
+  eq("очередь одна для режима", queueKey("math","1v1") === queueKey("math","1v1"), true);
+  eq("режимы разделены", queueKey("math","1v1") !== queueKey("math","2v2"), true);
+
+  const fresh = (players) => ({ status:"waiting", players, createdAt: now - 1000 });
+
+  eq("пустая очередь — создаём матч",
+     decideJoin(null, "me", "1v1", now).action, "create");
+  eq("есть ждущий соперник — присоединяемся",
+     decideJoin(fresh([{profileId:"other"}]), "me", "1v1", now).action, "join");
+  eq("сами в этом матче — не дублируемся",
+     decideJoin(fresh([{profileId:"me"}]), "me", "1v1", now).action, "create");
+  eq("матч уже полон — создаём новый",
+     decideJoin(fresh([{profileId:"a"},{profileId:"b"}]), "me", "1v1", now).action, "create");
+  eq("матч уже идёт — создаём новый",
+     decideJoin({status:"playing",players:[{profileId:"a"}],createdAt:now}, "me","1v1",now).action, "create");
+
+  // Брошенный матч не должен держать очередь вечно.
+  const stale = { status:"waiting", players:[{profileId:"ghost"}], createdAt: now - STALE_MATCH_MS - 1 };
+  eq("брошенный матч не блокирует очередь", decideJoin(stale, "me", "1v1", now).action, "create");
+  eq("причина указана", decideJoin(stale, "me", "1v1", now).reason, "stale");
+
+  // 2v2: первые двое в команду A, следующие в B.
+  eq("1-й игрок в команду A", teamForNextPlayer(0, "2v2"), "A");
+  eq("2-й игрок в команду A", teamForNextPlayer(1, "2v2"), "A");
+  eq("3-й игрок в команду B", teamForNextPlayer(2, "2v2"), "B");
+  eq("4-й игрок в команду B", teamForNextPlayer(3, "2v2"), "B");
+  eq("в 1v1 второй сразу в B", teamForNextPlayer(1, "1v1"), "B");
+}
+
+console.log(`\nвсего: ${pass} прошло, ${fail} упало\n`);
 process.exit(fail?1:0);

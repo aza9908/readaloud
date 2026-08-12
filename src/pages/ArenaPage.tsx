@@ -16,7 +16,7 @@ import { ArrowLeft, Swords, Users, Loader2, Trophy, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getProfile, findOrCreateMatch, watchMatch, submitMatchAnswer,
-  advanceMatchRound, awardMatchCoins, grantTournamentAvatar,
+  advanceMatchRound, awardMatchCoins, grantTournamentAvatar, leaveWaitingMatch,
 } from "@/lib/firestore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -59,7 +59,7 @@ export default function ArenaPage() {
       const id = await findOrCreateMatch({
         kind: "math", mode, grade,
         player: { profileId: profile.id, name: profile.name, avatar: profile.avatar },
-        buildRounds: () => buildMathRounds(grade),
+        buildRounds: (g: number) => buildMathRounds(g as Grade),
       });
       setMatchId(id);
     } finally {
@@ -74,7 +74,15 @@ export default function ArenaPage() {
       <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
         <div className="justify-self-start">
           <button className="btn-ghost !py-2 !px-3"
-            onClick={() => matchId ? setMatchId(null) : navigate(`/library?profile=${profileId}`)}
+            onClick={() => {
+              // Уходя с поиска, убираем себя из матча — иначе соперник
+              // присоединится к комнате, где никого нет.
+              if (matchId && match?.status === "waiting" && profile) {
+                void leaveWaitingMatch(matchId, profile.id);
+              }
+              if (matchId) setMatchId(null);
+              else navigate(`/library?profile=${profileId}`);
+            }}
             aria-label="Назад">
             <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
           </button>
@@ -94,6 +102,10 @@ export default function ArenaPage() {
           text="Ищем соперников…"
           players={match.players}
           need={MODE_SIZE[match.mode] * 2}
+          onCancel={() => {
+            void leaveWaitingMatch(matchId, profile.id);
+            setMatchId(null);
+          }}
         />
       ) : match.status === "finished" ? (
         <Result match={match} me={profile} uid={user.uid} onExit={() => setMatchId(null)} />
@@ -156,8 +168,8 @@ function Lobby({ profile, joining, onPick }: {
   );
 }
 
-function Waiting({ text, players, need }: {
-  text: string; players?: Match["players"]; need?: number;
+function Waiting({ text, players, need, onCancel }: {
+  text: string; players?: Match["players"]; need?: number; onCancel?: () => void;
 }) {
   return (
     <div className="card p-8 text-center">
@@ -180,6 +192,15 @@ function Waiting({ text, players, need }: {
               </div>
             ))}
           </div>
+        </>
+      )}
+      {onCancel && (
+        <>
+          <p className="text-xs text-ink-faint mt-5 leading-relaxed">
+            Соперник появится, когда кто-то ещё нажмёт «Играть».
+            Позови друга — вы попадёте в один матч.
+          </p>
+          <button className="btn-ghost mt-3" onClick={onCancel}>Отменить поиск</button>
         </>
       )}
     </div>
