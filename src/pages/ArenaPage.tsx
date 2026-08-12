@@ -16,7 +16,7 @@ import { ArrowLeft, Swords, Users, Loader2, Trophy, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getProfile, findOrCreateMatch, watchMatch, submitMatchAnswer,
-  advanceMatchRound, awardMathCoins, grantTournamentAvatar,
+  advanceMatchRound, awardMatchCoins, grantTournamentAvatar,
 } from "@/lib/firestore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -340,7 +340,7 @@ function Result({ match, me, uid, onExit }: {
   useEffect(() => {
     if (grantedRef.current) return;
     grantedRef.current = true;
-    void awardMathCoins(uid, me.id, coins);
+    void awardMatchCoins(uid, me.id, match.id, coins);
     if (won) {
       // Победа открывает турнирного героя — того, которого ещё нет.
       const pool = TOURNAMENT_AVATARS();

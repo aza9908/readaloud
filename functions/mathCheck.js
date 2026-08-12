@@ -38,6 +38,27 @@ function localDay() {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
+/**
+ * Возвращает проверку в лимит, если модель так и не ответила.
+ * Без этого сбой сети съедал бы одну из шести дневных попыток ребёнка —
+ * он не виноват, что провайдер недоступен.
+ */
+async function refundCheck(db, uid, profileId) {
+  const ref = db.doc(`users/${uid}/profiles/${profileId}`);
+  const day = localDay();
+  try {
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return;
+      const d = snap.data() || {};
+      if (d.mathChecksDay !== day) return;
+      tx.update(ref, { mathChecksUsed: Math.max(0, (d.mathChecksUsed || 1) - 1) });
+    });
+  } catch {
+    /* возврат не критичен: в худшем случае ребёнок теряет одну попытку */
+  }
+}
+
 /** Списывает одну проверку из дневного лимита. Транзакция — иначе двойное нажатие обойдёт лимит. */
 async function consumeCheck(db, uid, profileId) {
   const ref = db.doc(`users/${uid}/profiles/${profileId}`);
@@ -122,7 +143,8 @@ export const checkMathSolution = onCall(opts, async (req) => {
 
     if (!res.ok) {
       console.error("Anthropic error", res.status, (await res.text()).slice(0, 300));
-      return { ok: false, reason: "provider_error", verdict: null, used: quota.used, limit: DAILY_LIMIT };
+      await refundCheck(db, req.auth.uid, profileId);
+      return { ok: false, reason: "provider_error", verdict: null, used: quota.used - 1, limit: DAILY_LIMIT };
     }
 
     const data = await res.json();
@@ -135,12 +157,14 @@ export const checkMathSolution = onCall(opts, async (req) => {
     } catch {
       // Модель ответила не JSON — не наказываем ребёнка, отдаём родителю.
       console.error("Не удалось разобрать ответ модели:", clean.slice(0, 200));
-      return { ok: false, reason: "unparsable", verdict: null, used: quota.used, limit: DAILY_LIMIT };
+      await refundCheck(db, req.auth.uid, profileId);
+      return { ok: false, reason: "unparsable", verdict: null, used: quota.used - 1, limit: DAILY_LIMIT };
     }
 
     return { ok: true, verdict, used: quota.used, limit: DAILY_LIMIT };
   } catch (err) {
     console.error("Проверка не удалась:", err);
-    return { ok: false, reason: "network", verdict: null, used: quota.used, limit: DAILY_LIMIT };
+    await refundCheck(db, req.auth.uid, profileId);
+    return { ok: false, reason: "network", verdict: null, used: quota.used - 1, limit: DAILY_LIMIT };
   }
 });

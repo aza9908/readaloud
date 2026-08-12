@@ -201,11 +201,24 @@ function TaskSheet({ task, uid, profileId, onClose }: {
         setAi(res.verdict);
         // Монеты начисляем только за верное решение С показанным ходом:
         // иначе достаточно списать ответ, а это ровно то, чего мы избегаем.
-        const earned = res.verdict.correct
-          ? (res.verdict.hasWorking ? task.coins : Math.round(task.coins / 2))
-          : 0;
+        /**
+         * Монеты только за настоящую рукописную работу с показанным ходом.
+         * Поле handwritten нельзя игнорировать: без него распечатанный или
+         * набранный на экране ответ прошёл бы как решение, и вся проверка
+         * подлинности теряла бы смысл.
+         */
+        const v = res.verdict;
+        const earned = !v.handwritten ? 0
+          : !v.correct ? 0
+          : v.hasWorking ? task.coins
+          : Math.round(task.coins / 2);
         setAiCoins(earned);
-        if (earned > 0) await awardMathCoins(uid, profileId, earned);
+        if (earned > 0) {
+          const r = await awardMathCoins(uid, profileId, earned, task.id);
+          // Если задача уже была оплачена раньше — честно показываем 0,
+          // а не рисуем монеты, которых не начислили.
+          if (r.awarded === 0) setAiCoins(0);
+        }
       } else {
         setAiError(CHECK_ERROR_MESSAGE[res.reason ?? "network"]);
       }
@@ -271,7 +284,16 @@ function TaskSheet({ task, uid, profileId, onClose }: {
                   </div>
                 )}
 
-                {ai.correct && !ai.hasWorking && (
+                {!ai.handwritten && (
+                  <div className="rounded-2xl bg-amber-400/10 border border-amber-400/25 p-3 mt-3">
+                    <p className="text-xs text-ink-soft dark:text-ink-faint leading-relaxed">
+                      Похоже, это не рукописная работа. Реши задачу в тетради
+                      и сфотографируй — тогда монеты начислятся.
+                    </p>
+                  </div>
+                )}
+
+                {ai.handwritten && ai.correct && !ai.hasWorking && (
                   <div className="rounded-2xl bg-brand-500/8 border border-brand-500/20 p-3 mt-3">
                     <p className="text-xs text-ink-soft dark:text-ink-faint leading-relaxed">
                       Ответ правильный, но не видно, как ты его получил. Покажи вычисления —

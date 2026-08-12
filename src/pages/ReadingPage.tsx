@@ -21,9 +21,11 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
-import { updateStreakAndHardWords, awardPage } from "@/lib/firestore";
+import { updateStreakAndHardWords, awardPage, grantCard } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
 import { AWARD_EXPLANATION, goldenWordIndexes, COMPREHENSION_BONUS, type PageAwardResult } from "@/lib/coins";
+import { drawCard, CARDS } from "@/lib/cards";
+import { CardReveal } from "@/components/CardCollection";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -186,6 +188,8 @@ export default function ReadingPage() {
   const [streakInfo, setStreakInfo] = useState<{ streak: number; grew: boolean } | null>(null);
   /** Всплывающая награда за только что дочитанную страницу. */
   const [pageAward, setPageAward] = useState<PageAwardResult | null>(null);
+  /** Выпавшая за книгу карточка — показываем после празднования. */
+  const [wonCard, setWonCard] = useState<(typeof CARDS)[number] | null>(null);
   /** Что реально начислено за книгу — с причиной, если срезали. */
   const [awardInfo, setAwardInfo] = useState<{
     coins: number; baseCoins: number; reason: keyof typeof AWARD_EXPLANATION;
@@ -370,6 +374,15 @@ export default function ReadingPage() {
         latestSnapRef.current.struggledWords,
       );
       setStreakInfo(streakRes);
+
+      // Карточка за дочитанную книгу. Выпадение детерминировано от книги,
+      // поэтому перезагрузка страницы не даст «прокрутить» другую — иначе
+      // награда превратилась бы в игровой автомат.
+      if (book) {
+        const card = drawCard(`book:${book.id}`, profile.cards ?? []);
+        const granted = await grantCard(user.uid, profileId, `book:${book.id}`, card.id);
+        if (granted) setWonCard(card);
+      }
       const fresh = await checkAndAwardBadges(user.uid, profileId, before, {
         wordsThisSession: savedWordsRef.current,
         msThisSession: savedMsRef.current,
@@ -715,6 +728,12 @@ export default function ReadingPage() {
           </div>
         </div>
       )}
+
+      <CardReveal
+        card={wonCard}
+        language={book?.language ?? "ru"}
+        onClose={() => setWonCard(null)}
+      />
 
       {finished && (
         <>

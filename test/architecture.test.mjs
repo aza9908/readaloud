@@ -158,9 +158,27 @@ console.log("\n── 5. Монеты начисляются только чер
    * Правило не в их количестве, а в том, что КАЖДОЕ должно быть защищено от
    * повторной выдачи за одну и ту же работу — иначе возвращается накрутка.
    */
-  const awards = (fs.match(/coins:\s*increment\(/g) || []).length;
-  check("начислений не больше трёх (страница, книга, задача)", awards <= 3,
-        `найдено ${awards} — каждое новое требует своей защиты от повтора`);
+  /**
+   * Начислений четыре: страница, книга, задача, матч. Количество само по
+   * себе не проблема — проблема была бы в незащищённом начислении. Поэтому
+   * правило проверяет не число, а то, что КАЖДАЯ функция начисления идёт
+   * в транзакции и сверяется со своим реестром уже оплаченного.
+   */
+  const awardFns = [
+    ["awardPage", "pagesAwarded"],
+    ["completeSession", "bookCompletions"],
+    ["awardMathCoins", "solvedTasks"],
+    ["awardMatchCoins", "paidMatches"],
+  ];
+  for (const [fnName, ledger] of awardFns) {
+    const at = fs.indexOf(`export async function ${fnName}`);
+    const body = at >= 0 ? fs.slice(at, at + 1600) : "";
+    check(`${fnName}: есть и защищено`, !!body, "функция не найдена");
+    if (body) {
+      check(`${fnName}: в транзакции`, body.includes("runTransaction"));
+      check(`${fnName}: сверяется с ${ledger}`, body.includes(ledger));
+    }
+  }
 
   // Математика: лимит проверок держится на сервере, где его не обойти.
   const mathFn = existsSync("functions/mathCheck.js")

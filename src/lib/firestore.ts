@@ -785,13 +785,71 @@ export async function publishToLeaderboard(
   }, { merge: true });
 }
 
-/** Монеты за решённую задачу по математике. */
+/**
+ * Монеты за решённую задачу по математике — ровно один раз на задачу.
+ *
+ * Раньше здесь было простое увеличение счётчика, и одну и ту же задачу можно
+ * было решать повторно, получая монеты каждый раз. Теперь выполненные задачи
+ * отмечаются, и повтор не оплачивается — та же логика, что защищает страницы
+ * книг от повторной оплаты.
+ */
 export async function awardMathCoins(
-  uid: string, profileId: string, coins: number,
-): Promise<void> {
-  await updateDoc(doc(db, "users", uid, "profiles", profileId), {
-    coins: increment(coins),
-  });
+  uid: string, profileId: string, coins: number, taskId: string,
+): Promise<{ awarded: number }> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { awarded: 0 };
+      const p = snap.data() as ChildProfile;
+      const solved = p.solvedTasks ?? {};
+      if (solved[taskId]) return { awarded: 0 }; // уже оплачено
+
+      tx.update(ref, {
+        coins: increment(coins),
+        [`solvedTasks.${taskId}`]: Date.now(),
+      });
+      void publishToLeaderboard(profileId, {
+        name: p.name, avatar: p.avatar, coins: (p.coins ?? 0) + coins,
+      }).catch(() => {});
+      return { awarded: coins };
+    });
+  } catch {
+    return { awarded: 0 };
+  }
+}
+
+/**
+ * Награда за матч — ровно один раз на матч.
+ *
+ * Начисление идёт с клиента (сервер тут не нужен: матч короткий, а игроков
+ * мало), поэтому защита от повтора обязана быть в данных. Без неё ребёнок,
+ * открывший консоль, начислял бы себе награду сколько угодно раз.
+ */
+export async function awardMatchCoins(
+  uid: string, profileId: string, matchId: string, coins: number,
+): Promise<{ awarded: number }> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return { awarded: 0 };
+      const p = snap.data() as ChildProfile;
+      const paid = p.paidMatches ?? {};
+      if (paid[matchId]) return { awarded: 0 };
+
+      tx.update(ref, {
+        coins: increment(coins),
+        [`paidMatches.${matchId}`]: Date.now(),
+      });
+      void publishToLeaderboard(profileId, {
+        name: p.name, avatar: p.avatar, coins: (p.coins ?? 0) + coins,
+      }).catch(() => {});
+      return { awarded: coins };
+    });
+  } catch {
+    return { awarded: 0 };
+  }
 }
 
 // ───────────────────── Турниры: подбор и ход матча ─────────────────────
@@ -925,5 +983,34 @@ export async function grantTournamentAvatar(
     });
   } catch {
     return false;
+  }
+}
+
+/**
+ * Выдаёт карточку за выполненную работу — ровно один раз на работу.
+ * Возвращает id карточки, если она новая, иначе null.
+ */
+export async function grantCard(
+  uid: string, profileId: string, workId: string, cardId: string,
+): Promise<string | null> {
+  const ref = doc(db, "users", uid, "profiles", profileId);
+  try {
+    return await runTransaction(db, async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists()) return null;
+      const p = snap.data() as ChildProfile;
+      const granted = p.cardWorks ?? {};
+      if (granted[workId]) return null; // за эту работу карточка уже выдана
+
+      const owned = p.cards ?? [];
+      const isNew = !owned.includes(cardId);
+      tx.update(ref, {
+        [`cardWorks.${workId}`]: Date.now(),
+        ...(isNew ? { cards: [...owned, cardId] } : {}),
+      });
+      return isNew ? cardId : null;
+    });
+  } catch {
+    return null;
   }
 }

@@ -80,6 +80,14 @@ export interface ChildProfile {
    * монет до конца, либо её можно было накручивать перечитыванием.
    */
   pagesAwarded?: Record<string, number>;
+  /** Оплаченные задачи по математике: taskId → когда. Блокирует повтор. */
+  solvedTasks?: Record<string, number>;
+  /** Собранные карточки. */
+  cards?: string[];
+  /** За какие работы карточка уже выдана — блокирует повторную выдачу. */
+  cardWorks?: Record<string, number>;
+  /** Оплаченные матчи: matchId → когда. Блокирует повторное начисление. */
+  paidMatches?: Record<string, number>;
   /** Монет начислено за сегодня — для дневного потолка. */
   coinsToday?: number;
   /** Локальная дата (YYYY-MM-DD), к которой относится coinsToday. */
