@@ -27,6 +27,7 @@ import {
   roundComplete, roundExpired, rewardFor, type Match, type MatchMode,
 } from "@/lib/tournament";
 import { TOURNAMENT_AVATARS } from "@/lib/avatars";
+import { tapFeedback, successFeedback, celebrateFeedback } from "@/lib/haptics";
 import type { ChildProfile } from "@/lib/types";
 
 const MODES: MatchMode[] = ["1v1", "2v2", "3v3"];
@@ -239,6 +240,10 @@ function Round({ match, me, matchId }: { match: Match; me: ChildProfile; matchId
 
   const answer = (option: number) => {
     if (myAnswer) return;
+    // Отклик сразу по нажатию, до сетевого запроса: ждать ответа сервера,
+    // чтобы дать тактильный сигнал, значит потерять ощущение мгновенности.
+    if (option === round?.correct) successFeedback();
+    else tapFeedback();
     void submitMatchAnswer(matchId, match.currentRound, me.id, option, Date.now() - startedRef.current);
   };
 
@@ -362,6 +367,7 @@ function Result({ match, me, uid, onExit }: {
     if (grantedRef.current) return;
     grantedRef.current = true;
     void awardMatchCoins(uid, me.id, match.id, coins);
+    if (won) celebrateFeedback();
     if (won) {
       // Победа открывает турнирного героя — того, которого ещё нет.
       const pool = TOURNAMENT_AVATARS();

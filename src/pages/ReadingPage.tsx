@@ -26,6 +26,7 @@ import { bandForBook } from "@/lib/readingLevel";
 import { AWARD_EXPLANATION, goldenWordIndexes, COMPREHENSION_BONUS, type PageAwardResult } from "@/lib/coins";
 import { drawCard, CARDS } from "@/lib/cards";
 import { CardReveal } from "@/components/CardCollection";
+import { successFeedback } from "@/lib/haptics";
 import { RetellDialog } from "@/components/RetellDialog";
 import { QuizDialog } from "@/components/QuizDialog";
 
@@ -423,6 +424,7 @@ export default function ReadingPage() {
         if (res.coins > 0) {
           setCoins((c) => c + res.coins);
           setPageAward(res);
+          successFeedback();
           // Всплывающая награда живёт пару секунд и уходит сама.
           window.setTimeout(() => setPageAward(null), 2600);
         }

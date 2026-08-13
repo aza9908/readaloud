@@ -14,7 +14,7 @@
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: "Nunito", system-ui, sans-serif;
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   color: #2a2540;
   /* Warm paper canvas with a barely-there gradient — the "book" atmosphere */
   background:
@@ -26,7 +26,7 @@ body {
 .dark body { color: #ece9f5; }
 
 h1, h2, h3, .font-display {
-  font-family: "Baloo 2", system-ui, sans-serif;
+  font-family: "Baloo 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: -0.01em;
 }
 
@@ -136,4 +136,98 @@ h1, h2, h3, .font-display {
 @media (prefers-reduced-motion: reduce) {
   .avatar-anim animateTransform,
   .avatar-anim animate { display: none; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ОЩУЩЕНИЕ НАТИВНОГО ПРИЛОЖЕНИЯ
+
+   Разница между веб-приложением и нативным держится не на фреймворке,
+   а на десятке мелочей восприятия. Ниже — те, что закрываются на вебе.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* 1. Безопасные зоны. Без них контент лезет под чёлку и под домашнюю
+      полосу — это сразу читается как «сайт, открытый в браузере». */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* 2. Убираем всё «вебовое» при касании: серый прямоугольник подсветки,
+      выделение текста при долгом нажатии, увеличение по двойному тапу,
+      контекстное меню на картинках. В нативных приложениях этого нет. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+button, a, [role="button"], .chip, .card {
+  -webkit-touch-callout: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+/* Текст книги, наоборот, должен выделяться — ребёнок или родитель
+   может захотеть скопировать отрывок. */
+.karaoke-word, p, h1, h2, h3 {
+  user-select: text;
+}
+
+/* 3. Мгновенный отклик на нажатие. Нативная кнопка отвечает раньше, чем
+      палец успевает подняться; веб по умолчанию не отвечает вовсе.
+      Пружинная кривая вместо линейной — так движение выглядит живым. */
+button, [role="button"], .chip, .card-tappable {
+  transition: transform 140ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 140ms ease, background-color 140ms ease;
+}
+button:active, [role="button"]:active, .card-tappable:active {
+  transform: scale(0.96);
+}
+/* Крупные карточки сжимаются меньше: сильное сжатие большого элемента
+   выглядит резко. */
+.card:active {
+  transform: scale(0.985);
+}
+
+/* 4. Инерционная прокрутка и запрет «оттягивания» страницы.
+      Резиновый отскок всей страницы — тоже признак браузера. */
+html, body {
+  overscroll-behavior-y: none;
+}
+.sheet, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* 5. Системный шрифт как запасной. Пока грузится Nunito, текст
+      отрисуется системным шрифтом платформы, а не Times New Roman —
+      разница в первую секунду очень заметна. */
+:root {
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                 "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+}
+
+/* 6. Модальные окна выезжают снизу, как нативные листы, а не появляются
+      рывком. Пружина в конце даёт ощущение физического движения. */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@media (max-width: 640px) {
+  .sheet {
+    animation: sheet-up 320ms cubic-bezier(0.32, 0.72, 0, 1);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    /* Место под домашнюю полосу, иначе кнопка окажется под ней. */
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* 7. Полоса прокрутки не должна дёргать вёрстку при появлении. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Уважаем системную настройку «меньше движения». */
+@media (prefers-reduced-motion: reduce) {
+  .sheet { animation: none; }
+  button:active, .card:active, [role="button"]:active { transform: none; }
 }

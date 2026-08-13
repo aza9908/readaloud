@@ -190,6 +190,31 @@ the loser still earns coins.
 bought at any price. Keep them out of the shop: bought-with-savings is available
 to anyone patient, won-in-a-match is not, and that distinction is the reward.
 
+## Native feel on the web
+
+The gap between this and a native app is a handful of perceptual details, not
+the framework. All of these are load-bearing — removing any one makes the app
+read as "a website in a browser":
+
+- **PWA manifest + apple-touch-icon.** Without it the app opens with a URL bar,
+  which is the single strongest tell. iOS ignores the manifest, so it needs the
+  separate `apple-mobile-web-app-*` tags too.
+- **Safe-area insets** on body, and extra bottom padding inside sheets, or
+  content collides with the notch and the home indicator.
+- **Touch suppression**: `-webkit-tap-highlight-color: transparent`,
+  `touch-action: manipulation` (kills the double-tap zoom), `user-select: none`
+  on controls — but text stays selectable, since a parent may want to copy a
+  passage.
+- **Press states with a spring curve** (`cubic-bezier(0.34, 1.56, 0.64, 1)`).
+  Large cards scale less than buttons; a big element snapping hard looks wrong.
+- **Sheets slide up from the bottom** on mobile with an iOS-like easing curve.
+- **System font in the fallback chain**, so first paint uses SF Pro / Roboto
+  rather than a serif default.
+
+`haptics.ts` works on Chrome/Android only — Safari does not implement the
+Vibration API, and that is a platform limit, not a gap to fix. Fire it on
+meaningful events only (correct answer, coins, win), never per tap.
+
 ## Architecture critic
 
 `npm test` ends with `test/architecture.test.mjs`, which checks invariants that
