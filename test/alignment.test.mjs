@@ -201,19 +201,30 @@ console.log("\n── recovery must not reintroduce runaway ──");
   const r = a.feed("шум шум шум ещё", "");
   eq("noise never advances even in recovery", a.cursor, 0);
 
-  // But a genuine word further ahead does resync it.
+  // Настоящее слово поблизости возвращает курсор в строй.
   const b = new ReadingAligner();
   b.setPage(PAGE1);
-  b.feed("мама папа собака", "");       // 3 misses
-  b.feed("мама папа собака стартом", ""); // real word 4 ahead
-  const moved = b.cursor > 0 && b.cursor <= PAGE1.length;
-  eq("recovery resyncs on a real word", moved, true);
+  b.feed("мама папа собака", "");        // 3 промаха подряд
+  b.feed("мама папа собака перед", "");  // реальное слово в 3 позициях
+  eq("recovery resyncs on a nearby word", b.cursor > 0, true);
+
+  /**
+   * А вот далёкое слово курсор НЕ двигает. Это главное ограничение: окно
+   * восстановления сужено с 6 до 4 именно потому, что прыжок через пять слов
+   * терял ребёнка в строке. Замер: окно 6 давало прыжок 6 при 82% дочитанных
+   * страниц, окно 4 — прыжок 4 при 81%. Треть прыжка за один процент.
+   */
+  const far = new ReadingAligner();
+  far.setPage(PAGE1);
+  far.feed("мама папа собака", "");
+  far.feed("мама папа собака коленки", ""); // слово в самом конце страницы
+  eq("recovery does NOT leap to a distant word", far.cursor <= 3, true);
 
   // Recovery resets once tracking is healthy again.
-  const c = new ReadingAligner();
-  c.setPage(PAGE1);
-  c.feed("Радость", "");
-  eq("normal match keeps strict mode", c.cursor, 1);
+  const healthy = new ReadingAligner();
+  healthy.setPage(PAGE1);
+  healthy.feed("Радость", "");
+  eq("normal match keeps strict mode", healthy.cursor, 1);
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

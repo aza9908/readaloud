@@ -231,3 +231,52 @@ html {
   .sheet { animation: none; }
   button:active, .card:active, [role="button"]:active { transform: none; }
 }
+
+/* Слово прочитано неверно. Мягкий сигнал, а не наказание: тёплый красный,
+   короткое покачивание и автоматическое снятие через пару секунд.
+   Постоянный красный читался бы ребёнком как упрёк. */
+.karaoke-word.word-missed {
+  background-color: #FF6B6B;
+  color: #fff;
+  animation: word-nudge 320ms ease;
+}
+@keyframes word-nudge {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-3px); }
+  75%      { transform: translateX(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .karaoke-word.word-missed { animation: none; }
+}
+
+/* Волна голоса на главном экране. Амплитуда небольшая: это фоновый знак,
+   а не аттракцион. */
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.45); opacity: 0.55; }
+  50%      { transform: scaleY(1);    opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [style*="animation: wave"] { animation: none !important; }
+}
+
+/* Фон получает мягкое свечение сверху — плоская заливка выглядит дёшево,
+   а градиент даёт ощущение глубины, не отвлекая от текста.
+   Держим его очень слабым: это подложка, а не декорация. */
+body {
+  background-image:
+    radial-gradient(120% 68% at 50% -12%, rgba(109, 74, 255, 0.09), transparent 62%),
+    radial-gradient(90% 46% at 88% 4%, rgba(245, 166, 35, 0.06), transparent 58%);
+  background-attachment: fixed;
+}
+.dark body {
+  background-image:
+    radial-gradient(120% 68% at 50% -12%, rgba(124, 92, 255, 0.14), transparent 62%),
+    radial-gradient(90% 46% at 88% 4%, rgba(245, 166, 35, 0.05), transparent 58%);
+}
+
+/* Класс для служебного текста, скрытого от глаз, но доступного инспектору
+   и программам чтения с экрана. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

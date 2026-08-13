@@ -120,6 +120,9 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
   const struggledRef = useRef<string[]>([]);
   /** Подряд идущие такты речи без движения курсора — сигнал застревания. */
   const stallCountRef = useRef(0);
+  /** Слово, помеченное как ошибочно прочитанное, и таймер снятия метки. */
+  const missIndexRef = useRef<number | null>(null);
+  const missTimerRef = useRef<number | null>(null);
   const sttFallbackRef = useRef(opts.sttFallback);
   sttFallbackRef.current = opts.sttFallback;
   const startedAtRef = useRef<number | null>(null);
@@ -299,7 +302,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       }
 
       const before = alignerRef.current.cursor;
-      const { advanced, struggled } = alignerRef.current.feed(finalText, interimText);
+      const { advanced, struggled, missed } = alignerRef.current.feed(finalText, interimText);
       if (struggled.length) {
         for (const idx of struggled) {
           const w = alignerRef.current.wordAt(idx).toLocaleLowerCase().replace(/[^\p{L}\p{N}-]/gu, "");
@@ -311,7 +314,11 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
       if (advanced > 0) {
         applyAdvance(before, advanced);
         stallCountRef.current = 0; // курсор пошёл — сбрасываем счётчик застревания
+        clearMiss();
       } else if (finalText.trim()) {
+        // Прочитано не то: подсвечиваем текущее слово красным. Ребёнок должен
+        // понимать, ПОЧЕМУ курсор стоит, иначе он читает дальше в пустоту.
+        if (missed) markMiss(alignerRef.current.cursor);
         // Речь была, но курсор не сдвинулся — возможное застревание.
         // Копим счётчик; политика решит, звать ли платный движок.
         stallCountRef.current += 1;
@@ -473,6 +480,36 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
     },
     [applyAdvance, syncStateNow],
   );
+
+  /**
+   * Снимает красную метку. Вызывается, как только курсор сдвинулся:
+   * ребёнок исправился, и держать предупреждение больше незачем.
+   */
+  const clearMiss = useCallback(() => {
+    if (missTimerRef.current) { clearTimeout(missTimerRef.current); missTimerRef.current = null; }
+    const idx = missIndexRef.current;
+    if (idx === null) return;
+    missIndexRef.current = null;
+    wordElsRef.current.get(idx)?.classList.remove("word-missed");
+  }, []);
+
+  /**
+   * Помечает слово как прочитанное неверно. Метка снимается сама через
+   * пару секунд: постоянный красный превратился бы в упрёк, а нам нужна
+   * подсказка «попробуй ещё раз».
+   */
+  const markMiss = useCallback((index: number) => {
+    if (missIndexRef.current === index) return; // уже помечено
+    clearMiss();
+    const el = wordElsRef.current.get(index);
+    if (!el) return;
+    missIndexRef.current = index;
+    el.classList.add("word-missed");
+    missTimerRef.current = window.setTimeout(() => {
+      el.classList.remove("word-missed");
+      missIndexRef.current = null;
+    }, 2200);
+  }, [clearMiss]);
 
   useEffect(() => {
     const timers = cascadeTimersRef.current;

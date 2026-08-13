@@ -14,10 +14,12 @@
     "test:critic": "node test/architecture.test.mjs"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
     "fflate": "^0.8.3",
     "firebase": "^11.1.0",
     "lucide-react": "^1.25.0",
     "pdfjs-dist": "^4.8.69",
+    "playwright-core": "^1.62.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "wouter": "^3.3.5"
