@@ -274,6 +274,65 @@ body {
     radial-gradient(90% 46% at 88% 4%, rgba(245, 166, 35, 0.05), transparent 58%);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   АРЕНА — стол для матча.
+
+   Продуктовое решение: карточный стол используется только как ВИЗУАЛЬНЫЙ
+   язык (сукно, карты, места за столом) — денежной лексики и атрибутов
+   ставки (банк, фишки, джекпот) здесь по-прежнему нет ни в тексте, ни в
+   начислении наград. См. комментарий в начале ArenaPage.tsx.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Сукно стола — тёмно-зелёное, с бархатной подсветкой сверху и золотой
+   окантовкой по краю. Тёмное намеренно в обеих темах — стол не «светлеет»
+   вместе с интерфейсом, как не светлеет настоящее сукно. */
+.arena-table {
+  position: relative;
+  border-radius: 2rem;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,0.10), transparent 55%),
+    radial-gradient(140% 100% at 50% 100%, #0e4a37 0%, #0a3327 60%, #082a20 100%);
+  border: 1px solid rgba(201,162,75,0.35);
+  box-shadow:
+    inset 0 0 0 6px rgba(201,162,75,0.12),
+    inset 0 2px 18px rgba(0,0,0,0.35),
+    0 18px 40px -18px rgba(8,42,32,0.55);
+}
+.dark .arena-table {
+  border-color: rgba(201,162,75,0.28);
+}
+
+/* Карта, «сданная» на стол — вопрос или итог матча. */
+.arena-card {
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, #fffdf7 0%, #fbf5e6 100%);
+  border: 1px solid rgba(201,162,75,0.5);
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,0.45), 0 1px 0 rgba(255,255,255,0.6) inset;
+}
+.dark .arena-card {
+  background: linear-gradient(180deg, #2a2540 0%, #211d33 100%);
+  border-color: rgba(201,162,75,0.38);
+}
+
+/* Кнопка-ответ — маленькая игральная карта с номиналом в уголке, как у
+   настоящей карты (мелко в углу и крупно по центру). */
+.arena-answer {
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f3e8 100%);
+  border: 1px solid rgba(42,37,64,0.10);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,0.4);
+}
+.dark .arena-answer {
+  background: linear-gradient(180deg, #2a2540 0%, #241f38 100%);
+  border-color: rgba(255,255,255,0.08);
+}
+.arena-answer[disabled] { box-shadow: none; }
+
+/* Пустое место за столом — соперник ещё не сел. */
+.arena-seat-empty {
+  border: 2px dashed rgba(201,162,75,0.45);
+}
+
 /* Класс для служебного текста, скрытого от глаз, но доступного инспектору
    и программам чтения с экрана. */
 .sr-only {

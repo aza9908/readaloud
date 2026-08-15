@@ -1,13 +1,17 @@
 /**
  * ArenaPage — «Матч»: соревнование по математике или чтению.
  *
- * ИНТЕРФЕЙС. За образец взят вид спортивного матча, а не карточного стола:
- * две команды напротив друг друга, крупный таймер посередине, большие
- * кнопки-ответы. От азартных игр сознательно взято только хорошее — понятный
- * ритм раунда и живая реакция на ход соперника. Чего здесь нет намеренно:
- * ставок, «банка», сукна, фишек и любого языка выигрыша-проигрыша денег.
- * Проигравший тоже получает монеты, а таймер показан спокойным кольцом,
- * а не тикающей красной полосой — детей не нужно взвинчивать.
+ * ИНТЕРФЕЙС. Визуально это стол для карточной игры — сукно, «сданные»
+ * карты для вопроса и итога, ответы оформлены как карты с номиналом в
+ * уголке. Это осознанный разворот более раннего решения (см. историю
+ * коммитов), которое сознательно избегало карточного стола из-за
+ * ассоциаций с азартными играми у детей 6–10 лет — теперь взят только
+ * ВИЗУАЛЬНЫЙ язык карточного стола, а не его лексика и механики.
+ *
+ * Что по-прежнему исключено намеренно, даже с картами на столе: ставок,
+ * «банка», фишек и любого языка выигрыша-проигрыша денег в тексте.
+ * Проигравший команда всё так же получает монеты, а таймер — спокойное
+ * кольцо, а не тикающая красная полоса: детей не нужно взвинчивать.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -123,17 +127,19 @@ function Lobby({ profile, joining, onPick }: {
 }) {
   return (
     <>
-      <div className="card p-5 text-center mb-5 bg-gradient-to-br from-brand-100 to-indigo-100 dark:from-brand-500/15 dark:to-indigo-500/10">
-        <Swords className="w-10 h-10 mx-auto text-brand-500 mb-2" strokeWidth={2} />
-        <p className="font-display font-extrabold text-xl text-ink dark:text-white">
-          Математический футбол
+      <div className="arena-table p-6 text-center mb-5">
+        <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-400/15 border border-amber-300/30 grid place-items-center mb-3">
+          <Swords className="w-7 h-7 text-amber-300" strokeWidth={2} />
+        </div>
+        <p className="font-display font-extrabold text-xl text-white">
+          Приглашение за стол
         </p>
-        <p className="text-sm text-ink-soft dark:text-ink-faint mt-1">
-          {ROUNDS_PER_MATCH} задач · {ROUND_SECONDS} секунд на каждую
+        <p className="text-sm text-white/70 mt-1">
+          Математический футбол · {ROUNDS_PER_MATCH} задач · {ROUND_SECONDS} секунд на каждую
         </p>
       </div>
 
-      <p className="text-sm font-bold text-ink-faint mb-2">Выбери режим</p>
+      <p className="text-sm font-bold text-ink-faint mb-2">Выбери стол</p>
       <div className="space-y-3">
         {MODES.map((m) => (
           <button key={m} disabled={joining} onClick={() => onPick(m)}
@@ -173,23 +179,23 @@ function Waiting({ text, players, need, onCancel }: {
   text: string; players?: Match["players"]; need?: number; onCancel?: () => void;
 }) {
   return (
-    <div className="card p-8 text-center">
-      <Loader2 className="w-10 h-10 mx-auto text-brand-400 animate-spin mb-4" />
-      <p className="font-display font-bold text-lg text-ink dark:text-white">{text}</p>
+    <div className="arena-table p-8 text-center">
+      <Loader2 className="w-10 h-10 mx-auto text-amber-300 animate-spin mb-4" />
+      <p className="font-display font-bold text-lg text-white">{text}</p>
       {players && need && (
         <>
-          <p className="text-sm text-ink-faint mt-1">{players.length} из {need}</p>
+          <p className="text-sm text-white/60 mt-1">Заняли места: {players.length} из {need}</p>
           <div className="flex justify-center flex-wrap gap-3 mt-4">
             {players.map((p) => (
               <div key={p.profileId} className="text-center">
                 <ProfileAvatar value={p.avatar} size={44} />
-                <p className="text-xs font-bold text-ink dark:text-white mt-1">{p.name}</p>
+                <p className="text-xs font-bold text-white mt-1">{p.name}</p>
               </div>
             ))}
             {Array.from({ length: need - players.length }).map((_, i) => (
-              <div key={`e${i}`} className="text-center opacity-40">
-                <div className="w-11 h-11 rounded-full border-2 border-dashed border-ink-faint" />
-                <p className="text-xs text-ink-faint mt-1">ждём</p>
+              <div key={`e${i}`} className="text-center">
+                <div className="arena-seat-empty w-11 h-11 rounded-full" />
+                <p className="text-xs text-white/50 mt-1">место свободно</p>
               </div>
             ))}
           </div>
@@ -197,9 +203,9 @@ function Waiting({ text, players, need, onCancel }: {
       )}
       {onCancel && (
         <>
-          <p className="text-xs text-ink-faint mt-5 leading-relaxed">
+          <p className="text-xs text-white/60 mt-5 leading-relaxed">
             Соперник появится, когда кто-то ещё нажмёт «Играть».
-            Позови друга — вы попадёте в один матч.
+            Позови друга — вы попадёте за один стол.
           </p>
           <button className="btn-ghost mt-3" onClick={onCancel}>Отменить поиск</button>
         </>
@@ -253,9 +259,9 @@ function Round({ match, me, matchId }: { match: Match; me: ChildProfile; matchId
   const score = teamScores(match);
 
   return (
-    <>
-      {/* Табло: две команды и счёт, как на спортивном матче */}
-      <div className="card p-4 mb-4">
+    <div className="arena-table p-4">
+      {/* Табло: две команды и счёт, как карты, сданные каждой стороне стола */}
+      <div className="arena-card px-4 py-3 mb-4">
         <div className="flex items-center justify-between gap-3">
           <TeamStrip players={teamA} match={match} highlight={myTeam === "A"} />
           <div className="text-center shrink-0">
@@ -270,32 +276,32 @@ function Round({ match, me, matchId }: { match: Match; me: ChildProfile; matchId
         </div>
       </div>
 
-      {/* Таймер — спокойное кольцо, а не тревожная полоса */}
+      {/* Таймер — спокойное кольцо в цвет золотой окантовки стола */}
       <div className="flex justify-center mb-5">
         <div className="relative w-24 h-24">
           <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
             <circle cx="50" cy="50" r="44" fill="none" strokeWidth="8"
-              className="stroke-black/[0.06] dark:stroke-white/10" />
+              className="stroke-white/15" />
             <circle cx="50" cy="50" r="44" fill="none" strokeWidth="8" strokeLinecap="round"
-              className={frac > 0.3 ? "stroke-brand-500" : "stroke-amber-500"}
+              className={frac > 0.3 ? "stroke-amber-300" : "stroke-amber-500"}
               strokeDasharray={2 * Math.PI * 44}
               strokeDashoffset={2 * Math.PI * 44 * (1 - frac)}
               style={{ transition: "stroke-dashoffset 100ms linear" }} />
           </svg>
           <div className="absolute inset-0 grid place-items-center">
-            <span className="font-display font-extrabold text-2xl text-ink dark:text-white tabular-nums">
+            <span className="font-display font-extrabold text-2xl text-white tabular-nums">
               {secs}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Вопрос */}
-      <div className="card p-5 mb-4 text-center">
+      {/* Вопрос — карта, сданная в центр стола */}
+      <div className="arena-card p-5 mb-4 text-center">
         <p className="text-lg text-ink dark:text-white leading-relaxed">{round?.question}</p>
       </div>
 
-      {/* Ответы — крупные кнопки, попасть пальцем должно быть легко */}
+      {/* Ответы — карты с номиналом в уголке, крупные, попасть пальцем легко */}
       <div className="grid grid-cols-2 gap-3">
         {round?.options.map((opt, i) => {
           const picked = myAnswer?.option === i;
@@ -303,12 +309,15 @@ function Round({ match, me, matchId }: { match: Match; me: ChildProfile; matchId
           const isRight = revealed && i === round.correct;
           return (
             <button key={i} onClick={() => answer(i)} disabled={revealed}
-              className={`rounded-3xl p-5 font-display font-extrabold text-xl transition-all active:scale-95 ${
-                isRight ? "bg-emerald-500 text-white"
-                : picked ? "bg-red-400 text-white"
-                : revealed ? "bg-black/[0.04] dark:bg-white/5 text-ink-faint"
-                : "bg-white dark:bg-[#211d2e] text-ink dark:text-white shadow-soft hover:-translate-y-0.5"
+              className={`arena-answer relative p-5 font-display font-extrabold text-xl transition-all active:scale-95 ${
+                isRight ? "!bg-emerald-500 !border-emerald-300 text-white"
+                : picked ? "!bg-red-400 !border-red-300 text-white"
+                : revealed ? "opacity-45"
+                : "text-ink dark:text-white hover:-translate-y-0.5"
               }`}>
+              <span className={`absolute top-2 left-3 text-[11px] font-black ${
+                isRight || picked ? "text-white/70" : "text-ink-faint/70 dark:text-white/30"
+              }`}>{opt}</span>
               {opt}
             </button>
           );
@@ -316,11 +325,11 @@ function Round({ match, me, matchId }: { match: Match; me: ChildProfile; matchId
       </div>
 
       {myAnswer && (
-        <p className="text-center text-sm text-ink-faint mt-4">
+        <p className="text-center text-sm text-white/60 mt-4">
           Ответ принят — ждём остальных…
         </p>
       )}
-    </>
+    </div>
   );
 }
 
@@ -382,38 +391,40 @@ function Result({ match, me, uid, onExit }: {
   }, [uid, me, coins, won]);
 
   return (
-    <div className="card p-8 text-center">
-      <div className="text-6xl mb-3">{won ? "🏆" : outcome === "draw" ? "🤝" : "💪"}</div>
-      <p className="font-display font-extrabold text-2xl text-ink dark:text-white">
-        {won ? "Победа!" : outcome === "draw" ? "Ничья!" : "Хорошая игра!"}
-      </p>
-      <p className="text-lg font-bold text-ink-soft dark:text-ink-faint mt-1 tabular-nums">
-        {score.A} : {score.B}
-      </p>
-
-      <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-400/15 border border-amber-400/30 px-4 py-2 mt-4">
-        <Coins className="w-5 h-5 text-amber-500" strokeWidth={2.4} />
-        <span className="font-display font-extrabold text-xl text-amber-600 dark:text-amber-400">
-          +{coins}
-        </span>
-      </div>
-
-      {trophy && (
-        <div className="rounded-2xl bg-red-500/10 border border-red-500/25 p-4 mt-4">
-          <Trophy className="w-8 h-8 mx-auto text-red-500 mb-1" strokeWidth={2} />
-          <p className="font-display font-bold text-ink dark:text-white">Новый герой!</p>
-          <p className="text-sm text-red-600 dark:text-red-400 font-bold">{trophy}</p>
-          <p className="text-[11px] text-ink-faint mt-1">Его нельзя купить — только выиграть</p>
-        </div>
-      )}
-
-      {!won && outcome !== "draw" && (
-        <p className="text-sm text-ink-faint mt-4">
-          Монеты начислены всё равно — за игру и старание.
+    <div className="arena-table p-4">
+      <div className="arena-card p-8 text-center">
+        <div className="text-6xl mb-3">{won ? "🏆" : outcome === "draw" ? "🤝" : "💪"}</div>
+        <p className="font-display font-extrabold text-2xl text-ink dark:text-white">
+          {won ? "Победа!" : outcome === "draw" ? "Ничья!" : "Хорошая игра!"}
         </p>
-      )}
+        <p className="text-lg font-bold text-ink-soft dark:text-ink-faint mt-1 tabular-nums">
+          {score.A} : {score.B}
+        </p>
 
-      <button className="btn-primary w-full mt-5" onClick={onExit}>Играть ещё</button>
+        <div className="inline-flex items-center gap-2 rounded-2xl bg-amber-400/15 border border-amber-400/30 px-4 py-2 mt-4">
+          <Coins className="w-5 h-5 text-amber-500" strokeWidth={2.4} />
+          <span className="font-display font-extrabold text-xl text-amber-600 dark:text-amber-400">
+            +{coins}
+          </span>
+        </div>
+
+        {trophy && (
+          <div className="rounded-2xl bg-red-500/10 border border-red-500/25 p-4 mt-4">
+            <Trophy className="w-8 h-8 mx-auto text-red-500 mb-1" strokeWidth={2} />
+            <p className="font-display font-bold text-ink dark:text-white">Новый герой!</p>
+            <p className="text-sm text-red-600 dark:text-red-400 font-bold">{trophy}</p>
+            <p className="text-[11px] text-ink-faint mt-1">Его нельзя купить — только выиграть</p>
+          </div>
+        )}
+
+        {!won && outcome !== "draw" && (
+          <p className="text-sm text-ink-faint mt-4">
+            Монеты начислены всё равно — за игру и старание.
+          </p>
+        )}
+
+        <button className="btn-primary w-full mt-5" onClick={onExit}>Играть ещё</button>
+      </div>
     </div>
   );
 }
