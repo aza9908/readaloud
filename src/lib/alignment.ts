@@ -155,13 +155,20 @@ export interface AlignerOptions {
   allowSingleSkip?: boolean;
   /**
    * After this many consecutive unmatched tokens the aligner enters recovery
-   * and searches a wider window to resync. Default 3.
+   * and searches a wider window to resync. Default 1.
    *
    * Rationale: strict matching alone never runs ahead, but on poor recognition
    * (noisy room, weaker Kazakh models) it can stall — the child keeps reading
    * while the cursor sits still. Recovery trades a little strictness for the
-   * ability to catch up, and only engages once the strict path has clearly
-   * lost the thread.
+   * ability to catch up.
+   *
+   * Was 3, back when `feed()` re-fed the whole growing interim tail on every
+   * tick (see the `stream.length` comment there): a "miss" was often just an
+   * already-matched token being replayed against a cursor that had moved on,
+   * so 3 was a noise filter, not a confidence threshold. With that fixed,
+   * every miss is a genuinely new spoken token, and `test/accuracy.sim.mjs`
+   * confirms 1 wins outright — better on both accuracy AND page-completion,
+   * on every simulated profile, with no trade-off to weigh.
    */
   recoveryAfterMisses?: number;
   /**
@@ -224,7 +231,7 @@ export class ReadingAligner {
 
   constructor(opts: AlignerOptions = {}) {
     this.allowSingleSkip = opts.allowSingleSkip ?? true;
-    this.recoveryAfterMisses = opts.recoveryAfterMisses ?? 3;
+    this.recoveryAfterMisses = opts.recoveryAfterMisses ?? 1;
     this.recoveryWindow = opts.recoveryWindow ?? 4;
   }
 
@@ -301,10 +308,27 @@ export class ReadingAligner {
       this.consumeToken(spoken);
     }
 
-    // Interim tokens are provisional: the recogniser may revise them, so we
-    // only permanently consume what is final. Anything matched from the
-    // interim tail stays re-checkable until it is finalised.
-    this.consumed = Math.max(this.consumed, this.committed.length);
+    // Everything in `fresh` was just fed to consumeToken() above — mark all
+    // of it consumed, interim included.
+    //
+    // This used to stop at `committed.length`, leaving the interim tail
+    // "re-checkable" on every future event. In practice the interim tail
+    // mostly just GROWS (the recogniser appends words, rarely rewrites old
+    // ones), so that replayed the same already-matched interim tokens on
+    // every tick — 5-15×/sec — against a cursor that had since moved on.
+    // Tokens more than one word behind the cursor don't hit the
+    // repeat-just-read guard above, so they counted as misses; three of
+    // those in a row armed recovery, and recovery matches by word text, not
+    // position — so a stale token could pair with any coincidental repeat of
+    // that word later on the page (a name, "мама", "и") and yank the cursor
+    // there. That only shows up on pages with repeated words, which is why
+    // it looked book-dependent rather than like a systematic bug.
+    //
+    // Advancing to `stream.length` here means next call's `stream.slice()`
+    // naturally starts at the first token this call hadn't seen yet — pure
+    // growth costs nothing extra, and a revised/shrunk interim is caught by
+    // the `consumed > stream.length` clamp above.
+    this.consumed = stream.length;
 
     return {
       index: this.index,

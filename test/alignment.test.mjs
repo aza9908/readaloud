@@ -227,5 +227,32 @@ console.log("\n── recovery must not reintroduce runaway ──");
   eq("normal match keeps strict mode", healthy.cursor, 1);
 }
 
+console.log("\n── growing interim must not replay stale tokens (repeated words) ──");
+{
+  // Regression for a real bug report: the cursor ran far ahead on some
+  // books but not others. Root cause — the interim tail was re-fed from
+  // its start on every recognition tick instead of only its new suffix, so
+  // already-matched tokens kept being reprocessed against a cursor that had
+  // moved past them. Words far behind the cursor don't hit the
+  // repeat-just-read guard, so they counted as misses, armed recovery, and
+  // recovery matches by word text — so a stale token could pair with any
+  // later occurrence of the same word and yank the cursor there. Only
+  // visible on pages where a word repeats, which is why it looked
+  // book-dependent rather than systematic.
+  const page = "мама мыла раму потом мама пошла гулять с котом во двор рано".split(/\s+/);
+  const a = new ReadingAligner();
+  a.setPage(page);
+  // Child has only said 4 words so far; the recogniser reports them as one
+  // slowly-growing interim result, one word appended per tick (typical
+  // behaviour when there's no pause for the recogniser to finalise on).
+  const spoken = ["мама", "мыла", "раму", "потом"];
+  let interimText = "";
+  for (const w of spoken) {
+    interimText = (interimText ? interimText + " " : "") + w;
+    a.feed("", interimText);
+  }
+  eq("cursor stops at what was actually said, despite repeated «мама» ahead", a.cursor, 4);
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
