@@ -16,7 +16,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { ArrowLeft, Swords, Users, Loader2, Trophy, Coins } from "lucide-react";
+import { ArrowLeft, Swords, Loader2, Trophy, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getProfile, findOrCreateMatch, watchMatch, submitMatchAnswer,
@@ -34,7 +34,8 @@ import { TOURNAMENT_AVATARS } from "@/lib/avatars";
 import { tapFeedback, successFeedback, celebrateFeedback } from "@/lib/haptics";
 import type { ChildProfile } from "@/lib/types";
 
-const MODES: MatchMode[] = ["1v1", "2v2", "3v3"];
+/** Один формат стола — 2×2. Хватает азарта, не требует собирать шестерых. */
+const DEFAULT_MODE: MatchMode = "2v2";
 
 export default function ArenaPage() {
   const { user } = useAuth();
@@ -56,13 +57,13 @@ export default function ArenaPage() {
     return watchMatch(matchId, (m) => setMatch(m as unknown as Match | null));
   }, [matchId]);
 
-  const startMatch = async (mode: MatchMode) => {
+  const startMatch = async () => {
     if (!profile || joining) return;
     setJoining(true);
     try {
       const grade = gradeForAge(profile.age) as Grade;
       const id = await findOrCreateMatch({
-        kind: "math", mode, grade,
+        kind: "math", mode: DEFAULT_MODE, grade,
         player: { profileId: profile.id, name: profile.name, avatar: profile.avatar },
         buildRounds: (g: number) => buildMathRounds(g as Grade),
       });
@@ -121,9 +122,9 @@ export default function ArenaPage() {
   );
 }
 
-/** Выбор режима. */
+/** Приглашение сесть за стол — один формат, без выбора режима. */
 function Lobby({ profile, joining, onPick }: {
-  profile: ChildProfile; joining: boolean; onPick: (m: MatchMode) => void;
+  profile: ChildProfile; joining: boolean; onPick: () => void;
 }) {
   return (
     <>
@@ -135,27 +136,15 @@ function Lobby({ profile, joining, onPick }: {
           Приглашение за стол
         </p>
         <p className="text-sm text-white/70 mt-1">
-          Математический футбол · {ROUNDS_PER_MATCH} задач · {ROUND_SECONDS} секунд на каждую
+          Математический футбол · {ROUNDS_PER_MATCH} задач · {ROUND_SECONDS} секунд на каждую ·
+          команда из {MODE_SIZE[DEFAULT_MODE]}
         </p>
-      </div>
-
-      <p className="text-sm font-bold text-ink-faint mb-2">Выбери стол</p>
-      <div className="space-y-3">
-        {MODES.map((m) => (
-          <button key={m} disabled={joining} onClick={() => onPick(m)}
-            className="card p-4 w-full flex items-center gap-4 hover:-translate-y-0.5 hover:shadow-lift transition-all disabled:opacity-50">
-            <span className="w-12 h-12 rounded-2xl bg-brand-500/10 grid place-items-center shrink-0">
-              <Users className="w-6 h-6 text-brand-500" strokeWidth={2.2} />
-            </span>
-            <div className="text-left flex-1">
-              <p className="font-display font-bold text-lg text-ink dark:text-white">{m}</p>
-              <p className="text-xs text-ink-faint">
-                {MODE_SIZE[m] === 1 ? "Один на один" : `Команда из ${MODE_SIZE[m]}`}
-              </p>
-            </div>
-            {joining && <Loader2 className="w-5 h-5 animate-spin text-brand-400" />}
-          </button>
-        ))}
+        <button disabled={joining} onClick={onPick}
+          className="btn-primary w-full mt-5 !bg-amber-400 !text-[#0a3327] hover:!bg-amber-300 disabled:opacity-60">
+          {joining
+            ? <><Loader2 className="w-4 h-4 inline mr-2 animate-spin" />Садимся за стол…</>
+            : "Сесть за стол"}
+        </button>
       </div>
 
       <div className="card p-4 mt-5">
