@@ -6,6 +6,15 @@
  * аксессуаром. Благодаря этому десять персонажей выглядят как одна серия,
  * а не как случайные картинки, и добавление одиннадцатого — это одна строка
  * данных, а не новый файл с графикой.
+ *
+ * Стиль — «плюшевая 3D-игрушка»: мягкий объём, пушистые края, крошечные
+ * глазки-бусинки, румянец и студийный фон с тенью. Объём даёт не 3D-движок,
+ * а SVG-фильтры освещения (feDiffuse/feSpecularLighting по размытой альфе),
+ * поэтому каждая деталь — тело, голова, шапка, аксессуар — сама получает
+ * блик и тень. Это по-прежнему наш собственный параметрический рисунок
+ * (см. инвариант 5 в CLAUDE.md): мы берём стиль, а не чужого персонажа.
+ * WebGL-модели здесь не годятся: витрина показывает ~20 портретов сразу,
+ * а браузер даёт лишь ~16 WebGL-контекстов на страницу.
  */
 
 import { memo } from "react";
@@ -43,13 +52,85 @@ export const AvatarPortrait = memo(function AvatarPortrait({
           <stop offset="0%" stopColor={p.bg1} />
           <stop offset="100%" stopColor={p.bg2} />
         </linearGradient>
+        <radialGradient id={`studio-${uid}`} cx="50%" cy="38%" r="70%">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
+          <stop offset="55%" stopColor="#ffffff" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.06" />
+        </radialGradient>
+        <radialGradient id={`floor-${uid}`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#000" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#000" stopOpacity="0" />
+        </radialGradient>
         <clipPath id={`clip-${uid}`}>
           <circle cx="50" cy="50" r="50" />
         </clipPath>
+
+        {/* Плюш: пушистый край + ворс + мягкий объём с рассеянным бликом. */}
+        <filter id={`plush-${uid}`} x="-20%" y="-20%" width="140%" height="140%"
+                colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2"
+                        seed="3" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.5"
+                             xChannelSelector="R" yChannelSelector="G" result="fuzzy" />
+          <feGaussianBlur in="fuzzy" stdDeviation="0.3" result="soft" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="bump" />
+          <feDiffuseLighting in="bump" surfaceScale="7" diffuseConstant="1.15"
+                             lightingColor="#ffffff" result="diffuse">
+            <feDistantLight azimuth="235" elevation="52" />
+          </feDiffuseLighting>
+          <feComposite in="soft" in2="diffuse" operator="arithmetic"
+                       k1="1.08" k2="0" k3="0" k4="0" result="shaded" />
+          <feSpecularLighting in="bump" surfaceScale="7" specularConstant="0.45"
+                              specularExponent="9" lightingColor="#fff6ee" result="spec">
+            <feDistantLight azimuth="235" elevation="55" />
+          </feSpecularLighting>
+          <feComposite in="spec" in2="soft" operator="in" result="specIn" />
+          <feColorMatrix in="noise" type="matrix"
+                         values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.55 0 0 0 -0.3"
+                         result="fur" />
+          <feComposite in="fur" in2="soft" operator="in" result="furIn" />
+          <feMerge>
+            <feMergeNode in="shaded" />
+            <feMergeNode in="specIn" />
+            <feMergeNode in="furIn" />
+          </feMerge>
+        </filter>
+
+        {/* Глянец: гладкий «пластик/фетр» для шапок и аксессуаров. */}
+        <filter id={`gloss-${uid}`} x="-20%" y="-20%" width="140%" height="140%"
+                colorInterpolationFilters="sRGB">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.8" result="bump" />
+          <feDiffuseLighting in="bump" surfaceScale="4" diffuseConstant="1.1"
+                             lightingColor="#ffffff" result="diffuse">
+            <feDistantLight azimuth="235" elevation="55" />
+          </feDiffuseLighting>
+          <feComposite in="SourceGraphic" in2="diffuse" operator="arithmetic"
+                       k1="1.1" k2="0" k3="0" k4="0" result="shaded" />
+          <feSpecularLighting in="bump" surfaceScale="4" specularConstant="0.9"
+                              specularExponent="22" lightingColor="#ffffff" result="spec">
+            <feDistantLight azimuth="235" elevation="50" />
+          </feSpecularLighting>
+          <feComposite in="spec" in2="SourceAlpha" operator="in" result="specIn" />
+          <feDropShadow dx="0" dy="1.2" stdDeviation="1" floodColor="#000" floodOpacity="0.22" />
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="shaded" />
+            <feMergeNode in="specIn" />
+          </feMerge>
+        </filter>
+
+        {/* Мягкая тень, которую голова отбрасывает на тело. */}
+        <filter id={`blur-${uid}`} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2.6" />
+        </filter>
       </defs>
 
       <g clipPath={`url(#clip-${uid})`}>
         <rect width="100" height="100" fill={`url(#bg-${uid})`} />
+        {/* студийный свет: светлое пятно за героем, виньетка по краям */}
+        <rect width="100" height="100" fill={`url(#studio-${uid})`} />
+        {/* «стол», на котором сидит игрушка */}
+        <ellipse cx="50" cy="97" rx="40" ry="9" fill={`url(#floor-${uid})`} />
 
         {/* Турнирные герои двигаются: вращающееся сияние и искры.
             Анимация только у них — это визуальный знак того, что героя
@@ -69,27 +150,61 @@ export const AvatarPortrait = memo(function AvatarPortrait({
           </g>
         )}
 
-        {/* лёгкое свечение за персонажем */}
-        <circle cx="50" cy="46" r="30" fill="#ffffff" opacity="0.28" />
 
         {/* аксессуар позади (крылья) */}
         {def.accessory === "wings" && (
-          <g fill={p.accent} opacity="0.85">
+          <g fill={p.accent} opacity="0.92" filter={`url(#gloss-${uid})`}>
             <path d="M28 58 Q10 42 16 30 Q30 36 34 54 Z" />
             <path d="M72 58 Q90 42 84 30 Q70 36 66 54 Z" />
           </g>
         )}
 
-        {/* плечи */}
-        <path d="M18 100 Q20 74 50 74 Q80 74 82 100 Z" fill={p.suit} />
-        <path d="M18 100 Q20 74 50 74 L50 100 Z" fill={p.suitDark} opacity="0.35" />
-        {/* воротник */}
-        <path d="M40 76 Q50 84 60 76 L58 74 Q50 79 42 74 Z" fill={p.accent} />
+        {/* всё, что относится к голове, — крупнее: у игрушки большая голова */}
+        <g transform="translate(50 45) scale(1.12) translate(-50 -44)">
 
         {/* волосы позади */}
         {def.hair.style === "long" && (
-          <path d="M26 46 Q24 78 34 84 L66 84 Q76 78 74 46 Z" fill={def.hair.color} />
+          <path d="M26 46 Q24 74 34 78 L66 78 Q76 74 74 46 Z" fill={def.hair.color}
+                filter={`url(#plush-${uid})`} />
         )}
+
+        </g>
+
+        {/* плюшевое тело-«фасолинка» */}
+        <g filter={`url(#plush-${uid})`}>
+          <path d="M17 104 Q15 70 50 67 Q85 70 83 104 Z" fill={p.suit} />
+          {/* лапки, лежащие на «столе» */}
+          <ellipse cx="33" cy="93" rx="9" ry="6.5" fill={def.skin} />
+          <ellipse cx="67" cy="93" rx="9" ry="6.5" fill={def.skin} />
+        </g>
+        {/* воротник-шарфик */}
+        <path d="M36 72 Q50 82 64 72 L62 69 Q50 76 38 69 Z" fill={p.accent}
+              filter={`url(#gloss-${uid})`} />
+
+        <g transform="translate(50 45) scale(1.12) translate(-50 -44)">
+
+        {/* тень головы на теле */}
+        <ellipse cx="50" cy="66" rx="17" ry="4.5" fill="#000" opacity="0.22"
+                 filter={`url(#blur-${uid})`} />
+
+        {/* голова — слегка приплюснутый плюшевый шар */}
+        <ellipse cx="50" cy="44" rx="22.5" ry="21" fill={def.skin}
+                 filter={`url(#plush-${uid})`} />
+
+        {/* лицо: глазки-бусинки, румянец, маленькая улыбка */}
+        <ellipse cx="41" cy="46" rx="2.1" ry="2.7" fill="#1E1A24" />
+        <ellipse cx="59" cy="46" rx="2.1" ry="2.7" fill="#1E1A24" />
+        <circle cx="41.7" cy="45" r="0.75" fill="#fff" />
+        <circle cx="59.7" cy="45" r="0.75" fill="#fff" />
+        <path d="M46.6 52 Q50 55 53.4 52" stroke="#1E1A24" strokeWidth="1.5"
+              fill="none" strokeLinecap="round" />
+        <ellipse cx="34.5" cy="51.5" rx="4.2" ry="2.8" fill="#F27A8A" opacity="0.5"
+                 filter={`url(#blur-${uid})`} />
+        <ellipse cx="65.5" cy="51.5" rx="4.2" ry="2.8" fill="#F27A8A" opacity="0.5"
+                 filter={`url(#blur-${uid})`} />
+
+        {/* волосы спереди — плюшевые пряди */}
+        <g filter={`url(#plush-${uid})`}>
         {def.hair.style === "braids" && (
           <g fill={def.hair.color}>
             <path d="M28 46 Q22 70 28 82 Q34 78 33 60 Z" />
@@ -98,15 +213,6 @@ export const AvatarPortrait = memo(function AvatarPortrait({
             <circle cx="72" cy="83" r="3.4" fill={p.accent} />
           </g>
         )}
-
-        {/* шея */}
-        <rect x="44" y="60" width="12" height="16" rx="5" fill={def.skin} />
-        <rect x="44" y="60" width="12" height="6" rx="3" fill="#000" opacity="0.08" />
-
-        {/* голова */}
-        <circle cx="50" cy="44" r="21" fill={def.skin} />
-
-        {/* волосы спереди */}
         {def.hair.style === "short" && (
           <path d="M29 42 Q30 22 50 22 Q70 22 71 42 Q66 32 50 31 Q34 32 29 42 Z"
                 fill={def.hair.color} />
@@ -132,19 +238,10 @@ export const AvatarPortrait = memo(function AvatarPortrait({
           </>
         )}
 
-        {/* лицо */}
-        <g fill="#2A2540">
-          <circle cx="42" cy="45" r="2.6" />
-          <circle cx="58" cy="45" r="2.6" />
         </g>
-        <circle cx="42.9" cy="44.1" r="0.9" fill="#fff" />
-        <circle cx="58.9" cy="44.1" r="0.9" fill="#fff" />
-        <path d="M44 53 Q50 58 56 53" stroke="#2A2540" strokeWidth="2"
-              fill="none" strokeLinecap="round" />
-        <circle cx="35" cy="51" r="3.2" fill="#F08A8A" opacity="0.4" />
-        <circle cx="65" cy="51" r="3.2" fill="#F08A8A" opacity="0.4" />
 
-        {/* головные уборы */}
+        {/* головные уборы — гладкий фетр/металл */}
+        <g filter={`url(#gloss-${uid})`}>
         {def.headwear === "helmet" && (
           <>
             <path d="M27 44 Q27 19 50 19 Q73 19 73 44 L73 40 Q73 24 50 24 Q27 24 27 40 Z"
@@ -172,8 +269,8 @@ export const AvatarPortrait = memo(function AvatarPortrait({
             <path d="M26 30 Q50 12 74 30 Q50 24 26 30 Z" fill={p.suitDark} />
             <rect x="24" y="28" width="52" height="7" rx="3.5" fill={p.suit} />
             <circle cx="50" cy="24" r="3" fill={p.accent} />
-            <path d="M36 41 L48 41" stroke="#2A2540" strokeWidth="2.4" strokeLinecap="round" />
-            <circle cx="42" cy="45" r="4" fill="#2A2540" />
+            <path d="M33 41 L49 41" stroke="#2A2540" strokeWidth="2.4" strokeLinecap="round" />
+            <circle cx="41" cy="46" r="4.2" fill="#2A2540" />
           </>
         )}
         {def.headwear === "ninja" && (
@@ -256,7 +353,11 @@ export const AvatarPortrait = memo(function AvatarPortrait({
           </>
         )}
 
+        </g>
+        </g>
+
         {/* аксессуары спереди */}
+        <g filter={`url(#gloss-${uid})`}>
         {def.accessory === "stars" && (
           <g fill={p.accent}>
             <path d="M14 20 l1.6 3.4 3.7.5-2.7 2.6.7 3.7-3.3-1.8-3.3 1.8.7-3.7-2.7-2.6 3.7-.5z" />
@@ -337,6 +438,7 @@ export const AvatarPortrait = memo(function AvatarPortrait({
             <rect x="15.4" y="41" width="5.4" height="5" rx="1.6" fill="#6B4423" />
           </g>
         )}
+        </g>
       </g>
 
       {/* ободок медальона */}

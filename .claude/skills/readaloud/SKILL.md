@@ -83,6 +83,11 @@ silently breaks.
 15 characters, 7 of them Kazakh-themed; keep the girls/boys/neutral split
 roughly even when adding more.
 
+Portraits use a **soft 3D plush-toy style** (inspired by Meta's Muse look, not
+its character): volume comes from SVG lighting filters (`plush-*` for fur parts,
+`gloss-*` for hats/props) applied per layer, not from WebGL — the shop shows ~20
+portraits at once, more than the browser's WebGL context limit.
+
 Locked characters render in **colour** with a padlock badge — not greyed out.
 Desaturating them killed the motivation to earn them; a child has to see the
 prize clearly for it to be a prize.
