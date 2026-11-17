@@ -1,16 +1,6 @@
-/**
- * avatars.ts — каталог персонажей, которые ребёнок открывает за монеты.
- *
- * Почему рисуем сами, а не импортируем чужое:
- *   • скины Roblox/Minecraft и подобных — чужая интеллектуальная собственность,
- *     их использование в монетизируемом продукте нарушает права правообладателя;
- *   • собственные персонажи принадлежат проекту: их нельзя «отозвать»,
- *     они не требуют хостинга изображений и работают без сети;
- *   • SVG весит сотни байт вместо сотен килобайт.
- *
- * Все персонажи собираются из одного параметрического шаблона, поэтому
- * выглядят как единая коллекция, а не как случайный набор картинок.
- */
+import pagePal from "@/assets/avatars/page-pal.webp";
+import dombraPal from "@/assets/avatars/dombra-pal.webp";
+import moonReader from "@/assets/avatars/moon-reader.webp";
 
 /**
  * Редкости. "mythic" — только за победы в турнирах: такого героя нельзя
@@ -20,23 +10,32 @@
  */
 export type Rarity = "common" | "rare" | "legendary" | "mythic";
 
-export interface AvatarDef {
+interface AvatarBase {
   id: string;
   name: { ru: string; kk: string; en: string };
   price: number;
   rarity: Rarity;
   /** Ориентировочная адресация, чтобы витрина была сбалансированной. */
   appeal: "girls" | "boys" | "neutral";
+  /** Нельзя купить за монеты: выдаётся только за победы. */
+  tournamentOnly?: boolean;
+}
+
+export interface IllustratedAvatar extends AvatarBase {
+  collection?: "classic";
   palette: { bg1: string; bg2: string; suit: string; suitDark: string; accent: string };
   /** Анимированный герой — двигается. Только у турнирных наград. */
   animated?: boolean;
-  /** Нельзя купить за монеты: выдаётся только за победы. */
-  tournamentOnly?: boolean;
   skin: string;
   hair: { color: string; style: HairStyle };
   headwear?: Headwear;
   accessory?: Accessory;
 }
+
+export type AvatarDef = IllustratedAvatar | (AvatarBase & {
+  collection: "plush";
+  portrait: string;
+});
 
 type HairStyle = "short" | "long" | "braids" | "bun" | "curly" | "none";
 type Headwear =
@@ -57,6 +56,24 @@ type Accessory =
 const SKIN = { light: "#F3C9A6", mid: "#DBA477", tan: "#C98B5E", deep: "#9C6640" };
 
 export const AVATARS: AvatarDef[] = [
+  {
+    id: "plush_page_pal",
+    name: { ru: "Книжный друг", kk: "Кітап досы", en: "Page Pal" },
+    price: 400, rarity: "common", appeal: "neutral",
+    collection: "plush", portrait: pagePal,
+  },
+  {
+    id: "plush_dombra_pal",
+    name: { ru: "Друг с домброй", kk: "Домбырашы", en: "Dombra Pal" },
+    price: 900, rarity: "rare", appeal: "neutral",
+    collection: "plush", portrait: dombraPal,
+  },
+  {
+    id: "plush_moon_reader",
+    name: { ru: "Лунный читатель", kk: "Түнгі оқырман", en: "Moon Reader" },
+    price: 2200, rarity: "legendary", appeal: "neutral",
+    collection: "plush", portrait: moonReader,
+  },
   {
     id: "cosmonaut",
     name: { ru: "Космонавт", kk: "Ғарышкер", en: "Astronaut" },

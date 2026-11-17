@@ -1,29 +1,21 @@
-/**
- * AvatarPortrait — рисует персонажа из каталога.
- *
- * Один параметрический шаблон на всю коллекцию: общая композиция (медальон,
- * плечи, голова), а различия задаются палитрой, причёской, головным убором и
- * аксессуаром. Благодаря этому десять персонажей выглядят как одна серия,
- * а не как случайные картинки, и добавление одиннадцатого — это одна строка
- * данных, а не новый файл с графикой.
- */
-
-import { memo } from "react";
-import type { AvatarDef } from "@/lib/avatars";
+import { memo, useId } from "react";
+import type { AvatarDef, IllustratedAvatar } from "@/lib/avatars";
+import type { Language } from "@/lib/types";
 
 export const AvatarPortrait = memo(function AvatarPortrait({
   def,
   size = 88,
   locked = false,
+  language = "ru",
   className = "",
 }: {
   def: AvatarDef;
   size?: number;
   locked?: boolean;
+  language?: Language;
   className?: string;
 }) {
-  const p = def.palette;
-  const uid = def.id;
+  const uid = useId();
 
   return (
     <svg
@@ -32,20 +24,54 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       height={size}
       className={className}
       role="img"
-      aria-label={def.name.ru}
+      aria-label={def.name[language]}
       /* Заблокированные показываем В ЦВЕТЕ: ребёнок должен видеть награду,
          иначе она не мотивирует. Обесцвечивание делало персонажа похожим
          на сломанную картинку. Достаточно лёгкого приглушения и замка. */
       style={locked ? { filter: "saturate(0.82) brightness(0.97)" } : undefined}
     >
       <defs>
+        <clipPath id={`clip-${uid}`}>
+          <circle cx="50" cy="50" r="50" />
+        </clipPath>
+      </defs>
+
+      {def.collection === "plush" ? (
+        <image href={def.portrait} width="100" height="100" clipPath={`url(#clip-${uid})`} />
+      ) : (
+        <IllustratedPortrait def={def} uid={uid} locked={locked} />
+      )}
+
+      {/* ободок медальона */}
+      <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.7" />
+
+      {/* значок замка — понятная метка «ещё не открыт», без выцветания */}
+      {locked && (
+        <g>
+          <circle cx="79" cy="79" r="15" fill="#2A2540" opacity="0.82" />
+          <circle cx="79" cy="79" r="15" fill="none" stroke="#ffffff" strokeWidth="1.6" opacity="0.85" />
+          <rect x="73" y="78" width="12" height="9.5" rx="2.2" fill="#ffffff" />
+          <path d="M75.6 78 v-3.2 a3.4 3.4 0 0 1 6.8 0 V78"
+                fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      )}
+    </svg>
+  );
+});
+
+function IllustratedPortrait({ def, uid, locked }: {
+  def: IllustratedAvatar;
+  uid: string;
+  locked: boolean;
+}) {
+  const p = def.palette;
+  return (
+    <>
+      <defs>
         <linearGradient id={`bg-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={p.bg1} />
           <stop offset="100%" stopColor={p.bg2} />
         </linearGradient>
-        <clipPath id={`clip-${uid}`}>
-          <circle cx="50" cy="50" r="50" />
-        </clipPath>
       </defs>
 
       <g clipPath={`url(#clip-${uid})`}>
@@ -338,20 +364,6 @@ export const AvatarPortrait = memo(function AvatarPortrait({
           </g>
         )}
       </g>
-
-      {/* ободок медальона */}
-      <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.7" />
-
-      {/* значок замка — понятная метка «ещё не открыт», без выцветания */}
-      {locked && (
-        <g>
-          <circle cx="79" cy="79" r="15" fill="#2A2540" opacity="0.82" />
-          <circle cx="79" cy="79" r="15" fill="none" stroke="#ffffff" strokeWidth="1.6" opacity="0.85" />
-          <rect x="73" y="78" width="12" height="9.5" rx="2.2" fill="#ffffff" />
-          <path d="M75.6 78 v-3.2 a3.4 3.4 0 0 1 6.8 0 V78"
-                fill="none" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" />
-        </g>
-      )}
-    </svg>
+    </>
   );
-});
+}

@@ -31,7 +31,7 @@ const COPY = {
     notEnough: "Пока не хватает монет",
     keepReading: "Дочитай ещё немного — и герой твой",
     equipped_toast: "Герой выбран",
-    all: "Все", girls: "Для девочек", boys: "Для мальчиков",
+    all: "Все", plush: "Плюшевые", girls: "Для девочек", boys: "Для мальчиков",
     hint: "Монеты можно потратить здесь или обменять у родителей на настоящий приз.",
   },
   kk: {
@@ -47,7 +47,7 @@ const COPY = {
     notEnough: "Әзірге монета жетпейді",
     keepReading: "Тағы біраз оқы — кейіпкер сенікі болады",
     equipped_toast: "Кейіпкер таңдалды",
-    all: "Барлығы", girls: "Қыздарға", boys: "Ұлдарға",
+    all: "Барлығы", plush: "Жұмсақ ойыншықтар", girls: "Қыздарға", boys: "Ұлдарға",
     hint: "Монетаны осында жұмсауға немесе ата-анаңнан нағыз сыйлыққа айырбастауға болады.",
   },
   en: {
@@ -63,10 +63,12 @@ const COPY = {
     notEnough: "Not enough coins yet",
     keepReading: "Read a bit more and the hero is yours",
     equipped_toast: "Hero selected",
-    all: "All", girls: "For girls", boys: "For boys",
+    all: "All", plush: "Plush", girls: "For girls", boys: "For boys",
     hint: "Coins can be spent here or exchanged with your parents for a real prize.",
   },
 } as const;
+
+const FILTERS = ["all", "plush", "girls", "boys"] as const;
 
 interface Props {
   open: boolean;
@@ -81,7 +83,7 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
   const c = COPY[language] ?? COPY.ru;
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
-  const [filter, setFilter] = useState<"all" | "girls" | "boys">("all");
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [coins, setCoins] = useState(profile.coins ?? 0);
   const [owned, setOwned] = useState<string[]>(profile.unlockedAvatars ?? []);
   const [equipped, setEquipped] = useState(profile.avatar);
@@ -93,9 +95,10 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
      * в коллекции.
      */
     const sellable = AVATARS.filter((a) => !a.tournamentOnly || owned.includes(a.id));
-    const arr = filter === "all"
-      ? sellable
-      : sellable.filter((a) => a.appeal === filter || a.appeal === "neutral");
+    const arr = sellable.filter((a) => {
+      if (filter === "plush") return a.collection === "plush";
+      return filter === "all" || a.appeal === filter || a.appeal === "neutral";
+    });
     // Доступные к покупке — выше, чтобы цель была видна сразу.
     const order: Record<Rarity, number> = { common: 0, rare: 1, legendary: 2, mythic: 3 };
     return [...arr].sort((a, b) => {
@@ -169,10 +172,11 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
           </div>
         </div>
 
-        <div className="flex gap-2 mb-4">
-          {(["all", "girls", "boys"] as const).map((f) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {FILTERS.map((f) => (
             <button
               key={f}
+              aria-pressed={filter === f}
               onClick={() => setFilter(f)}
               className={`chip ${filter === f ? "chip-on" : "chip-off"}`}
             >
@@ -194,7 +198,7 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
                   isOn ? "ring-2 ring-brand-500" : ""
                 }`}
               >
-                <AvatarPortrait def={def} size={78} locked={!isOwned} />
+                <AvatarPortrait def={def} size={78} locked={!isOwned} language={language} />
                 <p className="font-display font-bold text-sm text-ink dark:text-white mt-2 leading-tight">
                   {def.name[language] ?? def.name.ru}
                 </p>
