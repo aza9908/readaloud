@@ -1,6 +1,13 @@
 import pagePal from "@/assets/avatars/page-pal.webp";
 import dombraPal from "@/assets/avatars/dombra-pal.webp";
 import moonReader from "@/assets/avatars/moon-reader.webp";
+import sproutScout from "@/assets/avatars/sprout-scout.webp";
+import honeyBaker from "@/assets/avatars/honey-baker.webp";
+import palettePal from "@/assets/avatars/palette-pal.webp";
+import cloudPilot from "@/assets/avatars/cloud-pilot.webp";
+import shellSeeker from "@/assets/avatars/shell-seeker.webp";
+import clockworkTinker from "@/assets/avatars/clockwork-tinker.webp";
+import snowScout from "@/assets/avatars/snow-scout.webp";
 
 /**
  * Редкости. "mythic" — только за победы в турнирах: такого героя нельзя
@@ -73,6 +80,48 @@ export const AVATARS: AvatarDef[] = [
     name: { ru: "Лунный читатель", kk: "Түнгі оқырман", en: "Moon Reader" },
     price: 2200, rarity: "legendary", appeal: "neutral",
     collection: "plush", portrait: moonReader,
+  },
+  {
+    id: "plush_sprout_scout",
+    name: { ru: "Юный садовник", kk: "Жас бағбан", en: "Sprout Scout" },
+    price: 480, rarity: "common", appeal: "neutral",
+    collection: "plush", portrait: sproutScout,
+  },
+  {
+    id: "plush_honey_baker",
+    name: { ru: "Медовый пекарь", kk: "Бал наубайшысы", en: "Honey Baker" },
+    price: 540, rarity: "common", appeal: "neutral",
+    collection: "plush", portrait: honeyBaker,
+  },
+  {
+    id: "plush_palette_pal",
+    name: { ru: "Маленький художник", kk: "Кішкентай суретші", en: "Palette Pal" },
+    price: 640, rarity: "common", appeal: "neutral",
+    collection: "plush", portrait: palettePal,
+  },
+  {
+    id: "plush_cloud_pilot",
+    name: { ru: "Облачный пилот", kk: "Бұлт ұшқышы", en: "Cloud Pilot" },
+    price: 880, rarity: "rare", appeal: "neutral",
+    collection: "plush", portrait: cloudPilot,
+  },
+  {
+    id: "plush_shell_seeker",
+    name: { ru: "Искатель ракушек", kk: "Бақалшық теруші", en: "Shell Seeker" },
+    price: 980, rarity: "rare", appeal: "neutral",
+    collection: "plush", portrait: shellSeeker,
+  },
+  {
+    id: "plush_clockwork_tinker",
+    name: { ru: "Мастер шестерёнок", kk: "Шебер механик", en: "Clockwork Tinker" },
+    price: 1180, rarity: "rare", appeal: "neutral",
+    collection: "plush", portrait: clockworkTinker,
+  },
+  {
+    id: "plush_snow_scout",
+    name: { ru: "Снежный следопыт", kk: "Ізкесер барыс", en: "Snow Scout" },
+    price: 2350, rarity: "legendary", appeal: "neutral",
+    collection: "plush", portrait: snowScout,
   },
   {
     id: "cosmonaut",
