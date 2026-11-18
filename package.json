@@ -3,6 +3,12 @@
   "private": true,
   "version": "2.0.0",
   "type": "module",
+  "imports": {
+    "#bookser-reader": {
+      "node": "./whatsapp/bookser-reader.node.mjs",
+      "default": "./whatsapp/bookser-reader.ts"
+    }
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -10,8 +16,11 @@
     "seed": "tsx scripts/seed.ts",
     "export:postgres": "tsx scripts/export-from-postgres.ts",
     "deploy": "npm run build && firebase deploy",
-    "test": "node test/alignment.test.mjs && node test/readingLevel.test.mjs && node test/coins.test.mjs && node test/sttEscalation.test.mjs && node test/sttIntegration.test.mjs && node test/parentGate.test.mjs && node test/photoAuthenticity.test.mjs && node test/tournament.test.mjs && node test/cards.test.mjs && node test/architecture.test.mjs && node audit.mjs",
-    "test:critic": "node test/architecture.test.mjs"
+    "test": "node test/alignment.test.mjs && node test/readingLevel.test.mjs && node test/coins.test.mjs && node test/sttEscalation.test.mjs && node test/sttIntegration.test.mjs && node test/parentGate.test.mjs && node test/photoAuthenticity.test.mjs && node test/tournament.test.mjs && node test/cards.test.mjs && node test/architecture.test.mjs && node audit.mjs && npm run test:whatsapp",
+    "test:critic": "node test/architecture.test.mjs",
+    "whatsapp:dev": "node whatsapp/server.mjs",
+    "whatsapp:export": "node whatsapp/build-simulator.mjs",
+    "test:whatsapp": "node --test test/whatsapp*.test.mjs"
   },
   "dependencies": {
     "@sparticuz/chromium": "^149.0.0",
