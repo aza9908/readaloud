@@ -1,6 +1,7 @@
-import { activeChild, familyStart, handleTurn } from "./bot.mjs";
+import { activeChild, familyStart, handleTurn, hasReadingConsent } from "./bot.mjs";
 import { copy } from "./copy.mjs";
-import { mockTranscribe } from "./reading.mjs";
+import { localDay, mockTranscribe } from "./reading.mjs";
+import { weeklyNotice } from "./report-schedule.mjs";
 
 const DAY = 86400000;
 export const emptyStore = () => ({ version: 1, families: [], pending: [], seen: {} });
@@ -28,10 +29,12 @@ function inboundLabel(event, family) {
 
 /** One FIFO worker and one writer per local simulator instance. */
 export class ReadingRuntime {
-  constructor({ library, state = emptyStore(), save = () => {}, transcribe = mockTranscribe, now = Date.now,
+  constructor({ library, state = emptyStore(), save = () => {}, transcribe = mockTranscribe,
+    transcriberRegion = transcribe === mockTranscribe ? "local" : "unknown", now = Date.now,
     pause = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
     if (state.version !== 1 || !Array.isArray(state.pending) || !Array.isArray(state.families) || !state.seen) throw new Error("Unrecognised demo store");
-    Object.assign(this, { library, state, save, transcribe, now, pause });
+    Object.assign(this, { library, state, save, transcribe, transcriberRegion, now, pause });
+    this.parentSessions = new Map();
     this.running = null;
     if (state.families.some(f => this.expired(f.data))) this.commit(() => {});
   }
@@ -41,6 +44,39 @@ export class ReadingRuntime {
   family(user) {
     const family = this.state.families.find(f => f.user === user)?.data;
     return family && !this.expired(family) ? structuredClone(family) : familyStart();
+  }
+  publicFamily(user) {
+    const f = this.family(user), parent = this.state.families.find(row => row.user === user)?.parent;
+    const children = f.children.map(({ id, name, language, avatar, page, wallet }) =>
+      ({ id, name, language, avatar, page, wallet: { coins: wallet.coins, streak: wallet.streak } }));
+    const history = f.history.map(({ incoming, at, reply }) => {
+      const safe = {};
+      for (const key of ["body", "language", "form", "page", "buttons", "card", "narration", "openBookser", "reaction", "parentAction"]) {
+        if (reply[key] !== undefined) safe[key] = reply[key];
+      }
+      return { incoming, at, reply: safe };
+    });
+    return { lang: f.lang, consent: hasReadingConsent(f.consent), hasParentPin: !!parent?.hash, children,
+      active: f.active, stage: f.stage, history, weeklyNotice: parent?.weeklyReports?.enabled ? parent.weeklyNotice : undefined };
+  }
+  checkWeekly() {
+    const now = this.now();
+    const oldest = localDay(now) - 13;
+    const stale = row => row.data.children.some(child => child.reportDays?.some(entry => entry.day < oldest));
+    const due = row => weeklyNotice({ ...row.data, weeklyReports: row.parent?.weeklyReports }, now);
+    if (!this.state.families.some(row => stale(row) || (row.parent?.hash && due(row)))) return;
+    this.commit(s => {
+      for (const row of s.families) {
+        for (const child of row.data.children) {
+          if (child.reportDays) child.reportDays = child.reportDays.filter(entry => entry.day >= oldest);
+        }
+        const notice = row.parent?.hash && due(row);
+        if (notice) {
+          row.parent.weeklyReports.lastWeek = notice.week;
+          row.parent.weeklyNotice = notice;
+        }
+      }
+    });
   }
   commit(change) {
     const next = structuredClone(this.state);
@@ -58,7 +94,8 @@ export class ReadingRuntime {
     this.commit(s => {
       for (const job of jobs) {
         if (s.seen[job.key] || s.pending.some(p => p.key === job.key)) continue;
-        if (job.kind === "audio" && !s.families.find(f => f.user === job.user)?.data.consent) {
+        if (job.kind === "audio" && job.fixture?.flagged === true) job.flagged = true;
+        if (job.kind === "audio" && (job.flagged || !hasReadingConsent(s.families.find(f => f.user === job.user)?.data.consent))) {
           delete job.media;
           delete job.fixture;
         }
@@ -98,12 +135,13 @@ export class ReadingRuntime {
         const expired = this.now() - event.at >= DAY;
         const control = /^(delete|удалить|жою|stop|стоп|тоқта)$/i.test(event.value?.trim() ?? "");
         if (!expired || control) reply = await handleTurn(family, event, this);
-        if (reply && !expired && !reply.erase) {
+        if (reply && this.now() - event.at < DAY && !reply.erase) {
           const previous = this.family(event.user);
           family.history.push({ incoming: inboundLabel(event, previous), reply, at: event.at });
           family.history = family.history.slice(-60);
         }
       } catch (error) {
+        if (this.state.pending[0]?.key !== event.key) continue;
         if (event.tries < 2) {
           this.commit(s => { s.pending[0].tries++; });
           await this.pause(50 * (2 ** event.tries));
@@ -111,14 +149,19 @@ export class ReadingRuntime {
         }
         const original = this.family(event.user);
         const t = copy[original.lang ?? "kk"];
-        original.history.push({ incoming: inboundLabel(event, original), reply: { body: t.unavailable }, at: event.at });
+        if (this.now() - event.at < DAY) {
+          original.history.push({ incoming: inboundLabel(event, original), reply: { body: t.unavailable }, at: event.at });
+          original.history = original.history.slice(-60);
+        }
         this.finish(event, original, false);
         continue;
       }
-      this.finish(event, family, reply?.erase || !reply && !this.state.families.some(f => f.user === event.user), reply?.erase);
+      this.finish(event, family, reply?.erase || !reply && !this.state.families.some(f => f.user === event.user), reply?.erase, reply);
     }
   }
-  finish(event, family, erase, purge = false) {
+  finish(event, family, erase, purge = false, reply) {
+    // A parent may erase this family while transcription is in flight.
+    if (this.state.pending[0]?.key !== event.key) return;
     this.commit(s => {
       s.pending.shift();
       s.seen[event.key] = this.now();
@@ -127,8 +170,20 @@ export class ReadingRuntime {
         s.pending = s.pending.filter(job => job.user !== event.user && job.newUser !== event.user);
       }
       for (const [key, at] of Object.entries(s.seen)) if (at < this.now() - 30 * DAY) delete s.seen[key];
+      const previous = s.families.find(f => f.user === event.user);
+      let parent = previous?.parent;
+      if (event.kind === "consent" && !previous?.data.consent && family.consent && event.credential) parent = event.credential;
+      if (reply?.reviewReader && hasReadingConsent(family.consent)) {
+        parent ??= {};
+        parent.reviewItems = [...(parent.reviewItems ?? []), { id: event.key, at: event.at, childId: reply.reviewReader }];
+        delete reply.reviewReader;
+      }
+      if (parent && /^(stop|стоп|тоқта)$/i.test(event.value?.trim() ?? "")) {
+        parent.weeklyReports = { ...parent.weeklyReports, enabled: false };
+        delete parent.weeklyNotice;
+      }
       s.families = s.families.filter(f => f.user !== event.user);
-      if (!erase) s.families.push({ user: event.user, data: family });
+      if (!erase) s.families.push({ user: event.user, data: family, parent });
     });
   }
 }

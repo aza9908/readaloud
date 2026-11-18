@@ -9,6 +9,7 @@ import { CONSENT_VERSION } from "../whatsapp/bot.mjs";
 import { DEMO_USER, demoEnvelope, parseWebhook, simulateTurn } from "../whatsapp/events.mjs";
 import { mockTranscribe, reward, scoreReading } from "../whatsapp/reading.mjs";
 import { ReadingRuntime } from "../whatsapp/runtime.mjs";
+import { parentAction } from "../whatsapp/parent.mjs";
 import { createWhatsAppServer, localStore, signature } from "../whatsapp/server.mjs";
 import { feedbackSvg } from "../whatsapp/simulator/card.mjs";
 
@@ -17,13 +18,13 @@ const time = Date.parse("2026-11-18T17:00:00Z");
 let seq = 0;
 const id = () => "wamid.test." + ++seq;
 const button = value => ({ kind: "button", value });
-const consent = { kind: "consent", guardian: true, processing: true, crossBorder: false };
+const consent = { kind: "consent", guardian: true, processing: true, crossBorder: false, pin: "0432", confirmPin: "0432" };
 const profile = { kind: "profile", name: "Ару", age: 8, language: "kk", avatar: "🐰" };
 const note = (transcript, language = "kk") => ({ kind: "audio", transcript, language, seconds: 30 });
 const message = (packet, mid = id()) => parseWebhook(demoEnvelope(packet, mid, time));
 const newest = family => family.history.at(-1).reply;
 function setup(options = {}) {
-  const runtime = new ReadingRuntime({ library, now: () => time, pause: async () => {}, ...options });
+  const runtime = new ReadingRuntime({ library, now: () => time, pause: async () => {}, transcriberRegion: "local", ...options });
   const send = (input, mid = id()) => simulateTurn(runtime, { ...input, id: mid }, async (envelope, fixture) => {
     return runtime.enqueue(parseWebhook(envelope).map(e => fixture ? { ...e, fixture } : e));
   }, runtime.now());
@@ -104,10 +105,13 @@ test("scoring returns a highlighted image, gentle low-score feedback and best-on
   await send(note(words.slice(0, Math.ceil(words.length * 0.63)).join(" "), "ru"));
   const part = family().children[0].wallet.coins; assert.equal(part, 10);
   const mid = id(), perfect = note(page, "ru");
+  const earlierRateSum = family().children[0].reportDays[0].rateSum;
   const happy = (await send(perfect, mid)).family;
-  assert.equal(happy.children[0].wallet.coins, 20); assert.equal(newest(happy).parentMetrics.wcpm, words.length * 2);
+  assert.equal(happy.children[0].wallet.coins, 20); assert.equal(newest(happy).parentMetrics, undefined);
+  assert.equal(family().children[0].reportDays[0].rateSum - earlierRateSum, words.length * 2);
   assert.match(newest(happy).body, /\+10/); assert.equal(newest(happy).card.stars, 3);
-  assert.equal((await send(perfect, mid)).accepted, 0); assert.deepEqual(family(), happy);
+  const replay = await send(perfect, mid);
+  assert.equal(replay.accepted, 0); assert.deepEqual(replay.family, happy);
   await send(perfect); assert.equal(family().children[0].wallet.coins, 20);
   assert.match(newest(family()).body, /\+0/);
 });
@@ -138,15 +142,20 @@ test("Almaty midnight, a weekly freeze, streak milestones and hard daily cap", (
   for (let day = 0; day < 7; day++) reward(m, 0, 100, score, time + 86400000 * day);
   assert.equal(m.wallet.streak, 7); assert.equal(m.wallet.earnedToday, 55);
 });
-test("delete removes the family and queued voice data, deduplication receipts prevent resurrection", async () => {
+test("chat deletion requests the parent area; confirmed deletion erases the family and queued voice data", async () => {
   const { runtime, send, onboard, family } = setup(); await onboard(); await send(note(library.kk.pages[0]));
-  const mid = id(); const events = [...message({ kind: "text", value: "Жою" }), ...message(note(""), mid)];
-  await runtime.enqueue(events); await runtime.drain();
+  const request = await send({ kind: "text", value: "Жою" });
+  assert.equal(newest(request.family).parentAction, "delete");
+  const { token } = await parentAction(runtime, DEMO_USER, { action: "unlock", pin: "0432" });
+  const mid = id();
+  await runtime.enqueue(message(note(""), mid));
+  assert.equal((await parentAction(runtime, DEMO_USER, { action: "delete", token })).ok, true);
+  await runtime.drain();
   assert.equal(runtime.state.families.length, 0); assert.equal(runtime.state.pending.length, 0);
   assert.doesNotMatch(JSON.stringify(runtime.state), /BOOKSER_DEMO|Ару|Батыл|sample-custom/);
   assert.equal(await runtime.enqueue(message(note(""), mid)), 0); assert.equal(family().consent, null);
 });
-test("closed windows do not start conversations; old opt-outs and deletion still apply; unconsented data expires", async () => {
+test("closed windows suppress replies, respect opt-outs and preserve protected deletion; unconsented data expires", async () => {
   let now = time;
   const { runtime, onboard, family, send } = setup({ now: () => now }); await onboard();
   const rows = family().history.length;
@@ -156,6 +165,10 @@ test("closed windows do not start conversations; old opt-outs and deletion still
   await runtime.enqueue(message({ kind: "text", value: "Стоп" })); await runtime.drain();
   assert.equal(family().history.length, rows); assert.equal(family().reminders, false);
   await runtime.enqueue(message({ kind: "text", value: "delete" })); await runtime.drain();
+  assert.equal(family().history.length, rows);
+  assert.equal(family().children.length, 1);
+  const { token } = await parentAction(runtime, DEMO_USER, { action: "unlock", pin: "0432" });
+  assert.equal((await parentAction(runtime, DEMO_USER, { action: "delete", token })).ok, true);
   assert.equal(runtime.state.families.length, 0);
   await send(button("lang:ru")); now += 31 * 86400000;
   const reopened = setup({ state: runtime.state, now: () => now });
@@ -222,5 +235,5 @@ test("signed HTTP webhook acknowledges before transcription; local controls reus
   assert.equal(first.accepted, 1); assert.equal(second.accepted, 0); assert.equal(first.family.children[0].wallet.coins, 20);
   assert.equal((await fetch(base + "/api/family", { headers: { Origin: "https://elsewhere.invalid" } })).status, 403);
   const deletion = await (await simulate({ ...button("delete"), id: id() })).json();
-  assert.match(deletion.notice, /удалены/); assert.deepEqual(deletion.family.children, []);
+  assert.equal(newest(deletion.family).parentAction, "delete"); assert.equal(deletion.family.children.length, 1);
 });

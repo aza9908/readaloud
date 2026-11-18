@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ReadingAligner } from "@/lib/alignment";
+import { ReadingAligner, wordsPerMinute } from "@/lib/alignment";
 
 export interface SpeechReaderOptions {
   words: string[];
@@ -212,8 +212,7 @@ export function useSpeechReader(opts: SpeechReaderOptions): SpeechReaderApi {
 
   const syncStateNow = useCallback(() => {
     const elapsed = computeElapsed();
-    const minutes = elapsed / 60000;
-    const currentWpm = minutes > 0.05 ? Math.round(wordsReadRef.current / minutes) : 0;
+    const currentWpm = elapsed > 3000 ? wordsPerMinute(wordsReadRef.current, elapsed / 1000) : 0;
     const cursor = alignerRef.current.cursor;
     setCurrentIndex(Math.min(cursor, Math.max(words.length - 1, 0)));
     setWordsRead(wordsReadRef.current);

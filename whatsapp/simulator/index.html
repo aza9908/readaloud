@@ -1,50 +1,65 @@
 <!doctype html>
 <html lang="en" data-transport="@@TRANSPORT@@">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#163c32"><title>Bookser · WhatsApp reading simulator</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbf9f4"><title>Bookser · WhatsApp reading room</title>
+  <link rel="icon" type="image/png" href="data:image/png;base64,@@ICON@@">
   <style>@@CSS@@</style>
 </head>
 <body>
   <main>
     <header class="mast">
-      <div class="wordmark"><span class="brand" aria-hidden="true">b</span>Bookser</div>
-      <span class="mode"><i aria-hidden="true"></i><span id="mode">Local simulator</span></span>
+      <div class="identity"><span class="wordmark">Book<span>ser</span></span><span class="channel">WhatsApp</span></div>
+      <nav class="tools" aria-label="Settings">
+        <button id="theme" class="icon-button" aria-label="Dark theme" aria-pressed="false"><span class="icon moon" aria-hidden="true"></span><span class="icon sun" aria-hidden="true"></span></button>
+        <button id="parent" class="ghost" disabled><span class="icon lock" aria-hidden="true"></span><span data-i="parent">For parents</span></button>
+      </nav>
     </header>
-    <section class="intro"><h1>WhatsApp reading simulator</h1><p>Choose a chat language, add a fictional reader, then try a sample voice note.</p></section>
+    <button id="weekly-notice" class="weekly-notice" type="button" hidden><span class="icon lock" aria-hidden="true"></span><span id="notice-text"></span><span aria-hidden="true">↗</span></button>
+    <section class="intro">
+      <div><h1 data-i="title">Reading room</h1><p data-i="intro">Choose a language, then practise a page with a sample voice note.</p></div>
+      <span class="mode"><i aria-hidden="true"></i><span id="mode">Local simulator</span></span>
+    </section>
     <div class="workspace">
-      <section class="phone" aria-label="Simulated WhatsApp conversation">
+      <section class="phone" aria-labelledby="chat-title">
         <header class="chat-head"><img class="portrait" alt="" src="data:image/webp;base64,@@PORTRAIT@@">
-          <div><h2>Bookser</h2><span>Қазақша · Русский</span></div>
-          <button type="button" class="head-menu" id="menu" aria-label="Reader menu" disabled>☰</button>
+          <div><h2 id="chat-title" data-i="chat">Reading chat</h2><span data-i="guide">Page Pal · Bookser</span></div>
+          <div class="chat-tools">
+            <div class="type-size" hidden id="type-size"><button type="button" id="smaller" aria-label="Smaller reading text">A−</button><button type="button" id="larger" aria-label="Larger reading text">A+</button></div>
+            <button type="button" class="icon-button" id="menu" aria-label="Choose reader" disabled><span class="icon readers" aria-hidden="true"></span></button>
+          </div>
         </header>
         <div id="thread" class="thread" role="log" aria-label="Conversation" aria-live="off"></div>
-        <form id="composer" class="composer"><label class="sr" for="message">Message</label>
+        <form id="composer" class="composer"><label class="sr" for="message" data-i="message">Message</label>
           <input id="message" name="message" maxlength="240" placeholder="Сәлем / Привет" autocomplete="off">
-          <button class="send-text" aria-label="Send message" type="submit">➤</button>
+          <button class="send-text" aria-label="Send message" type="submit"><span class="icon send" aria-hidden="true"></span></button>
         </form>
       </section>
-      <aside aria-label="Simulator controls">
+      <aside aria-label="Practice">
+        <section class="panel reader">
+          <div class="reader-head"><span class="reader-avatar" id="reader-avatar" aria-hidden="true">📖</span><div><h2 data-i="reader">My reader</h2><p id="reader-name">No reader selected</p></div></div>
+          <div id="page-position" hidden><div class="page-caption"><span id="book-title"></span><span id="page-count"></span></div><progress id="page-progress"></progress></div>
+          <dl id="rewards" hidden><div><dt><span aria-hidden="true">🪙</span><span data-i="coins">Coins</span></dt><dd id="coins">0</dd></div><div><dt><span aria-hidden="true">🔥</span><span data-i="streak">Day streak</span></dt><dd id="streak">0</dd></div></dl>
+        </section>
         <section class="panel lab">
-          <div class="panel-title"><span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2>Voice-note lab</h2></div>
+          <div class="panel-title"><span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 data-i="lab">Voice-note lab</h2></div>
           <p id="lab-hint">Add a reader in the chat to unlock the sample transcript.</p>
           <fieldset id="lab-fields" disabled>
-            <legend class="sr">Sample voice note</legend>
-            <label for="preset">Sample</label><select id="preset"><option value="practice">With missed words</option><option value="perfect">Full page</option><option value="silence">Silence</option></select>
-            <label for="transcript">Transcript</label><textarea id="transcript" rows="4" maxlength="5000" placeholder="The reading sample will appear here."></textarea>
-            <div class="duration-row"><label for="seconds">Duration in seconds</label><input id="seconds" type="number" min="0" max="3600" step="1" value="30"></div>
-            <button type="button" class="primary wide" id="send-note">Send sample voice note <span aria-hidden="true">↗</span></button>
+            <legend class="sr" data-i="sampleNote">Sample voice note</legend>
+            <label for="preset" data-i="sample">Sample</label><select id="preset"><option value="practice" data-i="practice">With missed words</option><option value="perfect" data-i="perfect">Full page</option><option value="silence" data-i="silence">Silence</option><option value="adult" data-i="needsReview">Needs adult review</option></select>
+            <label for="transcript" data-i="transcript">Transcript</label><textarea id="transcript" rows="3" maxlength="5000"></textarea>
+            <div class="duration-row"><label for="seconds" data-i="duration">Duration in seconds</label><input id="seconds" type="number" min="0" max="3600" step="1" value="30"></div>
+            <button type="button" class="primary wide" id="send-note"><span class="icon mic" aria-hidden="true"></span><span data-i="sendNote">Send sample voice note</span></button>
           </fieldset>
-          <button type="button" id="replay" class="text-button" disabled>Replay last delivery</button>
-        </section>
-        <section class="panel reader">
-          <div class="reader-head"><div><h2>Reader progress</h2><p id="reader-name">No reader selected</p></div><span class="reader-avatar" id="reader-avatar" aria-hidden="true">☷</span></div>
-          <dl><div><dt>Coins</dt><dd id="coins">—</dd></div><div><dt>Day streak</dt><dd id="streak">—</dd></div><div><dt>Words/min</dt><dd id="speed">—</dd></div></dl>
-          <button type="button" id="erase" class="text-button" disabled>Delete demo family</button>
+          <button type="button" id="replay" class="text-button" disabled data-i="replay">Replay last delivery</button>
         </section>
       </aside>
     </div>
-    <p class="footer">Fictional profiles and sample transcripts only. No microphone or WhatsApp account required.</p>
+    <p class="footer" data-i="footer">This demo uses fictional profiles and sample transcripts.</p>
+    <dialog id="parent-dialog" aria-labelledby="parent-heading">
+      <div class="dialog-head"><div><div class="eyebrow" data-i="parent">For parents</div><h2 id="parent-heading"></h2></div><button type="button" class="icon-button" id="close-parent" aria-label="Close">×</button></div>
+      <div id="parent-content"></div><p id="parent-error" class="form-error" aria-live="polite" hidden></p>
+    </dialog>
     <span id="reply-announcement" class="sr" role="status" aria-live="polite" aria-atomic="true"></span>
     <p id="status" class="status" role="status" aria-live="polite" hidden></p>
   </main>

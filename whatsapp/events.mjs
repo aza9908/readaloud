@@ -1,5 +1,6 @@
-import { ALIASES, AVATARS, command } from "./bot.mjs";
+import { ALIASES, AVATARS, command, hasReadingConsent } from "./bot.mjs";
 import { copy } from "./copy.mjs";
+import { credential } from "./parent.mjs";
 
 export const DEMO_USER = "KZ.BOOKSER_DEMO";
 const list = v => Array.isArray(v) ? v : [];
@@ -34,7 +35,9 @@ export function parseWebhook(payload) {
           if (!command(event)) event.value = "";
         } else if (msg.type === "interactive") {
           const choice = msg.interactive?.button_reply ?? msg.interactive?.list_reply;
-          if (short(choice?.id, 160)) { event.kind = "button"; event.value = choice.id; }
+          if (/^(lang:(kk|ru)|reader:[1-4]|next:[1-4]:\d{1,3}|add|menu|readers|again|listen|help|resume|restart|report|stop|delete)$/.test(choice?.id)) {
+            event.kind = "button"; event.value = choice.id;
+          }
         } else if (msg.type === "audio" && short(msg.audio?.id, 512)) {
           event.kind = "audio";
           event.media = msg.audio.id;
@@ -63,7 +66,8 @@ export async function simulateTurn(runtime, input, deliver, at = Date.now()) {
   let accepted;
   if (kind === "consent" || kind === "profile") {
     const fields = kind === "consent"
-      ? { guardian: input.guardian === true, processing: input.processing === true, crossBorder: input.crossBorder === true }
+      ? { guardian: input.guardian === true, processing: input.processing === true, crossBorder: input.crossBorder === true,
+        credential: !prior.consent && input.guardian === true && input.processing === true ? await credential(input.pin, input.confirmPin) : null }
       : prior.consent && ALIASES.includes(input.name) && AVATARS.includes(input.avatar) &&
         Number.isInteger(input.age) && input.age >= 6 && input.age <= 12 && ["kk", "ru"].includes(input.language)
         ? { name: input.name, age: input.age, language: input.language, avatar: input.avatar } : {};
@@ -71,7 +75,9 @@ export async function simulateTurn(runtime, input, deliver, at = Date.now()) {
   } else {
     if ((kind === "text" || kind === "button") && !short(input.value, 240)) throw new TypeError("Invalid message text");
     let fixture;
-    if (kind === "audio" && prior.consent) {
+    if (kind === "audio" && hasReadingConsent(prior.consent) && input.flagged === true) {
+      fixture = { flagged: true };
+    } else if (kind === "audio" && hasReadingConsent(prior.consent)) {
       if (typeof input.transcript !== "string" || input.transcript.length > 5000 || !Number.isFinite(input.seconds) ||
           input.seconds < 0 || input.seconds > 3600) throw new TypeError("Invalid mock recording");
       fixture = { transcript: input.transcript, seconds: input.seconds, language: ["kk", "ru"].includes(input.language) ? input.language : undefined };
@@ -79,7 +85,8 @@ export async function simulateTurn(runtime, input, deliver, at = Date.now()) {
     accepted = await deliver(demoEnvelope(input, id, at), fixture);
   }
   await runtime.drain();
-  const family = runtime.family(DEMO_USER);
-  const deleted = accepted && (kind === "button" || kind === "text") && command(input) === "delete";
+  runtime.checkWeekly();
+  const family = runtime.publicFamily(DEMO_USER);
+  const deleted = accepted && !family.history.length && (kind === "button" || kind === "text") && command(input) === "delete";
   return { accepted, family, notice: deleted ? copy[prior.lang ?? "kk"].deleted : undefined };
 }

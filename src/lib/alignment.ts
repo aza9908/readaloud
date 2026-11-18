@@ -57,13 +57,13 @@ function foldKazakh(s: string): string {
   return out;
 }
 
+/** Normalisation before applying the live recogniser's Kazakh spelling tolerance. */
+export function normalizeWrittenWord(raw: string): string {
+  return raw.toLocaleLowerCase().replace(/ё/g, "е").replace(NON_WORD, "");
+}
+
 export function normalizeWord(raw: string): string {
-  return foldKazakh(
-    raw
-      .toLocaleLowerCase()
-      .replace(/ё/g, "е")
-      .replace(/[’'`]/g, ""),
-  ).replace(NON_WORD, "");
+  return foldKazakh(normalizeWrittenWord(raw));
 }
 
 /** MATCH-06: a hyphenated word may be read as its parts. */
@@ -78,6 +78,11 @@ export function expandHyphens(raw: string): string[] {
 
 export function tokenize(text: string): string[] {
   return text.split(/\s+/).map(normalizeWord).filter(Boolean);
+}
+
+/** Reading pace for a measured interval; callers select the words they credited. */
+export function wordsPerMinute(creditedWords: number, seconds: number): number {
+  return seconds > 0 ? Math.round(creditedWords / (seconds / 60)) : 0;
 }
 
 // ───────────────────────── Similarity ─────────────────────────

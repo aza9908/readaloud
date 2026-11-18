@@ -1,10 +1,12 @@
-const WORD = /[\p{L}\p{N}]+(?:[-’'][\p{L}\p{N}]+)*/gu;
+import { ReadingAligner, matchStrength, normalizeWrittenWord, wordsPerMinute, bandForText, BAND_HINT } from "#bookser-reader";
+
+const WORD = /[\p{L}\p{N}][\p{L}\p{M}\p{N}]*(?:[-’'][\p{L}\p{N}][\p{L}\p{M}\p{N}]*)*/gu;
 const LOOKALIKE = { a: "а", c: "с", e: "е", h: "һ", i: "і", k: "к", m: "м", o: "о", p: "р", x: "х", y: "у" };
 const KK_CLOSE = { қ: "к", ғ: "г", ң: "н" };
 
 function normalized(raw) {
-  return raw.normalize("NFKC").toLowerCase().replace(/ё/g, "е")
-    .replace(/[acehikmopxy]/g, c => LOOKALIKE[c]).replace(/[-’']/g, "");
+  const script = raw.normalize("NFKC").toLowerCase().replace(/[acehikmopxy]/g, c => LOOKALIKE[c]);
+  return normalizeWrittenWord(script);
 }
 
 function words(text) {
@@ -27,8 +29,22 @@ function compare(expected, said, language) {
   if (expected === said) return "correct";
   if (language === "kk" && expected.replace(/[қғң]/g, c => KK_CLOSE[c]) === said.replace(/[қғң]/g, c => KK_CLOSE[c])) return "close";
   const max = Math.max(expected.length, said.length);
-  if (max <= 80 && 5 * Math.abs(expected.length - said.length) <= max && 5 * distance(expected, said) <= max) return "close";
-  return "substituted";
+  if (max < 5 || max > 80 || 5 * Math.abs(expected.length - said.length) > max) return "substituted";
+  // Bookser recognises a one-edit match or a long prefix. The length guard
+  // above keeps those within the completed-note similarity threshold.
+  if (matchStrength(expected, said) !== "none") return "close";
+  return max >= 10 && 5 * distance(expected, said) <= max ? "close" : "substituted";
+}
+
+function spokenParts(parts, spoken, start, language) {
+  if (start + parts.length > spoken.length) return null;
+  let status = "correct";
+  for (const [offset, part] of parts.entries()) {
+    const comparison = compare(part, spoken[start + offset].norm, language);
+    if (comparison === "substituted") return null;
+    if (comparison === "close") status = "close";
+  }
+  return status;
 }
 
 /** Align the complete voice note. Ties prefer an earlier reference word. */
@@ -38,6 +54,7 @@ export function scoreReading(page, transcript, seconds, language) {
     throw new RangeError("Invalid page, transcript, or speaking duration");
   }
   const n = ref.length, m = spoken.length;
+  const parts = ref.map(word => word.text.includes("-") ? word.text.split("-").map(normalized) : null);
   // The low-order term counts uncredited reference words. This resolves equal-cost
   // edit paths in favour of words the child actually read, including after a repetition.
   const unit = n + 1, gap = 4 * unit;
@@ -54,22 +71,42 @@ export function scoreReading(page, transcript, seconds, language) {
       const best = Math.min(diagonal, skip, extra);
       costs[i][j] = best;
       moves[i][j] = diagonal === best ? status : skip === best ? "missed" : "inserted";
+      // A voice provider can split a hyphenated page word into several words.
+      // The card still marks that single printed word and preserves its offset.
+      if (parts[i]) {
+        const compound = spokenParts(parts[i], spoken, j, language);
+        if (compound) {
+          const joined = costs[i + 1][j + parts[i].length] + cost[compound];
+          if (joined <= best) {
+            costs[i][j] = joined;
+            moves[i][j] = compound === "correct" ? "compound-correct" : "compound-close";
+          }
+        }
+      }
     }
   }
   let i = 0, j = 0, matched = 0, lastAttempted = 0, insertions = 0, problems = 0;
   const marks = [];
   while (i < n || j < m) {
-    const status = i === n ? "inserted" : j === m ? "missed" : moves[i][j];
+    const move = i === n ? "inserted" : j === m ? "missed" : moves[i][j];
+    const compound = move.startsWith("compound-");
+    const status = compound ? move.slice("compound-".length) : move;
     if (status === "inserted") { j++; insertions++; continue; }
     const credit = status === "correct" || status === "close";
     if (credit) matched++;
-    if (status !== "missed") { j++; lastAttempted = i + 1; }
+    if (status !== "missed") { j += compound ? parts[i].length : 1; lastAttempted = i + 1; }
     if (!credit) problems++;
     marks.push({ text: ref[i].text, offset: ref[i].offset, status, flag: !credit && problems <= 5 });
     i++;
   }
   const accuracy = matched / n;
-  return { marks, matched, total: n, accuracy, wcpm: Math.round(60 * matched / seconds),
+  // Use the live reader's repeated-miss detector for the parent practice list.
+  // A child can recover and read a word correctly after struggling with it.
+  const aligner = new ReadingAligner();
+  aligner.setPage(ref.map(word => word.text));
+  const tracking = aligner.feed(spoken.map(word => word.norm).join(" "), "");
+  const struggledWords = tracking.struggled.map(index => aligner.wordAt(index));
+  return { marks, matched, total: n, accuracy, struggledWords, wcpm: wordsPerMinute(matched, seconds),
     completion: lastAttempted / n, insertions, stars: [0.6, 0.75, 0.9].filter(t => accuracy >= t).length };
 }
 
@@ -91,7 +128,7 @@ export async function mockTranscribe(event, page, language) {
 }
 
 const almaty = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Almaty", year: "numeric", month: "2-digit", day: "2-digit" });
-function localDay(time) {
+export function localDay(time) {
   const parts = Object.fromEntries(almaty.formatToParts(time).map(p => [p.type, p.value]));
   return Date.UTC(+parts.year, +parts.month - 1, +parts.day) / 86400000;
 }
@@ -137,7 +174,8 @@ export function sampleLibrary(seed) {
       }
     }
     if (!pages.length || pages.some(p => words(p).length < 15 || words(p).length > 60)) throw new Error("Sample pages must contain 15–60 words");
-    result[lang] = { title: book.title, level: "A", pages };
+    const band = bandForText(book.text, lang);
+    result[lang] = { title: book.title, band, hint: BAND_HINT[band], level: "A", pages };
   }
   return result;
 }

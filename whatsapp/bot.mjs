@@ -1,5 +1,6 @@
 import { copy, greeting } from "./copy.mjs";
 import { scoreReading, reward } from "./reading.mjs";
+import { recordReading } from "./report.mjs";
 
 export const CONSENT_VERSION = "demo-1";
 export const ALIASES = ["Ару", "Мирас", "Дана", "Тимур"];
@@ -8,6 +9,7 @@ export const familyStart = () => ({ lang: null, consent: null, children: [], act
 const button = (id, title) => ({ id, title });
 export const welcome = () => ({ body: greeting, buttons: [button("lang:kk", "Қазақша"), button("lang:ru", "Русский")] });
 export const activeChild = family => family.children.find(c => c.id === family.active);
+export const hasReadingConsent = consent => consent?.processing === true && consent.guardian === true && consent.withdrawnAt == null;
 
 function profiles(family, t) {
   family.stage = "choose";
@@ -34,27 +36,30 @@ export function command(event) {
   if (["жою", "удалить", "delete"].includes(text)) return "delete";
   if (["сәлем", "привет", "start", "/start", "мәзір", "меню"].includes(text)) return "menu";
   if (["көмек", "помощь", "help"].includes(text)) return "help";
+  if (["есеп", "отчет", "отчёт", "report"].includes(text)) return "report";
   return "";
 }
 
 /** Mutates the worker's private copy. Only the local parent form can create consent or a child. */
-export async function handleTurn(family, event, { library, transcribe }) {
+export async function handleTurn(family, event, { library, transcribe, transcriberRegion }) {
   const action = command(event);
   let t = copy[family.lang ?? "kk"];
-  if (action === "delete") return { erase: true, body: t.deleted };
+  if (action === "delete") return family.consent ? { parentAction: "delete", body: t.parentDelete } : { erase: true, body: t.deleted };
   if (action === "stop") { family.reminders = false; return { body: t.stopped }; }
   if (!family.lang) {
     if (action !== "lang:kk" && action !== "lang:ru") return welcome();
     family.lang = action.slice(5);
     return form(family, "consent", copy[family.lang].consent);
   }
-  if (!family.consent) {
+  if (!hasReadingConsent(family.consent)) {
     if (event.kind !== "consent") return form(family, "consent", t.consent);
     if (event.guardian !== true || event.processing !== true) return form(family, "consent", t.needsConsent);
+    if (!event.credential) return form(family, "consent", t.needsPin);
     family.consent = { version: CONSENT_VERSION, givenAt: event.at, guardian: true,
       processing: true, crossBorder: event.crossBorder === true, keepAudio: false };
     return form(family, "profile", t.profile);
   }
+  if (action === "report") return { parentAction: "report", body: t.parentReport };
   if (action === "add") {
     if (family.children.length >= 4) return { ...profiles(family, t), body: t.full };
     return form(family, "profile", t.profile);
@@ -98,11 +103,17 @@ export async function handleTurn(family, event, { library, transcribe }) {
   if (event.kind !== "audio" || family.stage === "finished") {
     return { language, body: action === "help" ? t.helpText : t.scope, buttons: [button("resume", t.resume), button("readers", t.readers)] };
   }
+  const forReview = () => ({ language, body: t.adultReview, reviewReader: child.id, buttons: [button("again", t.again)] });
+  if (event.flagged) return forReview();
+  const allowed = ["local", "KZ"].includes(transcriberRegion) || (transcriberRegion === "crossBorder" && family.consent.crossBorder === true);
+  if (!allowed) return { language, body: t.providerUnavailable, buttons: [button("again", t.again)] };
   const audio = await transcribe(event, page, child.language);
+  if (audio.flagged === true) return forReview();
   if (audio.issue) return { language, body: t[audio.issue] || t.unavailable, buttons: [button("again", t.again)] };
   const score = scoreReading(page, audio.transcript, audio.seconds, child.language);
-  child.lastWcpm = score.wcpm;
+  const previouslyFinished = child.finished;
   const coins = reward(child, child.page, book.pages.length, score, event.at);
+  recordReading(child, { score, seconds: audio.seconds, at: event.at, bookFinished: !previouslyFinished && child.finished });
   const passed = score.accuracy >= 0.6;
   family.stage = passed ? "passed" : "read";
   const praise = score.accuracy >= 0.9 ? t.excellent : passed ? t.good : t.gentle;
@@ -111,7 +122,7 @@ export async function handleTurn(family, event, { library, transcribe }) {
   metrics.push("+" + coins + " 🪙", "🔥 " + child.wallet.streak + " " + t.days);
   const caption = [praise, metrics.join(" · "), audio.clipped ? t.clipped : ""].filter(Boolean).join("\n");
   const next = child.page + 1 === book.pages.length ? t.finish : t.next;
-  return { language, body: caption, reaction: "👂", parentMetrics: { wcpm: score.wcpm, completion: score.completion },
+  return { language, body: caption, reaction: "👂",
     card: { title: book.title, page: child.page + 1, text: page, marks: score.marks, stars: score.stars },
     buttons: [passed ? button("next:" + pageKey, next) : button("listen", t.listen), button("again", t.again)], openBookser: true };
 }

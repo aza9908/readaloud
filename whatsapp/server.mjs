@@ -6,6 +6,7 @@ import { dirname } from "node:path";
 import { buildSimulator, loadLibrary } from "./build-simulator.mjs";
 import { DEMO_USER, parseWebhook, simulateTurn } from "./events.mjs";
 import { ReadingRuntime } from "./runtime.mjs";
+import { parentAction } from "./parent.mjs";
 
 export function signature(raw, secret) {
   return "sha256=" + createHmac("sha256", secret).update(raw).digest("hex");
@@ -75,7 +76,14 @@ export function createWhatsAppServer({ runtime, html, appSecret = randomBytes(32
       if (!/^(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.host ?? "")) throw httpError(403, "Local host required");
       if (req.headers.origin && req.headers.origin !== "http://" + req.headers.host) throw httpError(403, "Local origin required");
       if (req.method === "GET" && url.pathname === "/") return send(200, html, "text/html; charset=utf-8");
-      if (req.method === "GET" && url.pathname === "/api/family") return sendJson(runtime.family(DEMO_USER));
+      if (req.method === "GET" && url.pathname === "/api/family") {
+        runtime.checkWeekly();
+        return sendJson(runtime.publicFamily(DEMO_USER));
+      }
+      if (req.method === "POST" && url.pathname === "/api/parent") {
+        if (!/^application\/json(?:;|$)/i.test(req.headers["content-type"] ?? "")) throw httpError(415, "JSON required");
+        return sendJson(await parentAction(runtime, DEMO_USER, json(await readBody(req))));
+      }
       if (req.method === "POST" && url.pathname === "/api/simulate") {
         if (!/^application\/json(?:;|$)/i.test(req.headers["content-type"] ?? "")) throw httpError(415, "JSON required");
         const input = json(await readBody(req));
@@ -104,5 +112,12 @@ if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) 
   server.listen(port, "127.0.0.1", () => {
     console.log("Bookser WhatsApp simulator is ready at http://127.0.0.1:" + port);
     runtime.drain().catch(() => console.error("Could not recover the local queue"));
+    const tick = () => {
+      try { runtime.checkWeekly(); } catch { console.error("Could not save the local weekly notice"); }
+    };
+    tick();
+    const interval = setInterval(tick, 60000);
+    interval.unref();
+    server.once("close", () => clearInterval(interval));
   });
 }
