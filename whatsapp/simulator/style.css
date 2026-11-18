@@ -1,0 +1,45 @@
+:root{color-scheme:light;font-family:Nunito,"Avenir Next",Avenir,system-ui,sans-serif;color:#192d25;background:#f7f4eb;--green:#175840;--ink:#192d25;--line:#d9d8c9;--dim:#53645a;--card:#fffdf7}
+*{box-sizing:border-box}
+body{margin:0}
+main{max-width:1130px;margin:auto;padding:0 38px 25px}
+.mast,.wordmark,.mode,.chat-head,.panel-title,.duration-row,.reader-head,.composer{display:flex;align-items:center}
+.mast{justify-content:space-between;border-bottom:1px solid var(--line);padding:22px 0 18px}
+.wordmark{gap:9px;font-weight:850;font-size:23px;letter-spacing:-1.2px}
+.brand{background:#ffca75;color:#203c30;width:29px;height:29px;border-radius:9px;text-align:center;line-height:27px;font-weight:900;font-size:29px}
+.mode{gap:8px;color:#42584a;font-size:13px;font-weight:650}.mode i{display:block;width:8px;height:8px;background:#477f50;border-radius:50%}
+.intro{padding:24px 0 21px}.intro h1{margin:0;font-size:clamp(29px,4vw,45px);line-height:1.13;font-weight:780;letter-spacing:-.052em}
+.intro p,.panel p,.footer{margin:7px 0 0;color:var(--dim);font-size:14px;line-height:1.5}
+.workspace{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(295px,.85fr);gap:20px;align-items:start}
+.phone,.panel{border:1px solid var(--line);border-radius:21px;overflow:hidden;background:var(--card);box-shadow:0 4px 18px #273b2309}
+.phone{display:flex;flex-direction:column;height:clamp(580px,69vh,790px)}
+.chat-head{background:#193f34;color:#fffaf0;padding:13px 19px;gap:11px}
+.portrait{width:44px;height:44px;border-radius:50%;background:#f6daac;object-fit:cover;border:1px solid #ffffff70}
+h2{font-size:19px;font-weight:750;letter-spacing:-.04em;line-height:1.2;margin:0}
+.chat-head span{font-size:12px;color:#d8e5d9}.head-menu{margin-left:auto;border:1px solid #ffffff50;background:transparent;color:white;border-radius:9px;padding:5px 9px;font-size:18px}
+.thread{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:19px;background-color:#ebece0;background-image:radial-gradient(#ced5c2 1px,transparent 1px);background-size:18px 18px;scrollbar-width:thin}
+.bubble{width:fit-content;max-width:92%;background:white;border:1px solid #d8ddcf;border-radius:3px 13px 13px 13px;padding:11px 13px;margin:0 0 12px;box-shadow:0 2px 2px #26331e07;line-height:1.48;font-size:15px;overflow-wrap:anywhere}
+.bubble.in{background:#d9efcb;border-color:#c8ddba;margin-left:auto;max-width:80%;border-radius:13px 3px 13px 13px;font-size:14px}
+.bubble p{margin:0;white-space:pre-line}.bubble .sheet{border-left:3px solid #be9148;background:#faf5e9;border-radius:3px 10px 10px 3px;padding:12px;margin:8px 0 2px}
+.sheet p{margin-top:4px}.sheet strong,.form-title{font-size:13px;color:#505d4d}.bubble button,.bubble a{font-size:13px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.actions button,.actions a{color:#15563e;border:1px solid #afcbb5;background:#f3faf2;border-radius:8px;padding:6px 10px;font-weight:700;text-decoration:none}
+button,a,input,select,textarea{font:inherit}button,a,select,input[type=checkbox]{cursor:pointer}button{border:0}
+button:disabled,fieldset:disabled{opacity:.54}fieldset:disabled button,button:disabled{cursor:default}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #c38412;outline-offset:2px}
+button:enabled:hover,.actions a:hover{filter:brightness(.94)}
+.composer{gap:9px;padding:10px 13px;border-top:1px solid var(--line)}input,select,textarea{border:1px solid #c5ccbd;border-radius:8px;background:#fffefa;color:var(--ink);padding:8px 10px;min-width:0}
+.composer input{flex:1;border-radius:25px;background:#fafaf4}.send-text{border-radius:50%;width:36px;height:36px;background:var(--green);color:white}
+aside{display:grid;gap:14px}.panel{padding:17px 20px}.panel-title{gap:10px}.voice-icon{display:flex;align-items:center;justify-content:center;gap:3px;background:#ffdfaa;border-radius:11px;width:36px;height:36px}
+.voice-icon i{width:2px;background:#805318;height:7px;border-radius:3px}.voice-icon i:nth-child(even){height:15px}.voice-icon i:nth-child(3){height:22px}
+.panel p{font-size:13px}.panel fieldset{padding:0;margin:10px 0 0;border:0;min-width:0;display:grid;gap:5px}
+.panel label,.field-label{font-size:12.5px;font-weight:700;display:block}.panel select,.panel textarea{width:100%;font-size:14px}.panel textarea{resize:vertical;min-height:68px;line-height:1.38}.panel select+label{margin-top:5px}
+.duration-row{justify-content:space-between;gap:10px;margin:4px 0}.duration-row input{width:80px;font-size:14px;padding:5px 8px}
+.primary{background:var(--green);color:white;font-weight:700;padding:9px 12px;border-radius:9px}.wide{width:100%;text-align:left;display:flex;justify-content:space-between;font-size:14px}
+.text-button{color:#435c4b;background:transparent;font-size:12px;padding:0;margin-top:10px;text-decoration:underline;text-underline-offset:3px}
+.reader-head{justify-content:space-between;gap:8px}.reader-avatar{width:36px;height:36px;background:#efe9d7;border-radius:50%;display:grid;place-items:center;font-size:21px}.reader dl{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 0}
+.reader dt{font-size:11px;color:var(--dim);font-weight:650}.reader dd{margin:0;font-size:21px;font-weight:720;font-variant-numeric:tabular-nums}
+.chat-form{border-top:1px solid #d7dcca;margin-top:9px;padding-top:9px;display:grid;gap:8px}.check{display:flex;gap:7px;font-size:13px;align-items:start}.check input{accent-color:#186042;margin-top:3px}
+.profile-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.field-label select{display:block;width:100%;font-size:13px;margin-top:3px}
+.feedback{display:block;width:100%;max-width:495px;height:auto;margin:8px 0 3px}.key{color:#526454;font-size:11px}.key b{color:#9b3233}.key em{color:#82530a;font-style:normal}
+.footer{font-size:12px;text-align:center;margin-top:17px}.status{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#193f34;color:white;box-shadow:0 3px 15px #0002;border-radius:10px;padding:9px 14px;font-size:13px;max-width:90vw;z-index:5}
+.sr{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}
+@media(max-width:760px){main{padding:0 14px 18px}.mast{padding:13px 0}.workspace{grid-template-columns:1fr;gap:13px}.intro{padding:17px 0}.phone{height:clamp(420px,61vh,630px)}.panel{padding:15px}.thread{padding:12px}.bubble{max-width:96%}.status{width:max-content}}

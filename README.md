@@ -37,6 +37,8 @@ books/{bookId}                               — книги; страницы в
 
 ## Быстрый старт
 
+Локальный симулятор Bookser в WhatsApp поддерживает казахский и русский языки. Для пробного чтения доступны учебные расшифровки и вымышленные профили. [Запуск симулятора и подключение Meta](whatsapp/README.md)
+
 ### 1. Firebase-проект
 
 1. [console.firebase.google.com](https://console.firebase.google.com) → Add project

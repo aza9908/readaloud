@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-transport="@@TRANSPORT@@">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#163c32"><title>Bookser · WhatsApp reading simulator</title>
+  <style>@@CSS@@</style>
+</head>
+<body>
+  <main>
+    <header class="mast">
+      <div class="wordmark"><span class="brand" aria-hidden="true">b</span>Bookser</div>
+      <span class="mode"><i aria-hidden="true"></i><span id="mode">Local simulator</span></span>
+    </header>
+    <section class="intro"><h1>WhatsApp reading simulator</h1><p>Choose a chat language, add a fictional reader, then try a sample voice note.</p></section>
+    <div class="workspace">
+      <section class="phone" aria-label="Simulated WhatsApp conversation">
+        <header class="chat-head"><img class="portrait" alt="" src="data:image/webp;base64,@@PORTRAIT@@">
+          <div><h2>Bookser</h2><span>Қазақша · Русский</span></div>
+          <button type="button" class="head-menu" id="menu" aria-label="Reader menu" disabled>☰</button>
+        </header>
+        <div id="thread" class="thread" role="log" aria-label="Conversation" aria-live="off"></div>
+        <form id="composer" class="composer"><label class="sr" for="message">Message</label>
+          <input id="message" name="message" maxlength="240" placeholder="Сәлем / Привет" autocomplete="off">
+          <button class="send-text" aria-label="Send message" type="submit">➤</button>
+        </form>
+      </section>
+      <aside aria-label="Simulator controls">
+        <section class="panel lab">
+          <div class="panel-title"><span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2>Voice-note lab</h2></div>
+          <p id="lab-hint">Add a reader in the chat to unlock the sample transcript.</p>
+          <fieldset id="lab-fields" disabled>
+            <legend class="sr">Sample voice note</legend>
+            <label for="preset">Sample</label><select id="preset"><option value="practice">With missed words</option><option value="perfect">Full page</option><option value="silence">Silence</option></select>
+            <label for="transcript">Transcript</label><textarea id="transcript" rows="4" maxlength="5000" placeholder="The reading sample will appear here."></textarea>
+            <div class="duration-row"><label for="seconds">Duration in seconds</label><input id="seconds" type="number" min="0" max="3600" step="1" value="30"></div>
+            <button type="button" class="primary wide" id="send-note">Send sample voice note <span aria-hidden="true">↗</span></button>
+          </fieldset>
+          <button type="button" id="replay" class="text-button" disabled>Replay last delivery</button>
+        </section>
+        <section class="panel reader">
+          <div class="reader-head"><div><h2>Reader progress</h2><p id="reader-name">No reader selected</p></div><span class="reader-avatar" id="reader-avatar" aria-hidden="true">☷</span></div>
+          <dl><div><dt>Coins</dt><dd id="coins">—</dd></div><div><dt>Day streak</dt><dd id="streak">—</dd></div><div><dt>Words/min</dt><dd id="speed">—</dd></div></dl>
+          <button type="button" id="erase" class="text-button" disabled>Delete demo family</button>
+        </section>
+      </aside>
+    </div>
+    <p class="footer">Fictional profiles and sample transcripts only. No microphone or WhatsApp account required.</p>
+    <span id="reply-announcement" class="sr" role="status" aria-live="polite" aria-atomic="true"></span>
+    <p id="status" class="status" role="status" aria-live="polite" hidden></p>
+  </main>
+  <script type="application/json" id="books">@@LIBRARY@@</script><script>@@BUNDLE@@</script>
+</body></html>
