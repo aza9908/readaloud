@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "@fontsource/pt-serif/400.css";
+import "@fontsource/pt-serif/400-italic.css";
+import "@fontsource-variable/source-sans-3";
 import "./index.css";
 import "./reading-room.css";
 import "./controls.css";

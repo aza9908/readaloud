@@ -13,6 +13,7 @@ import {
   AVATARS, RARITY_COLOR, RARITY_LABEL, toAvatarValue, isAvatarId, fromAvatarValue,
   type AvatarDef, type Rarity,
 } from "@/lib/avatars";
+import { useFamilyReaders } from "@/components/FamilyReaders";
 import { CompanionPicker } from "@/components/CompanionPicker";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { AvatarPortrait } from "@/components/AvatarPortrait";
@@ -89,7 +90,9 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [coins, setCoins] = useState(profile.coins ?? 0);
   const [owned, setOwned] = useState<string[]>(profile.unlockedAvatars ?? []);
-  const [equipped, setEquipped] = useState(profile.avatar);
+  const { portrait, otherAnimals } = useFamilyReaders();
+  const [choice, setEquipped] = useState<string | null>(null);
+  const equipped = portrait(profile.id, choice ?? profile.avatar);
 
   const list = useMemo(() => {
     /**
@@ -171,7 +174,7 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
           </div>
           <fieldset className="starter-display">
             <legend>{c.starters}</legend>
-            <CompanionPicker value={equipped} onSelect={v => void wear(v)} language={language} disabled={!!busy} />
+            <CompanionPicker value={equipped} taken={otherAnimals(profile.id)} onSelect={v => void wear(v)} language={language} disabled={!!busy} />
           </fieldset>
           <div className="hero-filters">
             {FILTERS.map((f) => (

@@ -1,3 +1,4 @@
+import { BookJacket } from "@/components/BookJacket";
 import { BookserIcon } from "@/components/BookserIcon";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute, useSearch } from "wouter";
@@ -16,14 +17,15 @@ import { useSpeechReader, type ProgressSnapshot } from "@/hooks/useSpeechReader"
 import { useSttEscalation } from "@/hooks/useSttEscalation";
 import { KaraokeText } from "@/components/KaraokeText";
 import { Fireworks } from "@/components/Fireworks";
-import { ThemeToggle, useDarkAppearance } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
-import { storyArt } from "@/lib/storyArt";
+import { pageWordOffsets, positionPercent } from "@/lib/readingProgress";
+import { readingArt, type StoryArt } from "@/lib/storyArt";
 import { StoryScene } from "@/components/StoryScene";
 import { BackButton, RoomSheet } from "@/components/RoomControls";
-import { ChevronRight, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
+import { ChevronRight, Bookmark, Minus, Plus, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
 import { updateStreakAndHardWords, awardPage, grantCard } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
 import { AWARD_EXPLANATION, goldenWordIndexes, COMPREHENSION_BONUS, type PageAwardResult } from "@/lib/coins";
@@ -52,111 +54,34 @@ function retellCheckpoints(totalPages: number): Set<number> {
   return marks;
 }
 
-/**
- * Memoized so the 1-second progress tick never repaints the illustration.
- * Remote images (Wikisource / Commons) can fail or be missing, so a broken
- * image never leaves a gap — the block simply disappears.
- */
-const PageIllustration = memo(function PageIllustration({
-  src, fallbackTitle, fallbackEmoji, plate,
-}: {
-  src: string | null;
-  plate?: string;
-  /** When there is no photo, a scene is drawn from these. */
-  fallbackTitle?: string;
-  fallbackEmoji?: string;
+const ReadingSurface = memo(function ReadingSurface({ illustrationSrc, art, language, words, paragraphSizes, registerWordEl, fontSizePx, goldenWords }: {
+  illustrationSrc?: string | null;
+  art: StoryArt;
+  language: Book["language"];
+  words: string[];
+  paragraphSizes: number[];
+  registerWordEl: (index: number, el: HTMLElement | null) => void;
+  fontSizePx: number;
+  goldenWords: Set<number>;
 }) {
-  const dark = useDarkAppearance();
-  const [failed, setFailed] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => { setFailed(false); setLoaded(false); }, [src]);
-
-  if ((!src || failed) && plate) {
-    return <figure className="story-bookplate"><img src={plate} width={720} height={480} alt={fallbackTitle ?? ""} /></figure>;
-  }
-
-  // No image (or it failed): draw a scene so the page still has a picture.
-  if ((!src || failed) && fallbackTitle) {
-    return (
-      <figure className="mb-5 overflow-hidden rounded-3xl shadow-soft">
-        <StoryScene
-          title={fallbackTitle}
-          emoji={fallbackEmoji ?? "📖"}
-          className="w-full block aspect-[400/220]"
-          dark={dark}
-        />
-      </figure>
-    );
-  }
-  if (!src || failed) return null;
   return (
-    <figure className="mb-5 overflow-hidden rounded-3xl bg-black/[0.03] dark:bg-white/5 shadow-soft grid place-items-center aspect-[400/220]">
-      <img
-        src={src}
-        alt=""
-        loading="eager"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        onLoad={() => setLoaded(true)}
-        onError={() => setFailed(true)}
-        className={`w-full h-full object-contain transition-opacity duration-500 ${
-          loaded ? "opacity-100" : "opacity-0"
-        }`}
-      />
-    </figure>
+    <main className="reader-page flex-1">
+      <div className="reading-canvas" lang={language}>
+        <KaraokeText words={words} paragraphSizes={paragraphSizes} registerWordEl={registerWordEl}
+          fontSizePx={fontSizePx} goldenWords={goldenWords} />
+      </div>
+      <StoryScene src={illustrationSrc} art={art} />
+    </main>
   );
 });
 
-/**
- * The entire reading surface (illustration + word spans), frozen behind memo.
- * The parent ReadingPage re-renders ~1×/sec to update the progress header,
- * but this subtree only re-renders when the page actually turns (words change)
- * or the font size changes — so the per-second tick does ZERO work here.
- */
-const ReadingSurface = memo(
-  function ReadingSurface({
-    illustrationSrc,
-    plate,
-    sceneTitle,
-    sceneEmoji,
-    words,
-    paragraphSizes,
-    registerWordEl,
-    fontSizePx,
-    goldenWords,
-  }: {
-    illustrationSrc: string | null;
-    plate?: string;
-    sceneTitle?: string;
-    sceneEmoji?: string;
-    words: string[];
-    paragraphSizes: number[];
-    registerWordEl: (index: number, el: HTMLElement | null) => void;
-    fontSizePx: number;
-    goldenWords?: Set<number>;
-  }) {
-    return (
-      <main className="reader-page flex-1">
-        <PageIllustration src={illustrationSrc} plate={plate} fallbackTitle={sceneTitle} fallbackEmoji={sceneEmoji} />
-        <div className="reading-canvas rounded-3xl px-6 py-7 text-ink dark:text-[#e8e5f2]">
-          <KaraokeText
-            words={words}
-            paragraphSizes={paragraphSizes}
-            registerWordEl={registerWordEl}
-            fontSizePx={fontSizePx}
-            goldenWords={goldenWords}
-          />
-        </div>
-      </main>
-    );
-  },
-  (prev, next) =>
-    prev.words === next.words &&
-    prev.fontSizePx === next.fontSizePx &&
-    prev.illustrationSrc === next.illustrationSrc &&
-    prev.sceneTitle === next.sceneTitle &&
-    prev.plate === next.plate,
-);
+function readerTypeSize(profileId: string) {
+  try {
+    const saved = Number(localStorage.getItem("bookser.type." + profileId));
+    if (Number.isInteger(saved) && saved >= 16 && saved <= 30 && saved % 2 === 0) return saved;
+  } catch { /* Device storage is optional. */ }
+  return 20;
+}
 
 function fmtClock(ms: number): string {
   const s = Math.floor(ms / 1000);
@@ -181,11 +106,19 @@ export default function ReadingPage() {
   const bookId = params?.bookId ?? "";
   const profileId = new URLSearchParams(search).get("profile") ?? "";
 
+  useEffect(() => { window.scrollTo(0, 0); }, [bookId, profileId]);
+
   const [book, setBook] = useState<Book | null>(null);
   const [profile, setProfile] = useState<ChildProfile | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
-  const [fontSizePx, setFontSizePx] = useState(18);
+  const [fontSizePx, setFontSizePx] = useState(() => readerTypeSize(profileId));
+  useEffect(() => setFontSizePx(readerTypeSize(profileId)), [profileId]);
+  function adjustType(delta: number) {
+    const next = Math.min(30, Math.max(16, fontSizePx + delta));
+    setFontSizePx(next);
+    try { localStorage.setItem("bookser.type." + profileId, String(next)); } catch { /* Session-only preference. */ }
+  }
   const [resumePrompt, setResumePrompt] = useState<{
     page: number;
     wordIndex: number;
@@ -226,8 +159,6 @@ export default function ReadingPage() {
     wpm: 0,
     struggledWords: [],
   });
-  /** Words on pages already completed this visit — for the progress bar. */
-  const wordsBeforePageRef = useRef(0);
   const profileBeforeRef = useRef<ChildProfile | null>(null);
   const retellMarksRef = useRef<Set<number>>(new Set());
   const lastRetellPageRef = useRef(0);
@@ -272,6 +203,7 @@ export default function ReadingPage() {
   }, [user, bookId, profileId]);
 
   // ── Derive words + paragraph sizes for the current page ──
+  const pageOffsets = useMemo(() => pageWordOffsets(book?.pages ?? []), [book]);
   const pageContent = book?.pages[pageIndex] ?? "";
   const { words, paragraphSizes } = useMemo(() => {
     const paras = pageContent.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
@@ -418,7 +350,6 @@ export default function ReadingPage() {
   pagesLenRef.current = book?.pages.length ?? 0;
 
   const handlePageComplete = useCallback(() => {
-    wordsBeforePageRef.current += wordsLenRef.current;
     const justFinished = pageIndexRef.current; // 0-based index of the page read
     const isLastPage = justFinished + 1 >= pagesLenRef.current;
 
@@ -457,7 +388,7 @@ export default function ReadingPage() {
     }
 
     setPageIndex((i) => i + 1); // READ-05
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, []);
 
   const reader = useSpeechReader({
@@ -523,29 +454,12 @@ export default function ReadingPage() {
     );
   }
 
-  const totalBookWords = book.totalWords || 1;
-  const progressPct = Math.min(
-    100,
-    Math.round(
-      ((baseWordsRef.current -
-        (restoreRef.current?.wordIndex ?? 0) +
-        wordsBeforePageRef.current +
-        reader.currentIndex) /
-        totalBookWords) *
-        100,
-    ),
-  );
+  const progressPct = finished ? 100 : positionPercent(pageOffsets, pageIndex, restoreRef.current?.wordIndex ?? reader.currentIndex);
 
   const resume = (fromSaved: boolean) => {
     if (!resumePrompt) return;
     if (fromSaved) {
-      baseWordsRef.current = resumePrompt.wordsRead;
       baseMsRef.current = resumePrompt.durationMs;
-      // For the progress bar: words on pages BEFORE the restored page.
-      wordsBeforePageRef.current = Math.max(
-        0,
-        resumePrompt.wordsRead - resumePrompt.wordIndex,
-      );
       // The hook will re-count from the restored word, so subtract it from base
       // to avoid double counting within the restored page.
       baseWordsRef.current = Math.max(
@@ -562,7 +476,6 @@ export default function ReadingPage() {
     } else {
       baseWordsRef.current = 0;
       baseMsRef.current = 0;
-      wordsBeforePageRef.current = 0;
       setPageIndex(0);
       readerRef.current.seek(0);
     }
@@ -586,28 +499,32 @@ export default function ReadingPage() {
             <p>Страница {pageIndex + 1} из {book.pages.length}</p>
           </div>
           <div className="type-controls" role="group" aria-label="Размер текста">
-            <button disabled={fontSizePx <= 16} onClick={() => setFontSizePx(s => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
-            <button disabled={fontSizePx >= 30} onClick={() => setFontSizePx(s => Math.min(30, s + 2))} aria-label="Больше">A+</button>
+            <button type="button" disabled={fontSizePx <= 16} onClick={() => adjustType(-2)} aria-label="Меньше" title="Уменьшить текст">
+              <span aria-hidden="true">A</span><Minus size={11} aria-hidden="true" />
+            </button>
+            <output aria-label="Размер шрифта" aria-live="polite">{fontSizePx}<span className="sr-only"> пикселей</span></output>
+            <button type="button" disabled={fontSizePx >= 30} onClick={() => adjustType(2)} aria-label="Больше" title="Увеличить текст">
+              <span aria-hidden="true">A</span><Plus size={12} aria-hidden="true" />
+            </button>
           </div>
           <ThemeToggle />
         </div>
         <div className="reader-meter">
           <div className="reader-meter-stats">
-            <span>{progressPct}% прочитано</span>
+            <span className="meter-caption"><strong>{progressPct}%</strong> прочитано</span>
             <span>{fmtClock(baseMsRef.current + reader.elapsedMs)} · {reader.wpm} сл/мин</span>
             <CoinCounter coins={coins} />
           </div>
-          <div role="progressbar" aria-label="Прочитано" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} className="reader-progress">
-            <div style={{ width: `${progressPct}%` }} />
+          <div role="progressbar" aria-label="Прочитано" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} aria-valuetext={progressPct + "%, страница " + (pageIndex + 1) + " из " + book.pages.length} className="reader-progress">
+            <div data-empty={progressPct === 0} style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       </header>
 
       <ReadingSurface
         illustrationSrc={book.pageImages?.[pageIndex] ?? (pageIndex === 0 ? book.coverUrl : null)}
-        plate={pageIndex === 0 ? storyArt(book.language, book.title)?.page : undefined}
-        sceneTitle={pageIndex === 0 ? book.title : undefined}
-        sceneEmoji={book.coverEmoji}
+        art={readingArt(book, pageIndex)}
+        language={book.language}
         words={words}
         paragraphSizes={paragraphSizes}
         registerWordEl={reader.registerWordEl}
@@ -661,12 +578,12 @@ export default function ReadingPage() {
       {/* READ-09: resume dialog */}
       {resumePrompt && (
         <RoomSheet title="Продолжить чтение?" onClose={stopAndExit} className="small-sheet text-center space-y-4">
-            <div className="text-5xl"><BookserIcon value="book" size={62} /></div>
-            <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Продолжить чтение?</h2>
+            <div className="resume-cover"><BookJacket book={book} sizes="224px" /></div>
+            <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white" lang={book.language}>{book.title}</h2>
             <p className="text-sm text-ink-soft dark:text-ink-faint">
               Ты остановился на{" "}
               <span className="text-brand-500 font-extrabold">
-                {Math.min(99, Math.round((resumePrompt.wordsRead / totalBookWords) * 100))}%
+                {positionPercent(pageOffsets, resumePrompt.page, resumePrompt.wordIndex)}%
               </span>{" "}
               книги
             </p>
@@ -695,7 +612,7 @@ export default function ReadingPage() {
           onContinue={() => {
             setRetellFor(null);
             setPageIndex((i) => Math.min(i + 1, book.pages.length - 1));
-            window.scrollTo({ top: 0, behavior: "smooth" });
+            window.scrollTo({ top: 0, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
           }}
         />
       )}

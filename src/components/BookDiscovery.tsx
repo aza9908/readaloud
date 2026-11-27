@@ -1,3 +1,4 @@
+import { BookJacket } from "./BookJacket";
 import { BookserIcon } from "./BookserIcon";
 /**
  * BookDiscovery — shown inside the guide's results screen.
@@ -180,9 +181,9 @@ export function BookDiscovery({ topics, prompt = "", language, profile, uid, onA
           <p className="text-xs text-ink-faint">{c.found}</p>
           {results.map((f) => (
             <div key={f.sourceUrl} className="card p-3 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 grid place-items-center text-xl shrink-0"><BookserIcon value="globe" size={38} /></span>
+              <BookJacket book={{ ...f, coverEmoji: "🌐" }} />
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-sm text-ink dark:text-white truncate">{f.title}</p>
+                <p className="font-bold text-sm text-ink dark:text-white break-words leading-snug">{f.title}</p>
                 {f.snippet && <p className="text-xs text-ink-faint line-clamp-2">{f.snippet}</p>}
               </div>
               <button className="chip chip-on !py-1.5 !px-3 text-xs shrink-0" onClick={() => void addFound(f)}>

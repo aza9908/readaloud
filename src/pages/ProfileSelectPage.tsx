@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useFamilyReaders } from "@/components/FamilyReaders";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import * as Dialog from "@radix-ui/react-dialog";
 import { BookOpen, ChevronRight, Coins, Library, LockKeyhole, LogOut, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { createProfile, watchProfiles } from "@/lib/firestore";
-import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
+import { createProfile } from "@/lib/firestore";
+import { LANGUAGES, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CompanionPicker } from "@/components/CompanionPicker";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -20,25 +21,22 @@ function bookCount(count: number) {
 export default function ProfileSelectPage() {
   const { user, logout } = useAuth();
   const [, navigate] = useLocation();
-  const [profiles, setProfiles] = useState<ChildProfile[] | null>(null);
+  const { profiles, suggested, otherAnimals } = useFamilyReaders();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const [age, setAge] = useState(7);
-  const [avatar, setAvatar] = useState("🦁");
+  const [choice, setChoice] = useState<string | null>(null);
+  const taken = otherAnimals();
+  const avatar = choice && !taken.has(choice) ? choice : suggested;
   const [language, setLanguage] = useState<Language>("ru");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!user) return;
-    return watchProfiles(user.uid, setProfiles);
-  }, [user]);
 
   if (!user) return null;
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!user || !name.trim() || saving) return;
+    if (!user || !profiles || !name.trim() || saving) return;
     setSaving(true);
     setError("");
     try {
@@ -78,7 +76,7 @@ export default function ProfileSelectPage() {
             {profiles === null && <p className="profile-loading" role="status">Загружаем читателей…</p>}
             {profiles?.map(p => (
               <button key={p.id} className="reader-ticket" onClick={() => navigate(`/library?profile=${p.id}`)}>
-                <span className="reader-portrait" aria-hidden="true"><ProfileAvatar value={p.avatar} size={53} /></span>
+                <span className="reader-portrait" aria-hidden="true"><ProfileAvatar profileId={p.id} value={p.avatar} size={53} /></span>
                 <span className="ticket-info">
                   <strong>{p.name}</strong>
                   <span className="ticket-meta"><span>{years.format(p.age)}</span><span><BookOpen size={13} aria-hidden="true" />{bookCount(p.booksCompleted ?? 0)}</span>
@@ -88,9 +86,9 @@ export default function ProfileSelectPage() {
                 <ChevronRight className="ticket-chevron" size={18} aria-hidden="true" />
               </button>
             ))}
-            <Dialog.Root open={creating} onOpenChange={open => { setCreating(open); if (open) setError(""); }}>
+            <Dialog.Root open={creating} onOpenChange={open => { setCreating(open); if (open) { setError(""); setChoice(null); } }}>
               <Dialog.Trigger asChild>
-                <button className="reader-ticket ticket-add"><span className="add-portrait"><Plus aria-hidden="true" /></span>Новый профиль</button>
+                <button className="reader-ticket ticket-add" disabled={!profiles}><span className="add-portrait"><Plus aria-hidden="true" /></span>Новый профиль</button>
               </Dialog.Trigger>
               <Dialog.Portal>
                 <Dialog.Overlay className="room-scrim" />
@@ -103,7 +101,7 @@ export default function ProfileSelectPage() {
                     <label htmlFor="reader-name">Имя ребёнка</label>
                     <input id="reader-name" className="input" placeholder="Имя" value={name} maxLength={40} required onChange={e => setName(e.target.value)} />
                     <fieldset><legend>Аватар</legend>
-                      <CompanionPicker value={avatar} onSelect={setAvatar} />
+                      <CompanionPicker value={avatar} onSelect={setChoice} taken={taken} />
                     </fieldset>
                     <div>
                       <label className="range-label" htmlFor="reader-age">Возраст <output htmlFor="reader-age">{years.format(age)}</output></label>

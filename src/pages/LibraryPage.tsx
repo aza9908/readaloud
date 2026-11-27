@@ -1,4 +1,5 @@
 import { BookserIcon, LanguageMark } from "@/components/BookserIcon";
+import { pageWordOffsets, positionPercent } from "@/lib/readingProgress";
 import { BookJacket } from "@/components/BookJacket";
 import { ReadingMetrics, AchievementBadge } from "@/components/ReadingMetrics";
 import { CloseButton, RoomSheet } from "@/components/RoomControls";
@@ -172,7 +173,7 @@ export default function LibraryPage() {
     <main className="world-shell library-shell">
       <header className="world-bar library-bar">
         <button className="bar-link" onClick={() => navigate("/profiles")}><ChevronLeft size={17} aria-hidden="true" />Читатели</button>
-        <div className="library-reader"><ProfileAvatar value={profile.avatar} size={30} /><span>{profile.name}</span></div>
+        <div className="library-reader"><ProfileAvatar profileId={profile.id} value={profile.avatar} size={30} /><span>{profile.name}</span></div>
         <div className="bar-actions">
           <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
           <ThemeToggle />
@@ -298,7 +299,7 @@ export default function LibraryPage() {
                 : visible
               )?.map(({ book, band, fit, block }, i) => {
               const prog = progressByBook.get(book.id);
-              const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
+              const pct = prog?.open ? positionPercent(pageWordOffsets(book.pages), prog.open.currentPage, prog.open.currentWordIndex) : 0;
               const openBook = () => {
                 if (block) {
                   toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
@@ -315,9 +316,9 @@ export default function LibraryPage() {
                   } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
                   style={{ animationDelay: `${Math.min(i, 5) * 35}ms` }}
                 >
-                  <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
-                    <BookJacket book={book} />
-                    <div className="min-w-0 flex-1">
+                  <button className="shelf-choice flex-1 min-w-0 text-left" onClick={openBook}>
+                    <BookJacket book={book} sizes="(min-width: 75rem) 350px, (min-width: 44rem) 38vw, 96px" />
+                    <div className="shelf-caption min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="book-tile-title font-display font-bold text-ink dark:text-white">{book.title}</p>
                         {book.id === highlightId && (
@@ -461,7 +462,7 @@ export default function LibraryPage() {
         <RoomSheet returnFocus=".dock-progress" title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
             <div className="sheet-toolbar">
               <div className="flex items-center gap-2">
-                <ProfileAvatar value={profile.avatar} size={38} />
+                <ProfileAvatar profileId={profile.id} value={profile.avatar} size={38} />
                 <div>
                   <h2 className="font-display font-extrabold text-xl text-ink dark:text-white leading-none">Мои успехи</h2>
                   <p className="text-sm text-ink-faint">{profile.name}</p>

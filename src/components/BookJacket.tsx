@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { storyArt } from "@/lib/storyArt";
-import type { Book } from "@/lib/types";
-import { BookserIcon } from "./BookserIcon";
+import { jacketArt, type JacketBook } from "@/lib/storyArt";
 
-export function BookJacket({ book }: { book: Book }) {
-  const [failedUrl, setFailedUrl] = useState<string>();
-  const plate = storyArt(book.language, book.title);
-  const photo = book.coverUrl && book.coverUrl !== failedUrl ? book.coverUrl : undefined;
-  return <span className="book-jacket" data-cloth={(book.title.charCodeAt(0) || 0) % 5} aria-hidden="true">
-    {photo ? <img src={photo} className="jacket-photo" alt="" loading="lazy" onError={() => setFailedUrl(photo)} />
-      : plate ? <img className="jacket-plate" src={plate.cover} alt="" width={192} height={128} loading="lazy" />
-      : <BookserIcon value={book.coverEmoji} size={46} />}
-  </span>;
+export function BookJacket({ book, sizes = "80px" }: { book: JacketBook; sizes?: string }) {
+  const [broken, setBroken] = useState<string[]>([]);
+  const art = jacketArt(book);
+  const photo = [book.coverUrl, ...(book.pageImages ?? [])].find(url => url && !broken.includes(url));
+  return (
+    <span className="book-jacket" aria-hidden="true" data-art={photo ? "original" : art.id} data-kind={photo ? "photo" : art.kind}>
+      <img className="jacket-picture" alt="" width={360} height={240} loading="lazy" decoding="async"
+        referrerPolicy="no-referrer" src={photo || art.cover}
+        srcSet={!photo && art.kind === "scene" ? `${art.cover} 360w, ${art.page} 840w` : undefined}
+        sizes={sizes}
+        onError={photo ? () => setBroken(previous => [...previous, photo]) : undefined} />
+    </span>
+  );
 }
