@@ -1,3 +1,4 @@
+import { BookJacket } from "./BookJacket";
 import { BookserIcon, iconLabel } from "@/components/BookserIcon";
 import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /** UploadBookDialog — parents add a book from pasted text or a .txt file.
@@ -156,26 +157,20 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <span className="text-sm font-semibold text-ink-soft dark:text-ink-faint">Обложка</span>
-          <div className="flex flex-wrap gap-1.5">
-            {EMOJI_CHOICES.map((e) => (
-              <button
-                key={e}
-                type="button"
-                onClick={() => setCoverEmoji(e)}
-                className={`text-2xl w-10 h-10 rounded-xl transition-colors ${
-                  coverEmoji === e
-                    ? "bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-500/20"
-                    : "hover:bg-slate-100 dark:hover:bg-slate-700"
-                }`}
-                aria-label={iconLabel(e)} aria-pressed={coverEmoji === e}
-              >
-                <BookserIcon value={e} size={31} />
-              </button>
-            ))}
+        <fieldset className="space-y-1.5">
+          <legend className="text-sm font-semibold text-ink-soft dark:text-ink-faint">Обложка</legend>
+          <div className="cover-composer">
+            <BookJacket book={{ language, title, coverEmoji, isCustom: true }} sizes="120px" />
+            <div className="cover-swatches">
+              {EMOJI_CHOICES.map(symbol => (
+                <button key={symbol} type="button" onClick={() => setCoverEmoji(symbol)}
+                  aria-label={iconLabel(symbol)} title={iconLabel(symbol)} aria-pressed={coverEmoji === symbol}>
+                  <BookJacket book={{ language, title: "", coverEmoji: symbol }} sizes="54px" />
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </fieldset>
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">

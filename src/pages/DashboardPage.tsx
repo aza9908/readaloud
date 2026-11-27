@@ -1,3 +1,4 @@
+import { useFamilyReaders } from "@/components/FamilyReaders";
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { History, Languages, Medal } from "lucide-react";
@@ -5,12 +6,11 @@ import { BookserIcon, LanguageMark } from "@/components/BookserIcon";
 import { ReadingMetrics, AchievementBadge } from "@/components/ReadingMetrics";
 import { SectionHeader } from "@/components/RoomControls";
 import { useAuth } from "@/hooks/useAuth";
-import { getAchievements, getSessions, watchProfiles } from "@/lib/firestore";
+import { getAchievements, getSessions } from "@/lib/firestore";
 import { badgeById } from "@/lib/achievements";
 import {
   LANGUAGES,
   type Achievement,
-  type ChildProfile,
   type Language,
   type ReadingSession,
 } from "@/lib/types";
@@ -33,8 +33,10 @@ function fmtDuration(ms: number): string {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [profiles, setProfiles] = useState<ChildProfile[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const { profiles: family } = useFamilyReaders();
+  const profiles = family ?? [];
+  const [choice, setSelected] = useState<string | null>(null);
+  const selected = profiles.find(p => p.id === choice)?.id ?? profiles[0]?.id;
   const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [langFilter, setLangFilter] = useState<Language | "all">("all");
@@ -45,14 +47,6 @@ export default function DashboardPage() {
    */
   const [unlockedAt, setUnlockedAt] = useState<number | null>(null);
   const unlocked = isUnlockFresh(unlockedAt, Date.now());
-
-  useEffect(() => {
-    if (!user) return;
-    return watchProfiles(user.uid, (ps) => {
-      setProfiles(ps);
-      setSelected((cur) => cur ?? ps[0]?.id ?? null);
-    });
-  }, [user]);
 
   useEffect(() => {
     if (!user || !selected) return;
@@ -109,7 +103,7 @@ export default function DashboardPage() {
         <div className="report-content">
           <section className="report-overview">
             <div className="report-owner">
-              <ProfileAvatar value={profile.avatar} size={60} />
+              <ProfileAvatar profileId={profile.id} value={profile.avatar} size={60} />
               <div>
                 <p className="text-2xl font-display font-extrabold text-ink dark:text-white leading-tight">
                   {profile.name}

@@ -23,6 +23,7 @@ import {
   getProfile, findOrCreateMatch, watchMatch, submitMatchAnswer,
   advanceMatchRound, awardMatchCoins, grantTournamentAvatar, leaveWaitingMatch,
 } from "@/lib/firestore";
+import { useFamilyReaders } from "@/components/FamilyReaders";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { SectionHeader } from "@/components/RoomControls";
 import { dailyTasks } from "@/lib/mathGenerator";
@@ -58,6 +59,7 @@ export default function ArenaPage() {
     return watchMatch(matchId, (m) => setMatch(m as unknown as Match | null));
   }, [matchId]);
 
+  const { portrait } = useFamilyReaders();
   const startMatch = async () => {
     if (!profile || joining) return;
     setJoining(true);
@@ -65,7 +67,7 @@ export default function ArenaPage() {
       const grade = gradeForAge(profile.age) as Grade;
       const id = await findOrCreateMatch({
         kind: "math", mode: DEFAULT_MODE, grade,
-        player: { profileId: profile.id, name: profile.name, avatar: profile.avatar },
+        player: { profileId: profile.id, name: profile.name, avatar: portrait(profile.id, profile.avatar) },
         buildRounds: (g: number) => buildMathRounds(g as Grade),
       });
       setMatchId(id);
@@ -162,7 +164,7 @@ function Waiting({ text, players, need, onCancel }: {
           <div className="flex justify-center flex-wrap gap-3 mt-4">
             {players.map((p) => (
               <div key={p.profileId} className="text-center">
-                <ProfileAvatar value={p.avatar} size={44} />
+                <ProfileAvatar profileId={p.profileId} value={p.avatar} size={44} />
                 <p className="text-xs font-bold text-white mt-1">{p.name}</p>
               </div>
             ))}
@@ -318,7 +320,7 @@ function TeamStrip({ players, match, highlight, align = "left" }: {
         return (
           <div key={p.profileId} className="text-center">
             <div className={`relative rounded-full ${highlight ? "ring-2 ring-brand-400" : ""}`}>
-              <ProfileAvatar value={p.avatar} size={36} />
+              <ProfileAvatar profileId={p.profileId} value={p.avatar} size={36} />
               {answered && (
                 <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 grid place-items-center text-white text-[10px] font-bold">
                   <BookserIcon value="✅" size={12} line />

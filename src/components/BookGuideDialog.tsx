@@ -265,7 +265,7 @@ export function BookGuideDialog({
                 <BookJacket book={b} />
                 <div className="min-w-0 flex-1">
                   {i === 0 && <p className="eyebrow !text-[10px] mb-0.5">{c.best}</p>}
-                  <p className="font-display font-bold text-ink dark:text-white truncate">{b.title}</p>
+                  <p className="font-display font-bold text-ink dark:text-white break-words leading-snug">{b.title}</p>
                   <p className="text-xs text-ink-faint">{p.reason}</p>
                 </div>
                 <span className="chip chip-on !py-1 !px-3 text-xs shrink-0">{c.read}</span>

@@ -51,7 +51,7 @@ export default function LandingPage() {
       <main>
         <ReadingWorld scene="coast" labelledBy="welcome-title" footer={<ReadingPreview />}>
           <p className="world-kicker"><Mic size={16} aria-hidden="true" />Чтение вслух</p>
-          <h1 id="welcome-title">Открой книгу. <br /><em>Читай вслух.</em></h1>
+          <h1 id="welcome-title"><span>Открой книгу.</span> <em>Читай вслух.</em></h1>
           <p className="world-description">Bookser подсвечивает слова в такт голосу ребёнка. Сказки на русском, казахском и английском.</p>
           <div className="welcome-actions" aria-busy={busy}>
             <button className="world-primary" disabled={busy} onClick={() => void login()}>Войти через Google <ArrowRight size={17} aria-hidden="true" /></button>

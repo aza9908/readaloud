@@ -361,7 +361,7 @@ html {
   border-top: 1px solid var(--edge);
 }
 @media (min-width: 58rem) {
-  .reader-page:has(> figure) { width: min(100%, 67rem); display: grid; grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr); gap: 1.5rem; align-items: start; padding-top: 2rem; }
+  .reader-page:has(> figure) { width: min(100%, 67rem); display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(0, .92fr); gap: 1.5rem; align-items: start; padding-top: 2rem; }
   .reader-page:has(> figure) > figure { position: sticky; top: calc(8rem + env(safe-area-inset-top)); }
 }
 @media (max-height: 32rem) and (orientation: landscape) {

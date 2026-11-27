@@ -1,6 +1,7 @@
 import { Route, Switch, Redirect } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { ToastProvider } from "@/components/Toast";
+import { FamilyReaders } from "@/components/FamilyReaders";
 import LandingPage from "@/pages/LandingPage";
 import ProfileSelectPage from "@/pages/ProfileSelectPage";
 import LibraryPage from "@/pages/LibraryPage";
@@ -26,7 +27,7 @@ export default function App() {
   return (
     <ToastProvider>
       {user ? (
-        <>
+        <FamilyReaders key={user.uid} uid={user.uid}>
           <Switch>
             <Route path="/profiles" component={ProfileSelectPage} />
             <Route path="/library" component={LibraryPage} />
@@ -37,7 +38,7 @@ export default function App() {
             <Route><Redirect to="/profiles" /></Route>
           </Switch>
           <InstallPrompt />
-        </>
+        </FamilyReaders>
       ) : (
         <LandingPage />
       )}

@@ -88,30 +88,6 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
   button:active:enabled, [role="button"]:active { transform: none; }
 }
 
-.book-jacket {
-  --cloth: #427573;
-  width: 4.05rem; background: linear-gradient(92deg, #0003, transparent 13%, #fff2 17%, transparent 24%), var(--cloth);
-  border-radius: .2rem .5rem .5rem .2rem;
-  box-shadow: inset 0 -3px #eadfc7, inset 0 -5px #bfa67a, 2px 4px 5px #23302a27;
-}
-.book-jacket[data-cloth="1"] { --cloth: #96674e; }
-.book-jacket[data-cloth="2"] { --cloth: #46647e; }
-.book-jacket[data-cloth="3"] { --cloth: #765768; }
-.book-jacket[data-cloth="4"] { --cloth: #70754d; }
-.book-jacket[data-cloth] { background: linear-gradient(92deg, #0003, transparent 13%, #fff2 17%, transparent 25%), var(--cloth); }
-.book-jacket::after { border-color: #e9cf8c9c; border-radius: 1px; inset: .38rem .38rem .55rem .67rem; }
-.book-jacket .bookser-icon { margin: 0 0 .12rem .22rem; width: 70%; height: auto; max-height: 58%; }
-.book-jacket .enamel-icon { height: 2.65rem !important; width: 2.65rem !important; background: #f5e9cb; color: #234c4d; }
-.book-jacket .object-art { filter: drop-shadow(0 2px 2px #1b221f70); }
-.jacket-photo { width: 100%; height: 100%; object-fit: cover; }
-.story-frontispiece {
-  min-height: 9rem; display: grid; place-items: center; aspect-ratio: 400 / 220; padding: 1rem;
-  background: radial-gradient(ellipse at 50% 18%, #f8edcf, transparent 68%), linear-gradient(150deg,#cedcd2,#ced4c5 56%,#dfc99d);
-}
-.story-frontispiece[data-night="true"] { background: radial-gradient(ellipse at 50% 23%,#51635d,transparent 72%),linear-gradient(150deg,#263e42,#313f43 65%,#514c41); }
-.frontispiece-frame { width: 100%; height: 100%; display: grid; place-items: center; border: 1px solid #a287575e; border-radius: .65rem; }
-.frontispiece-frame .object-art { filter: drop-shadow(0 6px 5px #33291645); }
-
 .section-shell { width: min(calc(100% - 2rem), 54rem); min-height: 100dvh; margin: 0 auto; padding: 1rem 0 max(3.5rem, env(safe-area-inset-bottom)); }
 .section-header { display: grid; grid-template-columns: 44px 1fr 44px; gap: .7rem; align-items: center; padding-block: .2rem 1.15rem; }
 .section-header h1 { color: var(--ink); justify-self: center; text-align: center; font-size: clamp(1.15rem, 3vw, 1.65rem); font-weight: 660; line-height: 1.12; letter-spacing: -.045em; }
@@ -192,7 +168,6 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
   .content-sheet, .content-sheet.guide-sheet { --sheet-pad: 1.15rem; width: 100%; }
   .content-sheet.pin-sheet, .content-sheet.small-sheet { width: 100%; }
   .reading-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .book-jacket { width: 3.55rem; }
   .reading-metric .bookser-icon { width: 45px; height: 45px; }
   .content-sheet .reading-metric dd { font-size: 1.35rem; }
   .content-sheet .reading-metric[data-metric="watch"] dd { font-size: .98rem; }

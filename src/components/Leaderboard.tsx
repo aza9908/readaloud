@@ -61,7 +61,7 @@ export function Leaderboard({
                     <span className="w-7 text-center font-display font-extrabold text-ink-faint shrink-0">
                       {place <= 3 ? <Medal className="w-5 h-5 mx-auto text-amber-500" strokeWidth={2.2} /> : place}
                     </span>
-                    <ProfileAvatar value={r.avatar} size={32} />
+                    <ProfileAvatar profileId={r.profileId} value={r.avatar} size={32} />
                     <span className="flex-1 font-bold text-ink dark:text-white truncate">
                       {r.name}{isMe && " (ты)"}
                     </span>
@@ -95,7 +95,7 @@ function ChampionCard({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
         Чемпион
       </p>
       <div className="flex items-center justify-center gap-2 mt-2">
-        <ProfileAvatar value={row.avatar} size={44} />
+        <ProfileAvatar profileId={row.profileId} value={row.avatar} size={44} />
         <p className="font-display font-extrabold text-2xl text-ink dark:text-white">{row.name}</p>
       </div>
       <p className="flex items-center justify-center gap-1.5 mt-1 font-bold text-amber-600 dark:text-amber-400">
