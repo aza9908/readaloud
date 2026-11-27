@@ -40,25 +40,25 @@ export default function ProfileSelectPage() {
   };
 
   return (
-    <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto">
+    <div className="profile-shell min-h-dvh mx-auto">
       {/* Сетка 1fr auto 1fr: боковые колонки всегда равной ширины, поэтому
           логотип стоит точно по центру страницы. При flex justify-between он
           съезжал вправо, потому что кнопка «Выйти» шире переключателя темы. */}
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-10">
+      <header className="bookser-toolbar grid grid-cols-[1fr_auto_1fr] items-center">
         <div className="justify-self-start">
           <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => void logout()}>
             Выйти
           </button>
         </div>
-        <span className="justify-self-center font-display font-extrabold text-lg text-ink dark:text-white">
-          Book<span className="text-brand-500">ser</span>
+        <span className="bookser-wordmark justify-self-center">
+          <BookOpen aria-hidden="true" />Book<span>ser</span>
         </span>
         <div className="justify-self-end">
           <ThemeToggle />
         </div>
       </header>
 
-      <div className="text-center mb-8 animate-fade-up">
+      <div className="profile-title text-center mb-8 animate-fade-up">
         <p className="eyebrow mb-2">Профили</p>
         <h1 className="font-display font-extrabold text-4xl text-ink dark:text-white">
           Кто читает сегодня?
@@ -68,7 +68,7 @@ export default function ProfileSelectPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="profile-grid grid grid-cols-2 sm:grid-cols-3 gap-4">
         {(profiles ?? []).map((p, i) => (
           <button
             key={p.id}
@@ -126,13 +126,13 @@ export default function ProfileSelectPage() {
               ))}
             </div>
 
-            <input className="input text-center font-semibold" placeholder="Имя ребёнка" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
+            <input className="input text-center font-semibold" aria-label="Имя ребёнка" placeholder="Имя ребёнка" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
 
             <div>
               <div className="flex justify-between text-sm font-bold text-ink-soft dark:text-ink-faint mb-1">
                 <span>Возраст</span><span className="text-brand-500">{age} лет</span>
               </div>
-              <input type="range" min={5} max={12} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-brand-500" />
+              <input type="range" aria-label="Возраст" min={5} max={12} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-brand-500" />
             </div>
 
             <div>

@@ -4,11 +4,11 @@ import { build } from "esbuild";
 import loadConfig from "tailwindcss/loadConfig.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { LockKeyhole, Mic, Moon, Send, Sun, UsersRound } from "lucide-react";
+import { BookOpen, LockKeyhole, MessageCircle, Mic, Moon, Send, Sun, UsersRound } from "lucide-react";
 import { sampleLibrary } from "./reading.mjs";
 
 const here = path => new URL(path, import.meta.url);
-const icons = { moon: Moon, sun: Sun, lock: LockKeyhole, mic: Mic, send: Send, readers: UsersRound };
+const icons = { book: BookOpen, chat: MessageCircle, moon: Moon, sun: Sun, lock: LockKeyhole, mic: Mic, send: Send, readers: UsersRound };
 function bookserTheme() {
   const { colors, borderRadius, boxShadow, fontFamily } = loadConfig(fileURLToPath(here("../tailwind.config.ts"))).theme.extend;
   const variables = {

@@ -3,60 +3,76 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  --ink: #292633;
+  --muted: #655f69;
+  --accent: #65467b;
+  --accent-ink: #65467b;
+  --accent-panel: #eee7ee;
+  --surface: #fffdf9;
+  --edge: #e2dcd4;
+  --font-system: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
   --canvas: #fbf9f4;
-  --canvas-2: #f5f1e8;
 }
 .dark {
+  color-scheme: dark;
+  --ink: #f6f0f3;
+  --muted: #c9becb;
+  --accent: #74518c;
+  --accent-ink: #e0bdf0;
+  --accent-panel: #342a3d;
+  --surface: #24212a;
+  --edge: #443d48;
   --canvas: #17141f;
-  --canvas-2: #1e1a29;
 }
 
 html { -webkit-text-size-adjust: 100%; }
 
 body {
-  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  color: #2a2540;
-  /* Warm paper canvas with a barely-there gradient — the "book" atmosphere */
-  background:
-    radial-gradient(120% 80% at 50% -10%, #ffffff 0%, var(--canvas) 42%, var(--canvas-2) 100%)
-    fixed;
+  font-family: var(--font-system);
+  color: var(--ink);
+  background: var(--canvas);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-.dark body { color: #ece9f5; }
 
-h1, h2, h3, .font-display {
-  font-family: "Baloo 2", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+h1, h2, h3, .font-display, .font-sans {
+  font-family: var(--font-system);
   letter-spacing: -0.01em;
 }
 
 @layer components {
   /* ── Cards: soft, layered, book-like ── */
   .card {
-    @apply rounded-3xl bg-white shadow-card border border-black/[0.04];
+    @apply rounded-3xl border;
+    background: var(--surface);
+    border-color: var(--edge);
+    box-shadow: 0 3px 14px -9px rgb(42 31 47 / .15);
   }
-  .dark .card { @apply bg-paper-card/[0.06] border-white/[0.06]; background-color: #211d2e; }
 
   /* ── Buttons ── */
   .btn-primary {
-    @apply rounded-2xl bg-brand-500 text-white font-display font-bold text-lg
-           px-6 py-3.5 shadow-lift transition-all duration-200
-           hover:bg-brand-600 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99]
-           disabled:opacity-45 disabled:pointer-events-none disabled:shadow-none;
+    @apply rounded-2xl text-white font-display font-bold px-6 py-3.5
+           transition-colors disabled:opacity-45 disabled:pointer-events-none;
+    background-color: var(--accent);
+    min-height: 44px;
   }
+  .btn-primary:hover { filter: brightness(1.08); }
   .btn-ghost {
-    @apply rounded-2xl bg-white/80 text-ink font-semibold px-5 py-3
-           border border-black/[0.06] shadow-soft transition-all duration-200
-           hover:bg-white hover:-translate-y-0.5 active:translate-y-0;
+    @apply rounded-2xl font-semibold px-5 py-3 border transition-colors;
+    background-color: var(--surface);
+    border-color: var(--edge);
+    color: var(--ink);
+    min-height: 44px;
   }
-  .dark .btn-ghost { @apply text-ink border-white/10; background-color: #262232; color: #ece9f5; }
+  .btn-ghost:hover { background-color: var(--accent-panel); }
 
   .chip {
     @apply rounded-full px-4 py-2 text-sm font-bold transition-all duration-200 select-none;
   }
-  .chip-on  { @apply bg-brand-500 text-white shadow-soft; }
-  .chip-off { @apply bg-white text-ink-soft shadow-soft border border-black/[0.04] hover:bg-brand-50; }
-  .dark .chip-off { background-color: #262232; color: #b8b2cc; @apply border-white/[0.06]; }
+  .chip-on { background-color: var(--accent); color: white; }
+  .chip-off { color: var(--muted); background-color: var(--surface); border: 1px solid var(--edge); }
+  .chip-off:hover { background-color: var(--accent-panel); }
 
   .input {
     @apply w-full rounded-2xl border-2 border-black/[0.06] bg-white px-4 py-3.5
@@ -67,13 +83,16 @@ h1, h2, h3, .font-display {
   .dark .input { background-color: #211d2e; color: #ece9f5; @apply border-white/[0.08]; }
 
   .eyebrow {
-    @apply text-[11px] font-extrabold uppercase tracking-[0.14em] text-brand-500;
+    @apply text-xs font-bold tracking-wide;
+    color: var(--accent-ink);
   }
 
   /* Sheet / modal shell */
   .sheet {
     @apply w-full rounded-t-3xl sm:rounded-3xl bg-white shadow-page
            border border-black/[0.05] p-5 animate-fade-up;
+    max-height: calc(100dvh - env(safe-area-inset-top) - .75rem);
+    overflow-y: auto;
   }
   .dark .sheet { background-color: #211d2e; @apply border-white/[0.06]; }
 }
@@ -102,11 +121,10 @@ h1, h2, h3, .font-display {
 .word-pending { color: inherit; }
 .word-current {
   color: #fff;
-  background-color: #6d4aff;
-  box-shadow: 0 4px 10px -3px rgba(109,74,255,0.5);
+  background-color: var(--accent);
+  box-shadow: none;
 }
-.word-read { color: #6d4aff; }
-.dark .word-read { color: #b09bff; }
+.word-read { color: var(--accent-ink); }
 
 @media (prefers-reduced-motion: reduce) {
   .karaoke-word { transition: none; }
@@ -122,8 +140,8 @@ h1, h2, h3, .font-display {
   box-shadow: inset 0 -0.15em 0 rgba(245, 158, 11, 0.5);
 }
 .word-golden.word-current {
-  background-color: #6d4aff;
-  box-shadow: 0 4px 10px -3px rgba(109, 74, 255, 0.5);
+  background-color: var(--accent);
+  box-shadow: none;
 }
 /* Уже прочитанное золотое слово — гасим фон, монета «собрана». */
 .word-golden.word-read {
@@ -197,14 +215,6 @@ html, body {
   overscroll-behavior: contain;
 }
 
-/* 5. Системный шрифт как запасной. Пока грузится Nunito, текст
-      отрисуется системным шрифтом платформы, а не Times New Roman —
-      разница в первую секунду очень заметна. */
-:root {
-  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-                 "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-}
-
 /* 6. Модальные окна выезжают снизу, как нативные листы, а не появляются
       рывком. Пружина в конце даёт ощущение физического движения. */
 @keyframes sheet-up {
@@ -247,31 +257,6 @@ html {
 }
 @media (prefers-reduced-motion: reduce) {
   .karaoke-word.word-missed { animation: none; }
-}
-
-/* Волна голоса на главном экране. Амплитуда небольшая: это фоновый знак,
-   а не аттракцион. */
-@keyframes wave {
-  0%, 100% { transform: scaleY(0.45); opacity: 0.55; }
-  50%      { transform: scaleY(1);    opacity: 1; }
-}
-@media (prefers-reduced-motion: reduce) {
-  [style*="animation: wave"] { animation: none !important; }
-}
-
-/* Фон получает мягкое свечение сверху — плоская заливка выглядит дёшево,
-   а градиент даёт ощущение глубины, не отвлекая от текста.
-   Держим его очень слабым: это подложка, а не декорация. */
-body {
-  background-image:
-    radial-gradient(120% 68% at 50% -12%, rgba(109, 74, 255, 0.09), transparent 62%),
-    radial-gradient(90% 46% at 88% 4%, rgba(245, 166, 35, 0.06), transparent 58%);
-  background-attachment: fixed;
-}
-.dark body {
-  background-image:
-    radial-gradient(120% 68% at 50% -12%, rgba(124, 92, 255, 0.14), transparent 62%),
-    radial-gradient(90% 46% at 88% 4%, rgba(245, 166, 35, 0.05), transparent 58%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -338,4 +323,164 @@ body {
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+/* Reading room chrome shared across compact, split-view and desktop windows. */
+:where(button, a, input, select, textarea, [role="button"]):focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 3px;
+}
+.bookser-loading {
+  min-height: 100dvh;
+  display: flex;
+  gap: .9rem;
+  flex-flow: column;
+  justify-content: center;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 600;
+}
+.bookser-loading img { border-radius: 1.3rem; }
+.theme-switch {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+}
+.theme-switch:hover { background: var(--accent-panel); }
+.bookser-wordmark {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: 760;
+  line-height: 1;
+  letter-spacing: -.065em;
+  color: var(--ink);
+}
+.bookser-wordmark svg { width: 1.65rem; height: 1.65rem; margin-right: .55rem; color: var(--accent-ink); }
+.bookser-wordmark > span { color: var(--accent-ink); }
+.bookser-toolbar, .welcome-bar {
+  min-height: 4.5rem;
+  padding-block: .75rem;
+  border-bottom: 1px solid var(--edge);
+}
+.welcome-shell, .library-shell, .profile-shell {
+  width: min(100%, 74rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4.4vw, 4rem);
+}
+.welcome-shell { min-height: calc(100svh - env(safe-area-inset-top) - env(safe-area-inset-bottom)); display: flex; flex-direction: column; }
+.welcome-bar { display: flex; align-items: center; justify-content: space-between; }
+.welcome-spread {
+  flex: 1;
+  display: grid;
+  align-content: center;
+  align-items: center;
+  gap: 1.7rem;
+  padding-block: clamp(2rem, 5vw, 5rem);
+}
+.welcome-intro h1 {
+  max-width: 10.8em;
+  margin-block: .75rem 1.1rem;
+  font-size: clamp(2.55rem, 5.6vw, 4.85rem);
+  line-height: 1.03;
+  letter-spacing: -.061em;
+  font-weight: 690;
+  text-wrap: balance;
+}
+.welcome-intro h1 em { font-style: normal; color: var(--accent-ink); }
+.welcome-description { max-width: 36ch; font-size: clamp(1.02rem, 1.55vw, 1.2rem); color: var(--muted); line-height: 1.55; }
+.welcome-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: clamp(1.35rem, 3vw, 2.25rem); }
+.welcome-actions button { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; padding-inline: 1.1rem; font-size: .96rem; }
+.welcome-privacy { display: flex; gap: .35rem; align-items: center; margin-top: .85rem; color: var(--muted); font-size: .8rem; }
+.welcome-privacy svg { flex: none; }
+.welcome-error { margin-top: 1rem; font-size: .93rem; padding: .75rem; color: #913e38; background: #fff0ec; border-radius: .75rem; }
+.dark .welcome-error { background: #442a2a; color: #ffccc4; }
+.book-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 36%) 1fr;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 1.65rem;
+  border: 1px solid var(--edge);
+  background: var(--surface);
+  box-shadow: 0 14px 38px -23px rgb(48 30 54 / .28);
+}
+.book-preview-art { width: 100%; height: 100%; min-height: 9rem; object-fit: cover; object-position: 50% 43%; }
+.book-preview figcaption { padding: clamp(1rem, 2.5vw, 1.75rem); align-self: center; }
+.preview-label { display: flex; gap: .4rem; align-items: center; font-weight: 680; font-size: .76rem; color: var(--accent-ink); }
+.preview-passage { margin-top: .6rem; color: var(--ink); font-size: clamp(1.05rem, 1.8vw, 1.46rem); font-weight: 560; line-height: 1.55; }
+.preview-current { border-radius: .28rem; color: white; background: var(--accent); box-shadow: 2px 0 var(--accent), -2px 0 var(--accent); }
+
+.profile-shell { max-width: 57rem; padding-bottom: 3rem; }
+.profile-title, .library-title { margin-top: clamp(1.75rem, 4vw, 3.5rem); }
+.profile-title h1, .library-title h1 { letter-spacing: -.055em; font-size: clamp(2rem, 4.4vw, 3.2rem); }
+.profile-grid { max-width: 47rem; margin-inline: auto; }
+.library-shell { padding-bottom: 5rem; }
+.library-title { margin-bottom: 1.2rem; }
+.library-layout { display: grid; gap: 1rem; }
+.library-shelf, .library-activities { min-width: 0; }
+.library-activities, .shelf-filter {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  overflow-x: auto;
+  padding: .25rem;
+  scrollbar-width: thin;
+}
+.library-activities { border-block: 1px solid var(--edge); padding-block: .5rem; }
+.library-activities .chip { background: transparent; color: var(--ink); border-color: transparent; }
+.library-activities .chip:hover { background: var(--accent-panel); }
+.library-activities .chip, .shelf-filter .chip { min-height: 44px; }
+.library-guide {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  gap: 1rem;
+  padding: .85rem 1.15rem .85rem .85rem;
+  margin-bottom: 1rem;
+  border-radius: 1.4rem;
+  background: var(--accent-panel);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+}
+.library-guide img { width: 4rem; height: 4rem; border-radius: .95rem; }
+.library-guide > svg { color: var(--accent-ink); }
+.guide-description { color: var(--muted); margin-top: .15rem; }
+.shelf-filter { flex-wrap: wrap; }
+.age-filter { margin-block: .25rem 1rem; }
+.shelf-books { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+.library-shelf [data-book-id] { min-height: 7rem; }
+.reader-toolbar { top: env(safe-area-inset-top); background: var(--canvas); border-bottom: 1px solid var(--edge); }
+.reader-toolbar button { min-width: 44px; min-height: 44px; }
+.reader-page { width: min(100%, 45rem); margin-inline: auto; padding: 1.25rem 1rem calc(16rem + env(safe-area-inset-bottom)); }
+.reader-controls {
+  padding: .8rem max(1rem, env(safe-area-inset-right)) max(.8rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: var(--canvas);
+  border-top: 1px solid var(--edge);
+}
+@media (min-width: 48rem) {
+  .welcome-spread { grid-template-columns: 1.15fr minmax(0, .85fr); gap: clamp(2rem, 5vw, 5rem); }
+  .book-preview { grid-template-columns: 1fr; border-radius: 2rem; width: min(100%, 26rem); justify-self: end; }
+  .book-preview-art { aspect-ratio: 1.25; height: auto; min-height: 0; }
+  .library-layout { grid-template-columns: 10rem minmax(0, 1fr); align-items: start; gap: clamp(1rem, 3vw, 2.5rem); }
+  .library-activities { position: sticky; top: calc(1rem + env(safe-area-inset-top)); flex-direction: column; align-items: stretch; border-block: none; border-right: 1px solid var(--edge); padding: .1rem .6rem .1rem .1rem; }
+  .library-activities .chip { text-align: left; border-radius: .8rem; }
+}
+@media (min-width: 58rem) {
+  .reader-page:has(> figure) { width: min(100%, 67rem); display: grid; grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr); gap: 1.5rem; align-items: start; padding-top: 2rem; }
+  .reader-page:has(> figure) > figure { position: sticky; top: calc(8rem + env(safe-area-inset-top)); }
+}
+@media (max-width: 25rem) {
+  .welcome-actions { flex-flow: column; }
+  .library-guide { gap: .65rem; }
+}
+@media (max-height: 32rem) and (orientation: landscape) {
+  .reader-toolbar, .reader-controls { position: static; }
+  .reader-page, .reader-page:has(> figure) { padding-bottom: 1.25rem; }
 }

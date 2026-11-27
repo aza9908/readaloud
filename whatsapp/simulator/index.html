@@ -9,16 +9,22 @@
 <body>
   <main>
     <header class="mast">
-      <div class="identity"><span class="wordmark">Book<span>ser</span></span><span class="channel">WhatsApp</span></div>
+      <div class="identity"><span class="app-mark"><span class="icon book" aria-hidden="true"></span></span><span class="wordmark">Book<span>ser</span></span><span class="channel">WhatsApp</span></div>
       <nav class="tools" aria-label="Settings">
         <button id="theme" class="icon-button" aria-label="Dark theme" aria-pressed="false"><span class="icon moon" aria-hidden="true"></span><span class="icon sun" aria-hidden="true"></span></button>
         <button id="parent" class="ghost" disabled><span class="icon lock" aria-hidden="true"></span><span data-i="parent">For parents</span></button>
       </nav>
     </header>
     <button id="weekly-notice" class="weekly-notice" type="button" hidden><span class="icon lock" aria-hidden="true"></span><span id="notice-text"></span><span aria-hidden="true">↗</span></button>
-    <section class="intro">
-      <div><h1 data-i="title">Reading room</h1><p data-i="intro">Choose a language, then practise a page with a sample voice note.</p></div>
-      <span class="mode"><i aria-hidden="true"></i><span id="mode">Local simulator</span></span>
+    <section class="intro" aria-labelledby="room-title">
+      <div class="intro-copy">
+        <span class="mode"><i aria-hidden="true"></i><span id="mode">Local simulator</span></span>
+        <h1 id="room-title" data-i="title">Reading room</h1>
+        <p data-i="intro">Choose a language, then practise a page with a sample voice note.</p>
+      </div>
+      <figure class="cover-scene" aria-hidden="true" hidden>
+        <div class="back-cover"></div><div class="book-cover"><i class="book-ribbon"></i><img class="cover-portrait" alt="" width="320" height="320"></div>
+      </figure>
     </section>
     <div class="workspace">
       <section class="phone" aria-labelledby="chat-title">
@@ -29,10 +35,11 @@
             <button type="button" class="icon-button" id="menu" aria-label="Choose reader" disabled><span class="icon readers" aria-hidden="true"></span></button>
           </div>
         </header>
-        <div id="thread" class="thread" role="log" aria-label="Conversation" aria-live="off"></div>
+        <div id="thread" class="thread" role="log" aria-label="Conversation" aria-live="off" tabindex="-1"></div>
         <form id="composer" class="composer"><label class="sr" for="message" data-i="message">Message</label>
           <input id="message" name="message" maxlength="240" placeholder="Сәлем / Привет" autocomplete="off">
           <button class="send-text" aria-label="Send message" type="submit"><span class="icon send" aria-hidden="true"></span></button>
+          <button type="button" id="open-lab" class="voice-jump" aria-controls="voice-lab" hidden><span class="icon mic" aria-hidden="true"></span><span data-i="voiceJump">Voice note</span></button>
         </form>
       </section>
       <aside aria-label="Practice">
@@ -41,8 +48,9 @@
           <div id="page-position" hidden><div class="page-caption"><span id="book-title"></span><span id="page-count"></span></div><progress id="page-progress"></progress></div>
           <dl id="rewards" hidden><div><dt><span aria-hidden="true">🪙</span><span data-i="coins">Coins</span></dt><dd id="coins">0</dd></div><div><dt><span aria-hidden="true">🔥</span><span data-i="streak">Day streak</span></dt><dd id="streak">0</dd></div></dl>
         </section>
-        <section class="panel lab">
-          <div class="panel-title"><span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 data-i="lab">Voice-note lab</h2></div>
+        <section class="panel lab" id="voice-lab" aria-labelledby="lab-heading">
+          <div class="panel-title"><span class="voice-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2 data-i="lab" tabindex="-1" id="lab-heading">Voice-note lab</h2>
+            <button type="button" class="icon-button back-chat" id="back-chat" aria-controls="thread"><span class="icon chat" aria-hidden="true"></span></button></div>
           <p id="lab-hint">Add a reader in the chat to unlock the sample transcript.</p>
           <fieldset id="lab-fields" disabled>
             <legend class="sr" data-i="sampleNote">Sample voice note</legend>

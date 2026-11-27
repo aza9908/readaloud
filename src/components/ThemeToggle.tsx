@@ -1,21 +1,24 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
+const isDark = () => document.documentElement.classList.contains("dark");
+function watchTheme(update: () => void) {
+  const observer = new MutationObserver(update);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  return () => observer.disconnect();
+}
+
 export function ThemeToggle() {
-  const [dark, setDark] = useState(() => localStorage.getItem("theme") === "dark");
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("theme", dark ? "dark" : "light");
-  }, [dark]);
-
+  const dark = useSyncExternalStore(watchTheme, isDark, () => false);
+  const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
   return (
-    <button
-      onClick={() => setDark((d) => !d)}
-      className="w-10 h-10 rounded-2xl grid place-items-center text-lg bg-white/70 dark:bg-white/10 border border-black/5 dark:border-white/10 shadow-soft hover:-translate-y-0.5 transition-all"
-      aria-label={dark ? "Светлая тема" : "Тёмная тема"}
-    >
-      {dark ? <Sun className="w-[18px] h-[18px] text-amber-500" strokeWidth={2.2} /> : <Moon className="w-[18px] h-[18px] text-ink-soft dark:text-ink-faint" strokeWidth={2.2} />}
+    <button type="button" className="theme-switch" aria-label={label} title={label}
+      onClick={() => {
+        const next = !isDark();
+        document.documentElement.classList.toggle("dark", next);
+        try { localStorage.setItem("theme", next ? "dark" : "light"); } catch { /* Use this tab's theme. */ }
+      }}>
+      {dark ? <Sun size={19} aria-hidden="true" /> : <Moon size={19} aria-hidden="true" />}
     </button>
   );
 }

@@ -125,7 +125,7 @@ const ReadingSurface = memo(
     goldenWords?: Set<number>;
   }) {
     return (
-      <main className="flex-1 px-4 pt-5 pb-64 max-w-2xl mx-auto w-full">
+      <main className="reader-page flex-1">
         <PageIllustration src={illustrationSrc} fallbackTitle={sceneTitle} fallbackEmoji={sceneEmoji} />
         <div className="reading-canvas rounded-3xl px-6 py-7 text-ink dark:text-[#e8e5f2]">
           <KaraokeText
@@ -564,9 +564,9 @@ export default function ReadingPage() {
   };
 
   return (
-    <div className="min-h-dvh flex flex-col">
+    <div className="reader-shell min-h-dvh flex flex-col">
       {/* Header — updates ≤1×/sec, cheap */}
-      <header className="sticky top-0 z-20 bg-[var(--canvas)]/90 backdrop-blur-md px-4 pt-3 pb-2.5 border-b border-black/[0.04] dark:border-white/[0.04]">
+      <header className="reader-toolbar sticky z-20 px-4 pt-3 pb-2.5">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <button className="w-9 h-9 shrink-0 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft" onClick={stopAndExit} aria-label="Назад"><ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} /></button>
           <div className="min-w-0 flex-1">
@@ -605,7 +605,7 @@ export default function ReadingPage() {
       />
 
       {/* Controls */}
-      <footer className="fixed bottom-0 inset-x-0 z-20 px-4 pt-6 pb-4 bg-gradient-to-t from-[var(--canvas)] via-[var(--canvas)]/95 to-transparent">
+      <footer className="reader-controls fixed bottom-0 inset-x-0 z-20">
         <div className="max-w-2xl mx-auto space-y-2.5">
           {reader.isListening && (
             <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[#221d31]/90 backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">

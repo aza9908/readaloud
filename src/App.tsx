@@ -9,14 +9,16 @@ import DashboardPage from "@/pages/DashboardPage";
 import MathPage from "@/pages/MathPage";
 import ArenaPage from "@/pages/ArenaPage";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import pagePal from "@/assets/avatars/page-pal.webp";
 
 export default function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-dvh grid place-items-center">
-        <div className="text-6xl animate-float">📖</div>
+      <div className="bookser-loading" role="status">
+        <img src={pagePal} width={68} height={68} alt="" />
+        <span>Открываем Bookser…</span>
       </div>
     );
   }

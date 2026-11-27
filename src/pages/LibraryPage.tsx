@@ -9,6 +9,7 @@ import {
   LANGUAGES, type Achievement, type Book, type ChildProfile, type Language, type ReadingSession,
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import sproutScout from "@/assets/avatars/sprout-scout.webp";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
 import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
@@ -169,8 +170,8 @@ export default function LibraryPage() {
   ];
 
   return (
-    <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto pb-28">
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
+    <main className="library-shell min-h-dvh mx-auto">
+      <header className="bookser-toolbar grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <div className="justify-self-start">
           <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад">
             <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
@@ -188,223 +189,229 @@ export default function LibraryPage() {
         </div>
       </header>
 
-      <div className="mb-5 animate-fade-up">
+      <div className="library-title animate-fade-up">
         <p className="eyebrow mb-1">Библиотека</p>
         <h1 className="font-display font-extrabold text-3xl text-ink dark:text-white">Выбери сказку</h1>
       </div>
 
-      <button
-        onClick={() => setShowGuide(true)}
-        className="w-full mb-5 rounded-3xl p-4 flex items-center gap-3 text-left bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lift hover:-translate-y-0.5 transition-all animate-fade-up"
-      >
-        <span className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center shrink-0"><Sparkles className="w-6 h-6" strokeWidth={2.2} /></span>
-        <span className="min-w-0">
-          <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
-          <span className="block text-sm text-white/80">Найду то, что тебе понравится</span>
-        </span>
-        <ChevronRight className="ml-auto w-6 h-6 shrink-0" strokeWidth={2.4} />
-      </button>
-
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
-        {LANGUAGES.map((l) => (
-          <button key={l.value} onClick={() => setLanguage(l.value)}
-            className={`chip shrink-0 ${language === l.value ? "chip-on" : "chip-off"}`}>
-            {l.flag} {l.label}
+      <div className="library-layout">
+        <nav className="library-activities" aria-label="Занятия и награды">
+          <button className="chip chip-off shrink-0" onClick={() => setShowRating(true)}>
+            <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Рейтинг
           </button>
-        ))}
-        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowRating(true)}>
-          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Рейтинг
-        </button>
-        <button className="chip chip-off shrink-0"
-          onClick={() => navigate(`/arena?profile=${profile.id}`)}>
-          <Swords className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Матч
-        </button>
-        <button className="chip chip-off shrink-0"
-          onClick={() => navigate(`/math?profile=${profile.id}`)}>
-          <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowRewards(true)}>
-          <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>
-          <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
-          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
-        </button>
-      </div>
+          <button className="chip chip-off shrink-0"
+            onClick={() => navigate(`/arena?profile=${profile.id}`)}>
+            <Swords className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Матч
+          </button>
+          <button className="chip chip-off shrink-0"
+            onClick={() => navigate(`/math?profile=${profile.id}`)}>
+            <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
+          </button>
+          <button className="chip chip-off shrink-0" onClick={() => setShowRewards(true)}>
+            <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
+          </button>
+          <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>
+            <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
+          </button>
+          <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
+            <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
+          </button>
+        </nav>
+        <section className="library-shelf" aria-label="Книжная полка">
+          <button
+            onClick={() => setShowGuide(true)}
+            className="library-guide"
+          >
+            <img src={sproutScout} width={64} height={64} alt="" />
+            <span className="min-w-0">
+              <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
+              <span className="block text-sm guide-description">Найду то, что тебе понравится</span>
+            </span>
+            <ChevronRight className="ml-auto w-6 h-6 shrink-0" strokeWidth={2.4} />
+          </button>
 
-      {/* Возрастные категории. По умолчанию открыта категория ребёнка —
-          так он сразу видит подходящее, а не весь список вперемешку. */}
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
-        <span className="text-xs font-bold text-ink-faint shrink-0 mr-0.5">Возраст:</span>
-        <button
-          onClick={() => setBandFilter("all")}
-          className={`chip shrink-0 ${bandFilter === "all" ? "chip-on" : "chip-off"}`}
-        >
-          Все
-        </button>
-        {AGE_BANDS.map((b) => {
-          const isMine = b === bandForAge(profile.age);
-          return (
-            <button
-              key={b}
-              onClick={() => setBandFilter(b)}
-              className={`chip shrink-0 ${bandFilter === b ? "chip-on" : "chip-off"}`}
-            >
-              {BAND_LABEL[b].ru}
-              {isMine && <span className="ml-1 text-[10px] opacity-70">твой</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {books === null && (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-4 flex gap-4 animate-pulse">
-              <div className="w-20 h-20 rounded-2xl bg-black/5 dark:bg-white/5" />
-              <div className="flex-1 space-y-2 py-2">
-                <div className="h-4 w-2/3 rounded bg-black/5 dark:bg-white/5" />
-                <div className="h-3 w-1/2 rounded bg-black/5 dark:bg-white/5" />
-              </div>
-            </div>
-          ))
-        )}
-        {/* Книги есть, но в выбранной категории пусто. Частый случай для
-            малышей: готовые сказки в основном для 6–7 лет и старше. */}
-        {books && books.length > 0 && visible && visible.length === 0 && (
-          <div className="card p-8 text-center sm:col-span-2 space-y-4">
-            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
-            <div>
-              <p className="font-display font-bold text-lg text-ink dark:text-white">
-                В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
-              </p>
-              <p className="text-sm text-ink-faint mt-1">
-                Можно подобрать сказку под этот возраст — она сгенерируется специально
-                для {profile.name}.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn-ghost flex-1" onClick={() => setBandFilter("all")}>
-                Показать все
+          <div className="shelf-filter" role="group" aria-label="Язык книг">
+            {LANGUAGES.map((l) => (
+              <button key={l.value} aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}
+                className={`chip shrink-0 ${language === l.value ? "chip-on" : "chip-off"}`}>
+                {l.flag} {l.label}
               </button>
-              <button className="btn-primary flex-1" onClick={() => setShowGuide(true)}>
-                <Sparkles className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />
-                Подобрать книгу
-              </button>
-            </div>
+            ))}
           </div>
-        )}
 
-        {books?.length === 0 && (
-          <div className="card p-8 text-center sm:col-span-2 space-y-4">
-            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
-            <div>
-              <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
-              <p className="text-sm text-ink-faint mt-1">
-                Загрузи {STARTER_COUNT} готовых сказок на русском, казахском и английском
-              </p>
-            </div>
+          {/* Возрастные категории. По умолчанию открыта категория ребёнка —
+              так он сразу видит подходящее, а не весь список вперемешку. */}
+          <div className="shelf-filter age-filter" role="group" aria-label="Возраст читателя">
+            <span className="text-xs font-bold text-ink-faint shrink-0 mr-0.5">Возраст</span>
             <button
-              className="btn-primary w-full"
-              disabled={installing}
-              onClick={() => void addStarter()}
+              onClick={() => setBandFilter("all")} aria-pressed={bandFilter === "all"}
+              className={`chip shrink-0 ${bandFilter === "all" ? "chip-on" : "chip-off"}`}
             >
-              {installing ? "Загружаю…" : <><Download className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Загрузить {STARTER_COUNT} сказок</>}
+              Все
             </button>
-            <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
+            {AGE_BANDS.map((b) => {
+              const isMine = b === bandForAge(profile.age);
+              return (
+                <button
+                  key={b}
+                  onClick={() => setBandFilter(b)} aria-pressed={bandFilter === b}
+                  className={`chip shrink-0 ${bandFilter === b ? "chip-on" : "chip-off"}`}
+                >
+                  {BAND_LABEL[b].ru}
+                  {isMine && <span className="ml-1 text-[10px] opacity-70">твой</span>}
+                </button>
+              );
+            })}
           </div>
-        )}
-        {(highlightId && visible
-            ? [...visible].sort((a, b) =>
-                a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
-            : visible
-          )?.map(({ book, band, fit, block }, i) => {
-          const prog = progressByBook.get(book.id);
-          const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
-          const openBook = () => {
-            if (block) {
-              toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
-              return;
-            }
-            navigate(`/read/${book.id}?profile=${profile.id}`);
-          };
-          return (
-            <div
-              key={book.id}
-              data-book-id={book.id}
-              className={`card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
-                block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
-              } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
-                <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
-                  {book.coverUrl
-                    ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover rounded-2xl" loading="lazy" />
-                    : book.coverEmoji}
+
+          <div className="shelf-books grid gap-4">
+            {books === null && (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card p-4 flex gap-4 animate-pulse">
+                  <div className="w-20 h-20 rounded-2xl bg-black/5 dark:bg-white/5" />
+                  <div className="flex-1 space-y-2 py-2">
+                    <div className="h-4 w-2/3 rounded bg-black/5 dark:bg-white/5" />
+                    <div className="h-3 w-1/2 rounded bg-black/5 dark:bg-white/5" />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-display font-bold text-ink dark:text-white truncate">{book.title}</p>
-                    {book.id === highlightId && (
-                      <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
-                        НОВАЯ
-                      </span>
-                    )}
-                    {prog?.completed && <span className="text-amber-500">⭐</span>}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {/* Возрастная категория книги — считается из текста */}
-                    <span
-                      className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 ${
-                        fit === "below"
-                          ? "bg-black/[0.06] dark:bg-white/10 text-ink-faint"
-                          : fit === "above"
-                            ? "bg-brand-500/12 text-brand-600 dark:text-brand-300"
-                            : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
-                      }`}
-                    >
-                      {BAND_LABEL[band].ru}
-                    </span>
-                    {fit === "below" && (
-                      <span className="text-[10px] text-ink-faint">{BAND_HINT[band].ru}</span>
-                    )}
-                    {fit === "above" && (
-                      <span className="text-[10px] text-brand-500 font-bold">вызов</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-ink-faint mt-0.5">
-                    {book.totalWords} слов · {book.pages.length} стр.
-                    {book.isCustom && " · своя"}
+              ))
+            )}
+            {/* Книги есть, но в выбранной категории пусто. Частый случай для
+                малышей: готовые сказки в основном для 6–7 лет и старше. */}
+            {books && books.length > 0 && visible && visible.length === 0 && (
+              <div className="card p-8 text-center col-span-full space-y-4">
+                <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
+                <div>
+                  <p className="font-display font-bold text-lg text-ink dark:text-white">
+                    В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
                   </p>
-                  {block && (
-                    <p className="text-[11px] text-ink-faint mt-1 leading-snug">
-                      🔒 Сначала прочитай книгу по возрасту
-                    </p>
-                  )}
-                  {pct > 0 && !prog?.completed && (
-                    <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
-                      <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  <p className="text-sm text-ink-faint mt-1">
+                    Можно подобрать сказку под этот возраст — она сгенерируется специально
+                    для {profile.name}.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-ghost flex-1" onClick={() => setBandFilter("all")}>
+                    Показать все
+                  </button>
+                  <button className="btn-primary flex-1" onClick={() => setShowGuide(true)}>
+                    <Sparkles className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />
+                    Подобрать книгу
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {books?.length === 0 && (
+              <div className="card p-8 text-center col-span-full space-y-4">
+                <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
+                <div>
+                  <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
+                  <p className="text-sm text-ink-faint mt-1">
+                    Загрузи {STARTER_COUNT} готовых сказок на русском, казахском и английском
+                  </p>
+                </div>
+                <button
+                  className="btn-primary w-full"
+                  disabled={installing}
+                  onClick={() => void addStarter()}
+                >
+                  {installing ? "Загружаю…" : <><Download className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Загрузить {STARTER_COUNT} сказок</>}
+                </button>
+                <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
+              </div>
+            )}
+            {(highlightId && visible
+                ? [...visible].sort((a, b) =>
+                    a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
+                : visible
+              )?.map(({ book, band, fit, block }, i) => {
+              const prog = progressByBook.get(book.id);
+              const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
+              const openBook = () => {
+                if (block) {
+                  toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
+                  return;
+                }
+                navigate(`/read/${book.id}?profile=${profile.id}`);
+              };
+              return (
+                <div
+                  key={book.id}
+                  data-book-id={book.id}
+                  className={`card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
+                    block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
+                  } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
+                  style={{ animationDelay: `${i * 40}ms` }}
+                >
+                  <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
+                    <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
+                      {book.coverUrl
+                        ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover rounded-2xl" loading="lazy" />
+                        : book.coverEmoji}
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-display font-bold text-ink dark:text-white truncate">{book.title}</p>
+                        {book.id === highlightId && (
+                          <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
+                            НОВАЯ
+                          </span>
+                        )}
+                        {prog?.completed && <span className="text-amber-500">⭐</span>}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {/* Возрастная категория книги — считается из текста */}
+                        <span
+                          className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 ${
+                            fit === "below"
+                              ? "bg-black/[0.06] dark:bg-white/10 text-ink-faint"
+                              : fit === "above"
+                                ? "bg-brand-500/12 text-brand-600 dark:text-brand-300"
+                                : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
+                          }`}
+                        >
+                          {BAND_LABEL[band].ru}
+                        </span>
+                        {fit === "below" && (
+                          <span className="text-[10px] text-ink-faint">{BAND_HINT[band].ru}</span>
+                        )}
+                        {fit === "above" && (
+                          <span className="text-[10px] text-brand-500 font-bold">вызов</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-ink-faint mt-0.5">
+                        {book.totalWords} слов · {book.pages.length} стр.
+                        {book.isCustom && " · своя"}
+                      </p>
+                      {block && (
+                        <p className="text-[11px] text-ink-faint mt-1 leading-snug">
+                          🔒 Сначала прочитай книгу по возрасту
+                        </p>
+                      )}
+                      {pct > 0 && !prog?.completed && (
+                        <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+                          <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {book.isCustom && (
+                    <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
                   )}
                 </div>
-              </button>
-              {book.isCustom && (
-                <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
 
-      <button
-        className="w-full mt-4 rounded-3xl border-2 border-dashed border-brand-300 bg-brand-50/50 dark:bg-brand-500/10 text-brand-500 font-display font-bold py-4 hover:-translate-y-0.5 transition-all"
-        onClick={() => setShowUpload(true)}
-      >
-        <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
-      </button>
+          <button
+            className="w-full mt-4 rounded-3xl border-2 border-dashed border-brand-300 bg-brand-50/50 dark:bg-brand-500/10 text-brand-500 font-display font-bold py-4 hover:-translate-y-0.5 transition-all"
+            onClick={() => setShowUpload(true)}
+          >
+            <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
+          </button>
+        </section>
+      </div>
 
       <CardCollection
         open={showCards}
@@ -559,6 +566,6 @@ export default function LibraryPage() {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 }

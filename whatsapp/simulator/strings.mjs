@@ -1,9 +1,10 @@
 const en = {
+  voiceJump:"Voice note", backChat:"Back to reading chat",
   needsReview:"Needs adult review", reviewItems:"Check in with your reader", reviewed:"Mark as reviewed",
   weekly:"Preview a Sunday report reminder in this simulator", points:" pp",
-  parent:"For parents", title:"Reading room", intro:"Choose a language, then practise a page with a sample voice note.",
+  parent:"For parents", title:"Reading room", intro:"Join Page Pal for a story in Kazakh or Russian. Practise a page with a sample voice note.",
   chat:"Reading chat", guide:"Page Pal · Bookser", message:"Message", reader:"My reader", coins:"Coins", streak:"Day streak",
-  lab:"Voice-note lab", sampleNote:"Sample voice note", sample:"Sample", practice:"With missed words", perfect:"Full page",
+  lab:"Voice practice", sampleNote:"Sample voice note", sample:"Sample", practice:"With missed words", perfect:"Full page",
   silence:"Silence", transcript:"Transcript", duration:"Duration in seconds", sendNote:"Send sample voice note", replay:"Replay last delivery",
   footer:"This demo uses fictional profiles and sample transcripts.", offline:"Offline demo", local:"Local simulator",
   noReader:"No reader selected", first:"Add a reader in the chat to try a sample.", resume:"Return to a reading page to send a sample.",
@@ -19,6 +20,7 @@ const en = {
   active:"Read", inactive:"No reading", enterParent:"Open parent area", saving:"Please wait…", loading:"Loading…", retry:"Try again",
 };
 const ru = {
+  voiceJump:"Голосовое", backChat:"Вернуться в чат",
   needsReview:"Нужно внимание взрослого", reviewItems:"Обсудите с ребёнком", reviewed:"Отметить как проверенное",
   weekly:"Показывать воскресное напоминание об отчёте в симуляторе", points:" п. п.",
   parent:"Родителям", title:"Читаем вслух", intro:"Выберите язык, а затем прочитайте страницу с помощью учебного голосового.",
@@ -39,6 +41,7 @@ const ru = {
   active:"Читали", inactive:"Без чтения", enterParent:"Войти в родительский раздел", saving:"Подождите…", loading:"Загрузка…", retry:"Ещё раз",
 };
 const kk = {
+  voiceJump:"Дауыс жазбасы", backChat:"Оқу чатына оралу",
   needsReview:"Ересек адамның көмегі қажет", reviewItems:"Баламен бірге талқылаңыз", reviewed:"Қаралды деп белгілеу",
   weekly:"Симуляторда жексенбі күні есеп туралы еске салу", points:" пайыздық тармақ",
   parent:"Ата-анаға", title:"Дауыстап оқу", intro:"Тілді таңдаңыз да, бетті сынақ дауыс хабарламасымен оқып көріңіз.",
