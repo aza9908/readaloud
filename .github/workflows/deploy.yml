@@ -1,80 +1,48 @@
-name: Deploy to Firebase
+name: Release Bookser web frontend
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: firebase-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  publish-web:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Type-check & build
-        # Firebase web config comes from the committed .env.production
+      - run: npm ci
+      - name: Build production web app
         run: npm run build
-
-      - name: Write & validate service account
+      - name: Prepare Firebase Hosting credentials
         env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
         run: |
-          if [ -z "$SA_JSON" ]; then
-            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT is EMPTY or not defined."
-            echo "::error::Check the exact name in Settings → Secrets and variables → Actions."
-            echo "::error::It must contain the FULL JSON from Firebase Console → Project settings → Service accounts → Generate new private key."
-            exit 1
-          fi
-          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
-          node -e '
-            const fs = require("fs");
-            let j;
-            try { j = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/sa.json", "utf8")); }
-            catch (e) { console.error("::error::FIREBASE_SERVICE_ACCOUNT is not valid JSON:", e.message); process.exit(1); }
-            for (const k of ["type","project_id","private_key","client_email"]) {
-              if (!j[k]) { console.error("::error::Service account JSON is missing field:", k, "— paste the COMPLETE file."); process.exit(1); }
-            }
-            if (j.project_id !== "readai-4f87b") {
-              console.error("::error::Service account belongs to project", j.project_id, "— expected readai-4f87b.");
-              process.exit(1);
-            }
-            console.log("✅ Service account OK:", j.client_email);
-          '
-
-      - name: Deploy hosting + Firestore rules & indexes
+          umask 077
+          node --input-type=module <<'JS'
+          import { writeFileSync } from "node:fs";
+          const account = JSON.parse(process.env.SERVICE_ACCOUNT);
+          if (account.project_id !== "readai-4f87b") throw new Error("Unexpected Firebase project");
+          writeFileSync(process.env.RUNNER_TEMP + "/hosting-account.json", JSON.stringify(account), { mode: 0o600 });
+          JS
+      - name: Release static files to Firebase Hosting
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/hosting-account.json
         run: |
-          npx firebase-tools@13 deploy \
-            --only hosting,firestore \
-            --project readai-4f87b \
-            --non-interactive --force
-
-      # AI functions need the Blaze plan + ANTHROPIC_API_KEY secret.
-      # If either is missing this step is skipped, and the app falls back to
-      # its offline heuristics — the site still deploys and works.
-      - name: Deploy AI functions (optional)
-        continue-on-error: true
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: |
-          npx firebase-tools@13 deploy \
-            --only functions \
-            --project readai-4f87b \
-            --non-interactive --force
-
-      - name: Cleanup credentials
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const { hosting } = JSON.parse(readFileSync("firebase.json", "utf8"));
+          writeFileSync("hosting.release.json", JSON.stringify({hosting}));
+          JS
+          npx --yes firebase-tools@13 deploy --only hosting --config hosting.release.json --project readai-4f87b --non-interactive
+      - name: Clean up credentials
         if: always()
-        run: rm -f "$RUNNER_TEMP/sa.json"
+        run: rm -f "$RUNNER_TEMP/hosting-account.json"
