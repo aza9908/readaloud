@@ -6,18 +6,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Brand — disciplined violet with a warm amber reward accent
+        // Enamel, cloth and brass used throughout the reading room
         brand: {
-          50: "#f2efff",
-          100: "#e7e0ff",
-          200: "#d0c2ff",
-          300: "#b09bff",
-          400: "#8f6dff",
-          500: "#6d4aff", // primary
-          600: "#5a35e6",
-          700: "#4a29bf",
-          800: "#3d2499",
-          900: "#2f1d70",
+          50: "#f0f6f3",
+          100: "#ddebe6",
+          200: "#bad8d1",
+          300: "#93bfb5",
+          400: "#70a79c",
+          500: "#2e6768", // primary
+          600: "#235454",
+          700: "#1d4749",
+          800: "#193a3d",
+          900: "#152f32",
         },
         amber: {
           400: "#ffc24b",
@@ -28,18 +28,18 @@ export default {
         paper: {
           DEFAULT: "#fbf9f4",
           card: "#ffffff",
-          ink: "#2a2540",
-          muted: "#6b6580",
+          ink: "#192e36",
+          muted: "#56686a",
         },
         ink: {
-          DEFAULT: "#2a2540",
-          soft: "#57516e",
-          faint: "#8a84a0",
+          DEFAULT: "var(--ink)",
+          soft: "var(--muted)",
+          faint: "var(--muted)",
         },
       },
       fontFamily: {
-        display: ["'Baloo 2'", "system-ui", "sans-serif"],
-        sans: ["Nunito", "system-ui", "sans-serif"],
+        display: ["var(--font-system)"],
+        sans: ["var(--font-system)"],
       },
       borderRadius: {
         xl: "1rem",
@@ -49,7 +49,7 @@ export default {
       boxShadow: {
         soft: "0 2px 8px -2px rgba(42,37,64,0.08), 0 4px 16px -4px rgba(42,37,64,0.06)",
         card: "0 4px 20px -6px rgba(42,37,64,0.12)",
-        lift: "0 12px 32px -10px rgba(109,74,255,0.28)",
+        lift: "0 12px 32px -10px rgba(35,73,71,0.24)",
         page: "0 1px 0 rgba(0,0,0,0.03), 0 8px 28px -12px rgba(42,37,64,0.18)",
       },
       keyframes: {

@@ -1,3 +1,4 @@
+import { BookserIcon, iconLabel } from "@/components/BookserIcon";
 /**
  * ParentRewardsManager — родительская панель наград в дашборде.
  *
@@ -137,7 +138,7 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
               {req.rewardPhoto ? (
                 <img src={req.rewardPhoto} alt="" className="w-11 h-11 rounded-xl object-cover shrink-0" />
               ) : (
-                <span className="text-3xl shrink-0">{req.rewardEmoji}</span>
+                <span className="text-3xl shrink-0"><BookserIcon value={req.rewardEmoji} size={42} fallback="gift" /></span>
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-ink dark:text-white truncate">{req.rewardTitle}</p>
@@ -210,12 +211,12 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
                   {EMOJI_CHOICES.map((e) => (
                     <button
                       key={e}
-                      onClick={() => setEmoji(e)}
+                      aria-label={iconLabel(e)} aria-pressed={emoji === e} onClick={() => setEmoji(e)}
                       className={`w-9 h-9 rounded-xl text-xl grid place-items-center transition-all ${
                         emoji === e ? "bg-brand-500/15 ring-2 ring-brand-500" : "bg-black/[0.04] dark:bg-white/5"
                       }`}
                     >
-                      {e}
+                      <BookserIcon value={e} size={28} fallback="gift" />
                     </button>
                   ))}
                 </div>
@@ -230,7 +231,7 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
             onChange={(e) => setTitle(e.target.value)}
             maxLength={40}
           />
-          <div className="flex items-center gap-2">
+          <div className="reward-form-actions">
             <div className="relative flex-1">
               <Coins className="w-4 h-4 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2" strokeWidth={2.4} />
               <input
@@ -264,7 +265,7 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
                 disabled={busy}
                 onClick={() => void create(p)}
               >
-                <span className="text-2xl">{p.emoji}</span>
+                <span className="text-2xl"><BookserIcon value={p.emoji} size={32} fallback="gift" /></span>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-ink dark:text-white truncate">{p.title}</p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
@@ -286,7 +287,7 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
               {r.photo ? (
                 <img src={r.photo} alt="" className="w-10 h-10 rounded-xl object-cover shrink-0" />
               ) : (
-                <span className="text-2xl shrink-0 w-10 text-center">{r.emoji}</span>
+                <span className="text-2xl shrink-0 w-10 text-center"><BookserIcon value={r.emoji} size={38} fallback="gift" /></span>
               )}
               <p className="flex-1 font-bold text-ink dark:text-white truncate">{r.title}</p>
               <span className="flex items-center gap-1 text-sm font-bold text-amber-600 dark:text-amber-400">

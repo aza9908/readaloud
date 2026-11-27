@@ -1,3 +1,4 @@
+import { BookserIcon } from "./BookserIcon";
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 
 interface ToastItem { id: number; icon?: string; title: string; description?: string }
@@ -17,15 +18,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastCtx.Provider value={push}>
       {children}
-      <div className="fixed top-4 inset-x-0 z-[100] flex flex-col items-center gap-2 px-4 pointer-events-none">
+      <div role="status" aria-live="polite" className="fixed top-4 inset-x-0 z-[100] flex flex-col items-center gap-2 px-4 pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white dark:bg-[#241f31] shadow-card border-2 border-amber-400/40 px-4 py-3 flex items-center gap-3 animate-toast-in"
+            className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white dark:bg-[var(--surface)] shadow-card border-2 border-amber-400/40 px-4 py-3 flex items-center gap-3 animate-toast-in"
           >
             {t.icon && (
               <span className="text-3xl grid place-items-center w-11 h-11 rounded-xl bg-amber-400/15 shrink-0">
-                {t.icon}
+                <BookserIcon value={t.icon} size={32} />
               </span>
             )}
             <div className="min-w-0">

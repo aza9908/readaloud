@@ -1,3 +1,4 @@
+import { BookserIcon } from "@/components/BookserIcon";
 /**
  * ArenaPage — «Матч»: соревнование по математике или чтению.
  *
@@ -16,14 +17,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { ArrowLeft, Swords, Loader2, Trophy, Coins } from "lucide-react";
+import { ChevronRight, Swords, Loader2, Trophy, Coins } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getProfile, findOrCreateMatch, watchMatch, submitMatchAnswer,
   advanceMatchRound, awardMatchCoins, grantTournamentAvatar, leaveWaitingMatch,
 } from "@/lib/firestore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SectionHeader } from "@/components/RoomControls";
 import { dailyTasks } from "@/lib/mathGenerator";
 import { gradeForAge, type Grade } from "@/lib/mathTasks";
 import {
@@ -76,28 +77,14 @@ export default function ArenaPage() {
   if (!user || !profile) return null;
 
   return (
-    <div className="min-h-dvh px-4 py-4 max-w-2xl mx-auto pb-16">
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
-        <div className="justify-self-start">
-          <button className="btn-ghost !py-2 !px-3"
-            onClick={() => {
-              // Уходя с поиска, убираем себя из матча — иначе соперник
-              // присоединится к комнате, где никого нет.
-              if (matchId && match?.status === "waiting" && profile) {
-                void leaveWaitingMatch(matchId, profile.id);
-              }
-              if (matchId) setMatchId(null);
-              else navigate(`/library?profile=${profileId}`);
-            }}
-            aria-label="Назад">
-            <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
-          </button>
-        </div>
-        <h1 className="justify-self-center font-display font-extrabold text-lg text-ink dark:text-white">
-          Матч
-        </h1>
-        <div className="justify-self-end"><ThemeToggle /></div>
-      </header>
+    <main className="section-shell arena-shell">
+      <SectionHeader title="Матч" onBack={() => {
+        if (matchId && match?.status === "waiting") {
+          void leaveWaitingMatch(matchId, profile.id);
+        }
+        if (matchId) setMatchId(null);
+        else navigate(`/library?profile=${profileId}`);
+      }} />
 
       {!matchId ? (
         <Lobby profile={profile} joining={joining} onPick={startMatch} />
@@ -118,7 +105,7 @@ export default function ArenaPage() {
       ) : (
         <Round match={match} me={profile} matchId={matchId} />
       )}
-    </div>
+    </main>
   );
 }
 
@@ -128,7 +115,7 @@ function Lobby({ profile, joining, onPick }: {
 }) {
   return (
     <>
-      <div className="arena-table p-6 text-center mb-5">
+      <div className="arena-table match-invite">
         <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-400/15 border border-amber-300/30 grid place-items-center mb-3">
           <Swords className="w-7 h-7 text-amber-300" strokeWidth={2} />
         </div>
@@ -143,7 +130,7 @@ function Lobby({ profile, joining, onPick }: {
           className="btn-primary w-full mt-5 !bg-amber-400 !text-[#0a3327] hover:!bg-amber-300 disabled:opacity-60">
           {joining
             ? <><Loader2 className="w-4 h-4 inline mr-2 animate-spin" />Садимся за стол…</>
-            : "Сесть за стол"}
+            : <>Сесть за стол <ChevronRight size={17} aria-hidden="true" /></>}
         </button>
       </div>
 
@@ -336,7 +323,7 @@ function TeamStrip({ players, match, highlight, align = "left" }: {
               <ProfileAvatar value={p.avatar} size={36} />
               {answered && (
                 <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 grid place-items-center text-white text-[10px] font-bold">
-                  ✓
+                  <BookserIcon value="✅" size={12} line />
                 </span>
               )}
             </div>
@@ -382,7 +369,7 @@ function Result({ match, me, uid, onExit }: {
   return (
     <div className="arena-table p-4">
       <div className="arena-card p-8 text-center">
-        <div className="text-6xl mb-3">{won ? "🏆" : outcome === "draw" ? "🤝" : "💪"}</div>
+        <div className="text-6xl mb-3"><BookserIcon value={won ? "cup" : outcome === "draw" ? "🤝" : "💪"} size={76} /></div>
         <p className="font-display font-extrabold text-2xl text-ink dark:text-white">
           {won ? "Победа!" : outcome === "draw" ? "Ничья!" : "Хорошая игра!"}
         </p>

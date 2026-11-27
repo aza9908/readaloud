@@ -21,6 +21,29 @@ for (const { id, ...book } of books) {
   await db.doc("books/" + id).set({ ownerId: null, isCustom: false, band: "6-7", coverUrl: null, totalWords: book.pages[0].split(" ").length, ...book });
 }
 
+// Exercise the same stored display keys as earlier versions of the app, including private covers.
+async function seedHistory(profileId) {
+  const profile = (await db.collectionGroup("profiles").get()).docs.find(doc => doc.id === profileId);
+  assert.ok(profile, "The signed-in emulator reader has a profile");
+  const batch = db.batch();
+  const ownerId = profile.ref.parent.parent.id;
+  for (const [id, title, coverEmoji] of [["atlas", "Маленький атлас", "🌐"], ["notes", "Дневник открытий", "📖"]]) {
+    batch.set(db.doc("books/" + profileId + "-" + id), {
+      ownerId, title, coverEmoji, coverUrl: null, isCustom: true, language: "ru", band: "6-7",
+      pages: ["Ветер нёс маленький кораблик."], totalWords: 4, createdAt: Date.now(),
+    });
+  }
+  const now = Date.now();
+  const badges = ["word_wizard", "century_reader", "bookworm", "first_story", "story_collector", "book_lover", "reading_star", "real_reader"];
+  badges.forEach((id, index) => batch.set(profile.ref.collection("achievements").doc(id), { earnedAt: now + index }));
+  batch.set(profile.ref.collection("sessions").doc("completed"), {
+    bookId: "boat", bookTitle: "Бумажный кораблик", language: "ru", startedAt: now - 60000,
+    updatedAt: now, durationMs: 60000, currentPage: 0, currentWordIndex: 30, wordsRead: 30, wpm: 30, completed: true,
+  });
+  batch.update(profile.ref, { booksCompleted: 1, totalWords: 30, totalMs: 60000, coins: 25, "byLanguage.ru": { books: 1, ms: 60000 } });
+  await batch.commit();
+}
+
 await mkdir(output, { recursive: true });
 const server = await preview({ logLevel: "error", preview: {
   host: "127.0.0.1", port: 4173, strictPort: true,
@@ -95,6 +118,57 @@ async function check(screen) {
     await profile.click();
     const shelf = page.locator('[data-book-id="turnip"] button').first();
     await shelf.waitFor();
+    const profileId = new URL(page.url()).searchParams.get("profile");
+    await seedHistory(profileId);
+    await button("Читатели").click();
+    await profile.click();
+    const cover = id => page.locator(`[data-book-id="${profileId}-${id}"] .book-jacket img`);
+    await cover("atlas").waitFor();
+    assert.equal(await cover("atlas").getAttribute("data-object"), "globe");
+    assert.equal(await cover("notes").getAttribute("data-object"), "book");
+    await cover("atlas").evaluate(img => img.decode());
+    await cover("atlas").scrollIntoViewIfNeeded();
+    await inspect("jackets");
+    const progress = page.getByRole("dialog", { name: "Мои успехи" });
+    await button("Успехи").click();
+    await progress.waitFor();
+    await progress.locator(".achievement-badge").last().waitFor();
+    assert.equal(await progress.locator(".achievement-badge").count(), 8);
+    await progress.locator(".reading-metric").last().waitFor();
+    await inspect("progress");
+    await progress.locator(".achievement-badge").last().scrollIntoViewIfNeeded();
+    await inspect("awards");
+    await button("Закрыть").click();
+    await progress.waitFor({ state: "hidden" });
+    await button("Добавить свою книгу").click();
+    const upload = page.getByRole("dialog", { name: "Добавить свою книгу" });
+    await upload.getByRole("button", { name: "Ракета", exact: true }).click();
+    assert.equal(await upload.getByRole("button", { name: "Ракета" }).getAttribute("aria-pressed"), "true");
+    await page.keyboard.press("Escape");
+    await upload.waitFor({ state: "hidden" });
+    await button("Подобрать книгу").first().click();
+    const guide = page.getByRole("dialog", { name: "Книжный помощник" });
+    await guide.getByRole("button", { name: "Животные" }).click();
+    await guide.getByRole("button", { name: "Дальше" }).click();
+    await guide.getByRole("button", { name: "Назад" }).click();
+    await guide.getByRole("button", { name: "Животные" }).waitFor();
+    await page.keyboard.press("Escape");
+    await guide.waitFor({ state: "hidden" });
+    for (const [activity, label] of [["Математика", "math"], ["Матч", "arena"]]) {
+      await button("Занятия").click();
+      await button(activity).click();
+      await page.getByRole("heading", { name: activity, exact: true }).waitFor();
+      await inspect(label);
+      if (label === "math") {
+        await page.locator(".task-list button").first().click();
+        const task = page.getByRole("dialog", { name: "Задача" });
+        await task.waitFor();
+        await page.keyboard.press("Escape");
+        await task.waitFor({ state: "hidden" });
+      }
+      await button("Назад").click();
+      await shelf.waitFor();
+    }
     await button("Включить тёмную тему").click();
     await inspect("library-dark");
     await shelf.scrollIntoViewIfNeeded();
@@ -131,6 +205,13 @@ async function check(screen) {
     for (const digit of "2580") await button(digit).click();
     await page.getByText("Книг прочитано", { exact: true }).waitFor();
     await page.locator('img.companion-portrait[alt="Сова"]').waitFor();
+    const metrics = page.locator(".report-overview .reading-metric");
+    assert.deepEqual(await metrics.locator("img").evaluateAll(imgs => imgs.map(img => img.dataset.object)), ["book", "watch", "pace", "coins"]);
+    await metrics.last().scrollIntoViewIfNeeded();
+    await inspect("report");
+    await page.locator(".achievement-badge").first().waitFor();
+    await button("Включить тёмную тему").click();
+    await inspect("report-dark");
     assert.deepEqual(errors, []);
     console.log(screen.label + " passed the reading flow");
   } catch (error) {

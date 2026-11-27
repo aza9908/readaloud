@@ -1,3 +1,7 @@
+import { BookserIcon, LanguageMark } from "@/components/BookserIcon";
+import { BookJacket } from "@/components/BookJacket";
+import { ReadingMetrics, AchievementBadge } from "@/components/ReadingMetrics";
+import { CloseButton, RoomSheet } from "@/components/RoomControls";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,11 +14,10 @@ import {
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LibraryDock } from "@/components/LibraryDock";
-import { storyArt } from "@/lib/storyArt";
 import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
+import { ChevronLeft, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -168,7 +171,7 @@ export default function LibraryPage() {
   return (
     <main className="world-shell library-shell">
       <header className="world-bar library-bar">
-        <button className="bar-link" onClick={() => navigate("/profiles")}><ArrowLeft size={17} aria-hidden="true" />Читатели</button>
+        <button className="bar-link" onClick={() => navigate("/profiles")}><ChevronLeft size={17} aria-hidden="true" />Читатели</button>
         <div className="library-reader"><ProfileAvatar value={profile.avatar} size={30} /><span>{profile.name}</span></div>
         <div className="bar-actions">
           <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
@@ -202,7 +205,7 @@ export default function LibraryPage() {
             {LANGUAGES.map((l) => (
               <button key={l.value} aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}
                 className={`chip shrink-0 ${language === l.value ? "chip-on" : "chip-off"}`}>
-                {l.flag} {l.label}
+                <LanguageMark language={l.value} /> {l.label}
               </button>
             ))}
           </div>
@@ -294,7 +297,6 @@ export default function LibraryPage() {
                     a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
                 : visible
               )?.map(({ book, band, fit, block }, i) => {
-              const plate = storyArt(book.language, book.title);
               const prog = progressByBook.get(book.id);
               const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
               const openBook = () => {
@@ -314,11 +316,7 @@ export default function LibraryPage() {
                   style={{ animationDelay: `${Math.min(i, 5) * 35}ms` }}
                 >
                   <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
-                    <div className="book-jacket" data-cloth={(book.title.charCodeAt(0) || 0) % 5}>
-                      {book.coverUrl
-                        ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        : plate ? <img className="jacket-plate" src={plate.cover} alt="" width={192} height={128} loading="lazy" /> : book.coverEmoji}
-                    </div>
+                    <BookJacket book={book} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
                         <p className="book-tile-title font-display font-bold text-ink dark:text-white">{book.title}</p>
@@ -327,7 +325,7 @@ export default function LibraryPage() {
                             НОВАЯ
                           </span>
                         )}
-                        {prog?.completed && <span className="text-amber-500">⭐</span>}
+                        {prog?.completed && <span role="img" aria-label="Прочитано"><BookserIcon value="star" size={19} /></span>}
                       </div>
                       <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {/* Возрастная категория книги — считается из текста */}
@@ -355,7 +353,7 @@ export default function LibraryPage() {
                       </p>
                       {block && (
                         <p className="text-[11px] text-ink-faint mt-1 leading-snug">
-                          🔒 Сначала прочитай книгу по возрасту
+                          <BookserIcon value="🔒" size={13} line /> Сначала прочитай книгу по возрасту
                         </p>
                       )}
                       {pct > 0 && !prog?.completed && (
@@ -454,8 +452,7 @@ export default function LibraryPage() {
       )}
 
       {showProgress && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowProgress(false)}>
-          <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto space-y-5" onClick={(e) => e.stopPropagation()}>
+        <RoomSheet title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ProfileAvatar value={profile.avatar} size={38} />
@@ -464,22 +461,10 @@ export default function LibraryPage() {
                   <p className="text-sm text-ink-faint">{profile.name}</p>
                 </div>
               </div>
-              <button className="text-2xl text-ink-faint w-8 h-8" onClick={() => setShowProgress(false)} aria-label="Закрыть">×</button>
+              <CloseButton onClick={() => setShowProgress(false)} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-center">
-              {[
-                { v: profile.booksCompleted, l: "книг", bg: "from-violet-100 to-fuchsia-100 dark:from-violet-500/15 dark:to-fuchsia-500/10" },
-                { v: fmtDuration(profile.totalMs), l: "времени", bg: "from-sky-100 to-blue-100 dark:from-sky-500/15 dark:to-blue-500/10" },
-                { v: avgWpm, l: "сл/мин", bg: "from-emerald-100 to-teal-100 dark:from-emerald-500/15 dark:to-teal-500/10" },
-                { v: profile.coins ?? 0, l: "монет", bg: "from-amber-100 to-yellow-100 dark:from-amber-500/15 dark:to-yellow-500/10" },
-              ].map((s, i) => (
-                <div key={i} className={`rounded-2xl p-4 bg-gradient-to-br ${s.bg}`}>
-                  <p className="font-display font-extrabold text-xl text-ink dark:text-white leading-tight">{s.v}</p>
-                  <p className="text-xs text-ink-soft dark:text-ink-faint mt-0.5">{s.l}</p>
-                </div>
-              ))}
-            </div>
+            <ReadingMetrics books={profile.booksCompleted} time={fmtDuration(profile.totalMs)} pace={avgWpm} coins={profile.coins ?? 0} />
 
             <RewardsPanel language={language} coins={profile.coins ?? 0} />
 
@@ -488,7 +473,7 @@ export default function LibraryPage() {
               <div className="grid grid-cols-3 gap-3 text-center">
                 {LANGUAGES.map((l) => (
                   <div key={l.value} className="rounded-2xl bg-black/[0.03] dark:bg-white/5 p-3">
-                    <p className="text-xl">{l.flag}</p>
+                    <p className="text-xl"><LanguageMark language={l.value} /></p>
                     <p className="font-display font-extrabold text-lg text-ink dark:text-white">{profile.byLanguage?.[l.value]?.books ?? 0}</p>
                     <p className="text-xs text-ink-faint">{l.label}</p>
                   </div>
@@ -497,22 +482,14 @@ export default function LibraryPage() {
             </div>
 
             <div>
-              <p className="font-display font-bold text-ink dark:text-white mb-2">🏆 Награды</p>
+              <p className="font-display font-bold text-ink dark:text-white mb-2"><BookserIcon value="cup" line size={17} /> Награды</p>
               {achievements.length === 0
                 ? <p className="text-sm text-ink-faint">Пока нет наград. Начни читать!</p>
                 : (
                   <div className="grid sm:grid-cols-2 gap-2">
                     {achievements.sort((a, b) => b.earnedAt - a.earnedAt).map((a) => {
                       const def = badgeById(a.id); if (!def) return null;
-                      return (
-                        <div key={a.id} className="rounded-2xl border-2 border-amber-400/30 bg-amber-50/50 dark:bg-amber-500/5 p-3 flex items-center gap-3">
-                          <span className="text-2xl">{def.icon}</span>
-                          <div>
-                            <p className="font-display font-bold text-sm text-ink dark:text-white leading-tight">{def.title}</p>
-                            <p className="text-xs text-ink-faint">{def.description}</p>
-                          </div>
-                        </div>
-                      );
+                      return <AchievementBadge key={a.id} badge={def} />;
                     })}
                   </div>
                 )}
@@ -520,24 +497,23 @@ export default function LibraryPage() {
 
             {completedSessions.length > 0 && (
               <div>
-                <p className="font-display font-bold text-ink dark:text-white mb-2">📖 Прочитано</p>
+                <p className="font-display font-bold text-ink dark:text-white mb-2"><BookserIcon value="book" line size={17} /> Прочитано</p>
                 <div className="space-y-2">
                   {completedSessions.map((s) => (
                     <div key={s.id} className="rounded-2xl border border-black/5 dark:border-white/5 p-3 flex items-center justify-between">
                       <div>
                         <p className="font-bold text-sm text-ink dark:text-white">
-                          {LANGUAGES.find((l) => l.value === s.language)?.flag} {s.bookTitle}
+                          <LanguageMark language={s.language} /> {s.bookTitle}
                         </p>
                         <p className="text-xs text-ink-faint">{s.wordsRead} слов · {fmtDuration(s.durationMs)}</p>
                       </div>
-                      <span className="text-amber-500 text-xl">⭐</span>
+                      <BookserIcon value="star" size={25} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </RoomSheet>
       )}
     </main>
   );

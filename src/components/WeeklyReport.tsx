@@ -7,6 +7,7 @@
  * время чтения). Ничего не выдумываем: если данных мало, честно об этом пишем.
  */
 
+import { Check } from "lucide-react";
 import { useMemo } from "react";
 import { Clock, BookOpen, Gauge, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import type { ChildProfile, ReadingSession } from "@/lib/types";
@@ -77,7 +78,7 @@ export function WeeklyReport({ profile, sessions }: Props) {
   });
 
   return (
-    <div className="card p-5">
+    <div className="card weekly-report p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="font-display font-bold text-ink dark:text-white text-lg">Отчёт за неделю</p>
         <span className="text-xs text-ink-faint">{profile.name}</span>
@@ -115,7 +116,7 @@ export function WeeklyReport({ profile, sessions }: Props) {
                       : "bg-black/[0.04] dark:bg-white/5 text-ink-faint"
                   }`}
                 >
-                  {d.active ? "✓" : ""}
+                  {d.active && <Check size={14} aria-label="Был урок" />}
                 </span>
                 <span className="text-[10px] text-ink-faint">{d.label}</span>
               </div>
@@ -155,13 +156,8 @@ function Metric({
   icon: React.ReactNode; value: string; unit: string; label: string;
   tint: "brand" | "green" | "amber"; delta?: number;
 }) {
-  const tints = {
-    brand: "from-brand-100 to-indigo-100 dark:from-brand-500/15 dark:to-indigo-500/10 text-brand-600 dark:text-brand-300",
-    green: "from-emerald-100 to-teal-100 dark:from-emerald-500/15 dark:to-teal-500/10 text-emerald-700 dark:text-emerald-400",
-    amber: "from-amber-100 to-yellow-100 dark:from-amber-500/15 dark:to-yellow-500/10 text-amber-700 dark:text-amber-400",
-  };
   return (
-    <div className={`rounded-2xl bg-gradient-to-br ${tints[tint]} p-3 text-center`}>
+    <div className="weekly-metric" data-tone={tint}>
       <div className="flex items-center justify-center gap-1 opacity-70 mb-1">{icon}</div>
       <div className="flex items-baseline justify-center gap-1">
         <span className="font-display font-extrabold text-xl">{value}</span>
