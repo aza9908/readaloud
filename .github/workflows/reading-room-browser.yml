@@ -16,8 +16,8 @@ permissions:
 
 jobs:
   reading-room:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    runs-on: macos-15
+    timeout-minutes: 22
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,7 +36,7 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: localhost
           VITE_FIREBASE_PROJECT_ID: demo-bookser
           VITE_FIREBASE_APP_ID: "1:123456789:web:001122334455"
-      - run: npx playwright-core install --with-deps webkit chromium
+      - run: npx playwright-core install webkit chromium
       - name: Check the reading flow in browsers
         run: |
           jq '{firestore, emulators: {auth: {host: "127.0.0.1", port: 9099}, firestore: {host: "127.0.0.1", port: 8080}, ui: {enabled: false}}}' firebase.json > firebase.browser.json

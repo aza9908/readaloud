@@ -10,6 +10,7 @@ import {
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LibraryDock } from "@/components/LibraryDock";
+import { storyArt } from "@/lib/storyArt";
 import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
@@ -293,6 +294,7 @@ export default function LibraryPage() {
                     a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
                 : visible
               )?.map(({ book, band, fit, block }, i) => {
+              const plate = storyArt(book.language, book.title);
               const prog = progressByBook.get(book.id);
               const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
               const openBook = () => {
@@ -315,7 +317,7 @@ export default function LibraryPage() {
                     <div className="book-jacket" data-cloth={(book.title.charCodeAt(0) || 0) % 5}>
                       {book.coverUrl
                         ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-                        : book.coverEmoji}
+                        : plate ? <img className="jacket-plate" src={plate.cover} alt="" width={192} height={128} loading="lazy" /> : book.coverEmoji}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">

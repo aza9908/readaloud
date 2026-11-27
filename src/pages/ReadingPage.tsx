@@ -19,6 +19,7 @@ import { ThemeToggle, useDarkAppearance } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
+import { storyArt } from "@/lib/storyArt";
 import { StoryScene } from "@/components/StoryScene";
 import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
 import { updateStreakAndHardWords, awardPage, grantCard } from "@/lib/firestore";
@@ -55,9 +56,10 @@ function retellCheckpoints(totalPages: number): Set<number> {
  * image never leaves a gap — the block simply disappears.
  */
 const PageIllustration = memo(function PageIllustration({
-  src, fallbackTitle, fallbackEmoji,
+  src, fallbackTitle, fallbackEmoji, plate,
 }: {
   src: string | null;
+  plate?: string;
   /** When there is no photo, a scene is drawn from these. */
   fallbackTitle?: string;
   fallbackEmoji?: string;
@@ -66,6 +68,10 @@ const PageIllustration = memo(function PageIllustration({
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => { setFailed(false); setLoaded(false); }, [src]);
+
+  if ((!src || failed) && plate) {
+    return <figure className="story-bookplate"><img src={plate} width={720} height={480} alt={fallbackTitle ?? ""} /></figure>;
+  }
 
   // No image (or it failed): draw a scene so the page still has a picture.
   if ((!src || failed) && fallbackTitle) {
@@ -108,6 +114,7 @@ const PageIllustration = memo(function PageIllustration({
 const ReadingSurface = memo(
   function ReadingSurface({
     illustrationSrc,
+    plate,
     sceneTitle,
     sceneEmoji,
     words,
@@ -117,6 +124,7 @@ const ReadingSurface = memo(
     goldenWords,
   }: {
     illustrationSrc: string | null;
+    plate?: string;
     sceneTitle?: string;
     sceneEmoji?: string;
     words: string[];
@@ -127,7 +135,7 @@ const ReadingSurface = memo(
   }) {
     return (
       <main className="reader-page flex-1">
-        <PageIllustration src={illustrationSrc} fallbackTitle={sceneTitle} fallbackEmoji={sceneEmoji} />
+        <PageIllustration src={illustrationSrc} plate={plate} fallbackTitle={sceneTitle} fallbackEmoji={sceneEmoji} />
         <div className="reading-canvas rounded-3xl px-6 py-7 text-ink dark:text-[#e8e5f2]">
           <KaraokeText
             words={words}
@@ -144,7 +152,8 @@ const ReadingSurface = memo(
     prev.words === next.words &&
     prev.fontSizePx === next.fontSizePx &&
     prev.illustrationSrc === next.illustrationSrc &&
-    prev.sceneTitle === next.sceneTitle,
+    prev.sceneTitle === next.sceneTitle &&
+    prev.plate === next.plate,
 );
 
 function fmtClock(ms: number): string {
@@ -594,6 +603,7 @@ export default function ReadingPage() {
 
       <ReadingSurface
         illustrationSrc={book.pageImages?.[pageIndex] ?? (pageIndex === 0 ? book.coverUrl : null)}
+        plate={pageIndex === 0 ? storyArt(book.language, book.title)?.page : undefined}
         sceneTitle={pageIndex === 0 ? book.title : undefined}
         sceneEmoji={book.coverEmoji}
         words={words}

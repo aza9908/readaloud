@@ -124,10 +124,23 @@
 .profile-form .input { color: var(--ink); background: var(--canvas); border: 1px solid var(--edge); }
 .profile-form fieldset { min-width: 0; }
 .profile-form legend { margin-bottom: .35rem; }
-.avatar-choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .27rem; }
-.avatar-choices button, .language-choices button { min-height: 44px; border-radius: .85rem; border: 1px solid transparent; }
-.avatar-choices button { font-size: 1.55rem; background: var(--canvas); }
-.avatar-choices button[aria-pressed="true"], .language-choices button[aria-pressed="true"] { border-color: var(--accent-ink); background: var(--accent-panel); color: var(--accent-ink); }
+.language-choices button { min-height: 44px; border-radius: .85rem; border: 1px solid transparent; }
+.language-choices button[aria-pressed="true"] { border-color: var(--accent-ink); background: var(--accent-panel); color: var(--accent-ink); }
+.companion-portrait { flex: none; object-fit: cover; border-radius: 50%; box-shadow: 0 0 0 1px rgb(110 80 49 / .25); }
+.companion-choices { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45rem; }
+.companion-choices button { position: relative; width: 100%; min-height: 44px; padding: .15rem; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent; }
+.companion-choices img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.companion-choices button:hover, .companion-choices button[aria-pressed="true"] { border-color: var(--accent-ink); }
+.companion-choices button span { position: absolute; bottom: 0; right: 0; display: grid; place-items: center; width: 1.1rem; height: 1.1rem; color: white; background: var(--accent); border: 1px solid var(--surface); border-radius: 50%; }
+.hero-shop { width: min(33rem, calc(100% - 2rem)); }
+.hero-owner { display: flex; gap: .8rem; align-items: center; padding: .8rem; border-radius: 1.15rem; background: var(--accent-panel); }
+.hero-owner > strong { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 1.12rem; }
+.starter-display { margin-block: 1.1rem; }
+.starter-display legend { margin-bottom: .45rem; font-size: .95rem; font-weight: 650; }
+.starter-display .companion-choices { max-width: 24rem; }
+.hero-filters { display: flex; flex-wrap: wrap; gap: .3rem; border-top: 1px solid var(--edge); margin: 1.1rem 0 .8rem; padding-top: .85rem; }
+.hero-filters button, .shop-collection button { min-height: 44px; }
+.shop-collection { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
 .range-label { display: flex; justify-content: space-between; }
 .profile-form input[type="range"] { width: 100%; min-height: 36px; accent-color: var(--accent-ink); }
 .language-choices { display: flex; gap: .25rem; }
@@ -231,7 +244,7 @@
   .library-bar > .bar-link { padding-inline: 0; }
   .library-reader > span:last-child { max-width: 19vw; }
   .collection-heading .bar-link { padding-right: 0; }
-  .room-sheet { width: 100%; top: auto; bottom: 0; left: 0; transform: none; max-height: calc(100dvh - max(1rem, env(safe-area-inset-top))); padding: 1.15rem max(1.15rem, env(safe-area-inset-right)) max(1.2rem, env(safe-area-inset-bottom)) max(1.15rem, env(safe-area-inset-left)); border-radius: 1.6rem 1.6rem 0 0; }
+  .room-sheet, .hero-shop { width: 100%; top: auto; bottom: 0; left: 0; transform: none; max-height: calc(100dvh - max(1rem, env(safe-area-inset-top))); padding: 1.15rem max(1.15rem, env(safe-area-inset-right)) max(1.2rem, env(safe-area-inset-bottom)) max(1.15rem, env(safe-area-inset-left)); border-radius: 1.6rem 1.6rem 0 0; }
   .reader-page > figure { max-height: 12rem; }
 }
 @media (max-height: 32rem) and (orientation: landscape) {
@@ -244,4 +257,12 @@
 }
 @media (prefers-reduced-transparency: reduce) {
   .library-dock, .reader-controls, .reader-toolbar { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--surface); }
+}
+
+.jacket-plate { width: 100%; height: auto; padding: .05rem .08rem .1rem .22rem; filter: drop-shadow(0 2px 2px rgb(34 38 33 / .25)); }
+.story-bookplate { margin-bottom: 1rem; padding: 1rem; border-radius: 1.4rem; border: 1px solid var(--stage-edge); background: radial-gradient(ellipse at 55% 78%, #e6cfa9, transparent 55%), linear-gradient(145deg, #d5e7e7, #c1d2ce); }
+.dark .story-bookplate { background: radial-gradient(ellipse at 55% 78%, #574950, transparent 60%), linear-gradient(145deg, #263a47, #243143); }
+.story-bookplate img { width: 100%; height: auto; max-height: 15rem; object-fit: contain; }
+@media (max-width: 39.99rem) {
+  .story-bookplate img { max-height: 9rem; }
 }

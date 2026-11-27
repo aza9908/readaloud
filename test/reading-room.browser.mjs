@@ -13,7 +13,7 @@ for (const host of [firestore, auth]) assert.match(host ?? "", /^127\.0\.0\.1:\d
 
 const db = getFirestore(initializeApp({ projectId: "demo-bookser" }));
 const books = [
-  { id: "fox", title: "Лиса и журавль", coverEmoji: "🦊", language: "ru", pages: ["Лиса позвала журавля в гости. Они сели у окна и стали читать книгу."] },
+  { id: "turnip", title: "Репка", coverEmoji: "🌱", language: "ru", pages: ["Посадил дед репку. Выросла репка большая, пребольшая."] },
   { id: "hare", title: "Батыл қоян", coverEmoji: "🐇", language: "kk", pages: ["Қоян үйіне келді. Ол кітап оқыды."] },
   { id: "boat", title: "Бумажный кораблик", coverEmoji: "⛵", language: "ru", pages: ["По реке плыл маленький бумажный кораблик. На берегу стояла девочка."] },
 ];
@@ -43,6 +43,7 @@ async function check(screen) {
   page.setDefaultTimeout(15000);
   const errors = [];
   const network = [];
+  page.on("request", req => { const url = new URL(req.url()); if (url.port === "8080") network.push([req.method(), url.pathname]); });
   page.on("requestfailed", req => network.push([req.method(), new URL(req.url()).pathname, req.failure()?.errorText]));
   page.on("response", res => { if (res.status() >= 400) network.push([res.status(), new URL(res.url()).pathname]); });
   page.on("console", msg => { if (msg.type() === "error" || msg.type() === "warning") network.push(msg.text().split("?")[0].slice(0, 220)); });
@@ -69,18 +70,21 @@ async function check(screen) {
     await page.waitForFunction(() => document.querySelector(".sample-word-current")?.textContent === "старик");
     await button("Приостановить подсветку").click();
     await button("Попробовать без входа").click();
+    await page.getByText("Добавь свой первый профиль", { exact: false }).waitFor({ timeout: 65000 });
     await button("Новый профиль").click();
     const dialog = page.getByRole("dialog", { name: "Новый профиль" });
     await dialog.waitFor();
     await page.keyboard.press("Escape");
     await dialog.waitFor({ state: "hidden" });
-    assert.ok(await button("Новый профиль").evaluate(el => el === document.activeElement), "Profile sheet returns focus");
+    await page.waitForFunction(() => document.activeElement?.textContent.trim() === "Новый профиль");
     await button("Новый профиль").click();
     await page.getByLabel("Имя ребёнка").fill("Ару");
     await button("Лиса").click();
+    assert.equal(await dialog.locator(".companion-choices img").count(), 10);
+    await inspect("avatars");
     await button("Создать профиль").click();
     const profile = page.getByRole("button", { name: /Ару.*7 лет/ });
-    await profile.waitFor();
+    await profile.waitFor({ timeout: 65000 });
     await inspect("profiles");
 
     await button("Родителям").click();
@@ -88,7 +92,7 @@ async function check(screen) {
     assert.equal(await page.getByText("Книг прочитано", { exact: true }).count(), 0);
     await page.goBack();
     await profile.click();
-    const shelf = page.locator('[data-book-id="fox"] button').first();
+    const shelf = page.locator('[data-book-id="turnip"] button').first();
     await shelf.waitFor();
     await button("Включить тёмную тему").click();
     await inspect("library-dark");
@@ -100,10 +104,14 @@ async function check(screen) {
     await button("Занятия").click();
     await page.getByRole("dialog", { name: "Занятия и награды" }).waitFor();
     await button("Герои").click();
-    await page.getByText("Магазин героев", { exact: true }).waitFor();
+    await page.getByRole("dialog", { name: "Магазин героев" }).waitFor();
+    await button("Сова").click();
+    await page.waitForFunction(() => document.querySelector('.hero-owner img')?.alt === "Сова");
     await button("Закрыть").first().click();
+    await page.locator('.library-reader img[alt="Сова"]').waitFor();
     await shelf.click();
     await page.locator(".karaoke-word").first().waitFor();
+    await page.locator(".story-bookplate img").evaluate(img => img.decode());
     const text = page.locator(".reading-canvas p").first();
     const initial = await text.evaluate(p => parseFloat(getComputedStyle(p).fontSize));
     await button("Больше").click();

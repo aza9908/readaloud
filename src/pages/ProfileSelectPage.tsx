@@ -6,13 +6,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { createProfile, watchProfiles } from "@/lib/firestore";
 import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CompanionPicker } from "@/components/CompanionPicker";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { BookserWordmark, ReadingWorld } from "@/components/ReadingWorld";
 
-const AVATARS = [
-  ["🦁", "Лев"], ["🐬", "Дельфин"], ["🦊", "Лиса"], ["🐼", "Панда"], ["🦄", "Единорог"],
-  ["🐸", "Лягушка"], ["🦋", "Бабочка"], ["🐯", "Тигр"], ["🐨", "Коала"], ["🦉", "Сова"],
-];
 const years = new Intl.NumberFormat("ru", { style: "unit", unit: "year", unitDisplay: "long" });
 const bookForms = new Intl.PluralRules("ru");
 function bookCount(count: number) {
@@ -106,9 +103,7 @@ export default function ProfileSelectPage() {
                     <label htmlFor="reader-name">Имя ребёнка</label>
                     <input id="reader-name" className="input" placeholder="Имя" value={name} maxLength={40} required onChange={e => setName(e.target.value)} />
                     <fieldset><legend>Аватар</legend>
-                      <div className="avatar-choices">{AVATARS.map(([emoji, label]) => (
-                        <button key={emoji} type="button" aria-label={label} aria-pressed={avatar === emoji} onClick={() => setAvatar(emoji)}>{emoji}</button>
-                      ))}</div>
+                      <CompanionPicker value={avatar} onSelect={setAvatar} />
                     </fieldset>
                     <div>
                       <label className="range-label" htmlFor="reader-age">Возраст <output htmlFor="reader-age">{years.format(age)}</output></label>
