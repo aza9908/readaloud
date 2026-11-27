@@ -79,7 +79,7 @@ interface Props {
   profile: ChildProfile;
   language: Language;
   onClose: () => void;
-  onChanged: () => void;
+  onChanged: (avatar: string, purchase?: { id: string; coins: number }) => void;
 }
 
 export function AvatarShop({ open, uid, profile, language, onClose, onChanged }: Props) {
@@ -125,7 +125,7 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
         await setProfileAvatar(uid, profile.id, toAvatarValue(def.id));
         setEquipped(toAvatarValue(def.id));
         toast({ icon: "🎉", title: c.bought, description: def.name[language] ?? def.name.ru });
-        onChanged();
+        onChanged(toAvatarValue(def.id), { id: def.id, coins: res.coinsLeft });
       } else if (res.reason === "not_enough") {
         toast({ icon: "🪙", title: c.notEnough, description: c.keepReading });
         if (res.coinsLeft !== undefined) setCoins(res.coinsLeft);
@@ -142,7 +142,7 @@ export function AvatarShop({ open, uid, profile, language, onClose, onChanged }:
       await setProfileAvatar(uid, profile.id, value);
       setEquipped(value);
       toast({ icon: "✨", title: c.equipped_toast });
-      onChanged();
+      onChanged(value);
     } catch {
       toast({ icon: "⚠️", title: c.saveError });
     } finally {
