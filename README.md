@@ -39,6 +39,8 @@ books/{bookId}                               — книги; страницы в
 
 Локальный симулятор Bookser в WhatsApp поддерживает казахский и русский языки. Для пробного чтения доступны учебные расшифровки и вымышленные профили. [Запуск симулятора и подключение Meta](whatsapp/README.md)
 
+На iPhone, iPad и Mac можно открыть [демонстрационную комнату чтения в Safari](https://aza9908.github.io/readaloud/). Для сборки приложения на SwiftUI используйте [проект для Xcode](apple/README.md). Демо работает с вымышленными профилями и хранит результаты до закрытия или перезагрузки страницы.
+
 ### 1. Firebase-проект
 
 1. [console.firebase.google.com](https://console.firebase.google.com) → Add project

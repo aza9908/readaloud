@@ -1,3 +1,7 @@
+import { BookJacket } from "@/components/BookJacket";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BookserIcon } from "@/components/BookserIcon";
+import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /**
  * BookGuideDialog — a short questionnaire that learns what the child is in
  * the mood for, then recommends books ranked by taste, length, challenge,
@@ -227,7 +231,7 @@ export function BookGuideDialog({
     return (
       <Shell eyebrow={c.eyebrow} onClose={onClose}>
         <div className="py-4 text-center space-y-2">
-          <div className="text-5xl">📚</div>
+          <div className="text-5xl"><BookserIcon value="book" size={58} /></div>
           <p className="text-ink-soft dark:text-ink-faint">{c.empty}</p>
         </div>
         <BookDiscovery
@@ -258,12 +262,10 @@ export function BookGuideDialog({
                   i === 0 ? "ring-2 ring-brand-400" : ""
                 }`}
               >
-                <div className="w-14 h-14 rounded-2xl grid place-items-center text-3xl bg-brand-50 dark:bg-brand-500/15 shrink-0">
-                  {b.coverEmoji}
-                </div>
+                <BookJacket book={b} />
                 <div className="min-w-0 flex-1">
                   {i === 0 && <p className="eyebrow !text-[10px] mb-0.5">{c.best}</p>}
-                  <p className="font-display font-bold text-ink dark:text-white truncate">{b.title}</p>
+                  <p className="font-display font-bold text-ink dark:text-white break-words leading-snug">{b.title}</p>
                   <p className="text-xs text-ink-faint">{p.reason}</p>
                 </div>
                 <span className="chip chip-on !py-1 !px-3 text-xs shrink-0">{c.read}</span>
@@ -311,14 +313,14 @@ export function BookGuideDialog({
             {[...c.topics, ...customTopics.map((v) => ({ emoji: "⭐", label: v, value: v }))].map((t) => (
               <button
                 key={t.value}
-                onClick={() => toggleTopic(t.value)}
+                aria-pressed={topics.includes(t.value)} onClick={() => toggleTopic(t.value)}
                 className={`rounded-2xl px-3 py-3 text-left border-2 transition-all duration-200 ${
                   topics.includes(t.value)
                     ? "border-brand-400 bg-brand-50 dark:bg-brand-500/15"
                     : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
                 }`}
               >
-                <span className="text-2xl">{t.emoji}</span>
+                <span className="text-2xl"><BookserIcon value={t.emoji} size={30} /></span>
                 <p className="font-bold text-sm text-ink dark:text-white mt-1">{t.label}</p>
               </button>
             ))}
@@ -376,11 +378,11 @@ export function BookGuideDialog({
 
       <div className="flex gap-2 mt-5">
         {step > 0 && (
-          <button className="btn-ghost flex-1" onClick={() => setStep((s) => s - 1)}>{c.back}</button>
+          <button className="btn-ghost flex-1" onClick={() => setStep((s) => s - 1)}><ChevronLeft size={16} aria-hidden="true" />{c.back}</button>
         )}
         {step < TOTAL_STEPS - 1 ? (
           <button className="btn-primary flex-1" disabled={!canAdvance} onClick={() => setStep((s) => s + 1)}>
-            {c.next}
+            {c.next}<ChevronRight size={16} aria-hidden="true" />
           </button>
         ) : (
           <button className="btn-primary flex-1" onClick={() => void find()} disabled={loading}>
@@ -407,14 +409,14 @@ function StepList({
         {items.map((l) => (
           <button
             key={l.v}
-            onClick={() => onSelect(l.v)}
+            aria-pressed={selected === l.v} onClick={() => onSelect(l.v)}
             className={`w-full rounded-2xl px-4 py-3 flex items-center gap-3 border-2 text-left transition-all duration-200 ${
               selected === l.v
                 ? "border-brand-400 bg-brand-50 dark:bg-brand-500/15"
                 : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
             }`}
           >
-            <span className="text-2xl">{l.emoji}</span>
+            <span className="text-2xl"><BookserIcon value={l.v === "long" ? "library" : l.emoji} size={36} /></span>
             <span>
               <span className="block font-bold text-ink dark:text-white">{l.label}</span>
               <span className="block text-xs text-ink-faint">{l.sub}</span>
@@ -434,17 +436,12 @@ function Shell({
   children: ReactNode;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div className="sheet max-w-md max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-3">
-          <p className="eyebrow">✨ {eyebrow}</p>
-          <button className="text-2xl text-ink-faint w-8 h-8 -mt-2" onClick={onClose} aria-label="Закрыть">×</button>
+    <RoomSheet returnFocus=".library-guide" title={eyebrow} onClose={onClose} className="guide-sheet">
+        <div className="sheet-toolbar">
+          <p className="eyebrow"><BookserIcon value="✨" size={16} line /> {eyebrow}</p>
+          <CloseButton onClick={onClose} />
         </div>
         {children}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

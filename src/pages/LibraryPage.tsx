@@ -1,3 +1,9 @@
+import { BookserIcon, LanguageMark } from "@/components/BookserIcon";
+import { pageWordOffsets, positionPercent } from "@/lib/readingProgress";
+import starterBooks from "@/lib/starterBooks.json";
+import { BookJacket, JacketPreview } from "@/components/BookJacket";
+import { ReadingMetrics, AchievementBadge } from "@/components/ReadingMetrics";
+import { CloseButton, RoomSheet } from "@/components/RoomControls";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,9 +15,11 @@ import {
   LANGUAGES, type Achievement, type Book, type ChildProfile, type Language, type ReadingSession,
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LibraryDock } from "@/components/LibraryDock";
+import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -162,249 +170,222 @@ export default function LibraryPage() {
     reload();
   };
 
-  const gradients = [
-    "from-rose-200 to-orange-200", "from-sky-200 to-indigo-200",
-    "from-emerald-200 to-teal-200", "from-violet-200 to-fuchsia-200",
-    "from-amber-200 to-yellow-200", "from-cyan-200 to-blue-200",
-  ];
-
   return (
-    <div className="min-h-dvh px-5 py-5 max-w-3xl mx-auto pb-28">
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
-        <div className="justify-self-start">
-          <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад">
-            <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
-          </button>
-        </div>
-        <div className="justify-self-center flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white min-w-0">
-            <ProfileAvatar value={profile.avatar} size={30} />
-            <span className="truncate">{profile.name}</span>
-          </div>
+    <main className="world-shell library-shell">
+      <header className="world-bar library-bar">
+        <button className="bar-link" onClick={() => navigate("/profiles")}><ChevronLeft size={17} aria-hidden="true" />Читатели</button>
+        <div className="library-reader"><ProfileAvatar profileId={profile.id} value={profile.avatar} size={30} /><span>{profile.name}</span></div>
+        <div className="bar-actions">
           <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
-        </div>
-        <div className="justify-self-end">
           <ThemeToggle />
         </div>
       </header>
 
-      <div className="mb-5 animate-fade-up">
-        <p className="eyebrow mb-1">Библиотека</p>
-        <h1 className="font-display font-extrabold text-3xl text-ink dark:text-white">Выбери сказку</h1>
-      </div>
+      <ReadingWorld scene="observatory" labelledBy="library-title">
+        <p className="world-kicker"><Library size={16} aria-hidden="true" />Книжная полка</p>
+        <h1 id="library-title">Моя <br /><em>библиотека</em></h1>
+        <dl className="shelf-stats">
+          <div><dt>Прочитано книг</dt><dd>{profile.booksCompleted ?? 0}</dd></div>
+          <div><dt>Прочитано слов</dt><dd>{(profile.totalWords ?? 0).toLocaleString("ru")}</dd></div>
+        </dl>
+        <button className="world-primary library-guide" onClick={() => setShowGuide(true)}>Подобрать книгу <ArrowRight size={17} aria-hidden="true" /></button>
+      </ReadingWorld>
 
-      <button
-        onClick={() => setShowGuide(true)}
-        className="w-full mb-5 rounded-3xl p-4 flex items-center gap-3 text-left bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-lift hover:-translate-y-0.5 transition-all animate-fade-up"
-      >
-        <span className="w-12 h-12 rounded-2xl bg-white/20 grid place-items-center shrink-0"><Sparkles className="w-6 h-6" strokeWidth={2.2} /></span>
-        <span className="min-w-0">
-          <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
-          <span className="block text-sm text-white/80">Найду то, что тебе понравится</span>
-        </span>
-        <ChevronRight className="ml-auto w-6 h-6 shrink-0" strokeWidth={2.4} />
-      </button>
-
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
-        {LANGUAGES.map((l) => (
-          <button key={l.value} onClick={() => setLanguage(l.value)}
-            className={`chip shrink-0 ${language === l.value ? "chip-on" : "chip-off"}`}>
-            {l.flag} {l.label}
-          </button>
-        ))}
-        <button className="chip chip-off shrink-0 ml-auto" onClick={() => setShowRating(true)}>
-          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Рейтинг
-        </button>
-        <button className="chip chip-off shrink-0"
-          onClick={() => navigate(`/arena?profile=${profile.id}`)}>
-          <Swords className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Матч
-        </button>
-        <button className="chip chip-off shrink-0"
-          onClick={() => navigate(`/math?profile=${profile.id}`)}>
-          <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowRewards(true)}>
-          <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>
-          <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
-        </button>
-        <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
-          <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
-        </button>
-      </div>
-
-      {/* Возрастные категории. По умолчанию открыта категория ребёнка —
-          так он сразу видит подходящее, а не весь список вперемешку. */}
-      <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
-        <span className="text-xs font-bold text-ink-faint shrink-0 mr-0.5">Возраст:</span>
-        <button
-          onClick={() => setBandFilter("all")}
-          className={`chip shrink-0 ${bandFilter === "all" ? "chip-on" : "chip-off"}`}
-        >
-          Все
-        </button>
-        {AGE_BANDS.map((b) => {
-          const isMine = b === bandForAge(profile.age);
-          return (
-            <button
-              key={b}
-              onClick={() => setBandFilter(b)}
-              className={`chip shrink-0 ${bandFilter === b ? "chip-on" : "chip-off"}`}
-            >
-              {BAND_LABEL[b].ru}
-              {isMine && <span className="ml-1 text-[10px] opacity-70">твой</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        {books === null && (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-4 flex gap-4 animate-pulse">
-              <div className="w-20 h-20 rounded-2xl bg-black/5 dark:bg-white/5" />
-              <div className="flex-1 space-y-2 py-2">
-                <div className="h-4 w-2/3 rounded bg-black/5 dark:bg-white/5" />
-                <div className="h-3 w-1/2 rounded bg-black/5 dark:bg-white/5" />
-              </div>
-            </div>
-          ))
-        )}
-        {/* Книги есть, но в выбранной категории пусто. Частый случай для
-            малышей: готовые сказки в основном для 6–7 лет и старше. */}
-        {books && books.length > 0 && visible && visible.length === 0 && (
-          <div className="card p-8 text-center sm:col-span-2 space-y-4">
-            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
-            <div>
-              <p className="font-display font-bold text-lg text-ink dark:text-white">
-                В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
-              </p>
-              <p className="text-sm text-ink-faint mt-1">
-                Можно подобрать сказку под этот возраст — она сгенерируется специально
-                для {profile.name}.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button className="btn-ghost flex-1" onClick={() => setBandFilter("all")}>
-                Показать все
+      <section className="library-shelf" aria-labelledby="bookshelf">
+        <div className="collection-heading">
+          <h2 id="bookshelf" tabIndex={-1}>Выбери сказку</h2>
+          <LibraryDock onProgress={() => setShowProgress(true)} activities={[
+            { label: "Рейтинг", icon: Trophy, open: () => setShowRating(true) },
+            { label: "Матч", icon: Swords, open: () => navigate(`/arena?profile=${profile.id}`) },
+            { label: "Математика", icon: Calculator, open: () => navigate(`/math?profile=${profile.id}`) },
+            { label: "Хотелки", icon: Gift, open: () => setShowRewards(true) },
+            { label: "Герои", icon: Shirt, open: () => setShowShop(true) },
+            { label: "Карточки", icon: Layers, open: () => setShowCards(true) },
+          ]} />
+        </div>
+          <div className="shelf-filter" role="group" aria-label="Язык книг">
+            {LANGUAGES.map((l) => (
+              <button key={l.value} aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}
+                className={`chip shrink-0 ${language === l.value ? "chip-on" : "chip-off"}`}>
+                <LanguageMark language={l.value} /> {l.label}
               </button>
-              <button className="btn-primary flex-1" onClick={() => setShowGuide(true)}>
-                <Sparkles className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />
-                Подобрать книгу
-              </button>
-            </div>
+            ))}
           </div>
-        )}
 
-        {books?.length === 0 && (
-          <div className="card p-8 text-center sm:col-span-2 space-y-4">
-            <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
-            <div>
-              <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
-              <p className="text-sm text-ink-faint mt-1">
-                Загрузи {STARTER_COUNT} готовых сказок на русском, казахском и английском
-              </p>
-            </div>
+          {/* Возрастные категории. По умолчанию открыта категория ребёнка —
+              так он сразу видит подходящее, а не весь список вперемешку. */}
+          <div className="shelf-filter age-filter" role="group" aria-label="Возраст читателя">
+            <span className="text-xs font-bold text-ink-faint shrink-0 mr-0.5">Возраст</span>
             <button
-              className="btn-primary w-full"
-              disabled={installing}
-              onClick={() => void addStarter()}
+              onClick={() => setBandFilter("all")} aria-pressed={bandFilter === "all"}
+              className={`chip shrink-0 ${bandFilter === "all" ? "chip-on" : "chip-off"}`}
             >
-              {installing ? "Загружаю…" : <><Download className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Загрузить {STARTER_COUNT} сказок</>}
+              Все
             </button>
-            <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
+            {AGE_BANDS.map((b) => {
+              const isMine = b === bandForAge(profile.age);
+              return (
+                <button
+                  key={b}
+                  onClick={() => setBandFilter(b)} aria-pressed={bandFilter === b}
+                  className={`chip shrink-0 ${bandFilter === b ? "chip-on" : "chip-off"}`}
+                >
+                  {BAND_LABEL[b].ru}
+                  {isMine && <span className="ml-1 text-[10px] opacity-70">твой</span>}
+                </button>
+              );
+            })}
           </div>
-        )}
-        {(highlightId && visible
-            ? [...visible].sort((a, b) =>
-                a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
-            : visible
-          )?.map(({ book, band, fit, block }, i) => {
-          const prog = progressByBook.get(book.id);
-          const pct = prog?.open ? Math.round((prog.open.currentPage / book.pages.length) * 100) : 0;
-          const openBook = () => {
-            if (block) {
-              toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
-              return;
-            }
-            navigate(`/read/${book.id}?profile=${profile.id}`);
-          };
-          return (
-            <div
-              key={book.id}
-              data-book-id={book.id}
-              className={`card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
-                block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
-              } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
-                <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
-                  {book.coverUrl
-                    ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover rounded-2xl" loading="lazy" />
-                    : book.coverEmoji}
+
+          <div className="shelf-books grid gap-4">
+            {books === null && (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="card p-4 flex gap-4 animate-pulse">
+                  <div className="w-20 h-20 rounded-2xl bg-black/5 dark:bg-white/5" />
+                  <div className="flex-1 space-y-2 py-2">
+                    <div className="h-4 w-2/3 rounded bg-black/5 dark:bg-white/5" />
+                    <div className="h-3 w-1/2 rounded bg-black/5 dark:bg-white/5" />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-display font-bold text-ink dark:text-white truncate">{book.title}</p>
-                    {book.id === highlightId && (
-                      <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
-                        НОВАЯ
-                      </span>
-                    )}
-                    {prog?.completed && <span className="text-amber-500">⭐</span>}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {/* Возрастная категория книги — считается из текста */}
-                    <span
-                      className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 ${
-                        fit === "below"
-                          ? "bg-black/[0.06] dark:bg-white/10 text-ink-faint"
-                          : fit === "above"
-                            ? "bg-brand-500/12 text-brand-600 dark:text-brand-300"
-                            : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
-                      }`}
-                    >
-                      {BAND_LABEL[band].ru}
-                    </span>
-                    {fit === "below" && (
-                      <span className="text-[10px] text-ink-faint">{BAND_HINT[band].ru}</span>
-                    )}
-                    {fit === "above" && (
-                      <span className="text-[10px] text-brand-500 font-bold">вызов</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-ink-faint mt-0.5">
-                    {book.totalWords} слов · {book.pages.length} стр.
-                    {book.isCustom && " · своя"}
+              ))
+            )}
+            {/* Книги есть, но в выбранной категории пусто. Частый случай для
+                малышей: готовые сказки в основном для 6–7 лет и старше. */}
+            {books && books.length > 0 && visible && visible.length === 0 && (
+              <div className="card p-8 text-center col-span-full space-y-4">
+                <JacketPreview books={books} />
+                <div>
+                  <p className="font-display font-bold text-lg text-ink dark:text-white">
+                    В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
                   </p>
-                  {block && (
-                    <p className="text-[11px] text-ink-faint mt-1 leading-snug">
-                      🔒 Сначала прочитай книгу по возрасту
-                    </p>
-                  )}
-                  {pct > 0 && !prog?.completed && (
-                    <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
-                      <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  <p className="text-sm text-ink-faint mt-1">
+                    Можно подобрать сказку под этот возраст — она сгенерируется специально
+                    для {profile.name}.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-ghost flex-1" onClick={() => setBandFilter("all")}>
+                    Показать все
+                  </button>
+                  <button className="btn-primary flex-1" onClick={() => setShowGuide(true)}>
+                    <Sparkles className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />
+                    Подобрать книгу
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {books?.length === 0 && (
+              <div className="card p-8 text-center col-span-full space-y-4">
+                <JacketPreview books={starterBooks.filter(book => book.language === language).map(({ title, coverEmoji }) => ({ title, coverEmoji, language }))} />
+                <div>
+                  <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
+                  <p className="text-sm text-ink-faint mt-1">
+                    Загрузи {STARTER_COUNT} готовых сказок на русском, казахском и английском
+                  </p>
+                </div>
+                <button
+                  className="btn-primary w-full"
+                  disabled={installing}
+                  onClick={() => void addStarter()}
+                >
+                  {installing ? "Загружаю…" : <><Download className="w-5 h-5 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Загрузить {STARTER_COUNT} сказок</>}
+                </button>
+                <p className="text-xs text-ink-faint">или добавь свою книгу кнопкой ниже</p>
+              </div>
+            )}
+            {(highlightId && visible
+                ? [...visible].sort((a, b) =>
+                    a.book.id === highlightId ? -1 : b.book.id === highlightId ? 1 : 0)
+                : visible
+              )?.map(({ book, band, fit, block }, i) => {
+              const prog = progressByBook.get(book.id);
+              const pct = prog?.open ? positionPercent(pageWordOffsets(book.pages), prog.open.currentPage, prog.open.currentWordIndex) : 0;
+              const openBook = () => {
+                if (block) {
+                  toast({ icon: "📘", title: "Сначала книга по возрасту", description: PICK_BLOCK_MESSAGE[block].ru });
+                  return;
+                }
+                navigate(`/read/${book.id}?profile=${profile.id}`);
+              };
+              return (
+                <div
+                  key={book.id}
+                  data-book-id={book.id}
+                  className={`book-tile card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
+                    block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
+                  } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
+                  style={{ animationDelay: `${Math.min(i, 5) * 35}ms` }}
+                >
+                  <button className="shelf-choice flex-1 min-w-0 text-left" onClick={openBook}>
+                    <BookJacket book={book} sizes="(min-width: 75rem) 350px, (min-width: 44rem) 38vw, 96px" />
+                    <div className="shelf-caption min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="book-tile-title font-display font-bold text-ink dark:text-white">{book.title}</p>
+                        {book.id === highlightId && (
+                          <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
+                            НОВАЯ
+                          </span>
+                        )}
+                        {prog?.completed && <span role="img" aria-label="Прочитано"><BookserIcon value="star" size={19} /></span>}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        {/* Возрастная категория книги — считается из текста */}
+                        <span
+                          className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 ${
+                            fit === "below"
+                              ? "bg-black/[0.06] dark:bg-white/10 text-ink-faint"
+                              : fit === "above"
+                                ? "bg-brand-500/12 text-brand-600 dark:text-brand-300"
+                                : "bg-emerald-500/12 text-emerald-700 dark:text-emerald-400"
+                          }`}
+                        >
+                          {BAND_LABEL[band].ru}
+                        </span>
+                        {fit === "below" && (
+                          <span className="text-[10px] text-ink-faint">{BAND_HINT[band].ru}</span>
+                        )}
+                        {fit === "above" && (
+                          <span className="text-[10px] text-brand-500 font-bold">вызов</span>
+                        )}
+                      </div>
+                      <p className="text-xs text-ink-faint mt-0.5">
+                        {book.totalWords} слов · {book.pages.length} стр.
+                        {book.isCustom && " · своя"}
+                      </p>
+                      {block && (
+                        <p className="text-[11px] text-ink-faint mt-1 leading-snug">
+                          <BookserIcon value="🔒" size={13} line /> Сначала прочитай книгу по возрасту
+                        </p>
+                      )}
+                      {pct > 0 && !prog?.completed && (
+                        <div className="mt-2 h-1.5 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
+                          <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      )}
+                      {!block && (
+                        <span className="shelf-read-cue">
+                          {prog?.open ? "Продолжить" : prog?.completed ? "Перечитать" : "Читать"}
+                          <ChevronRight size={14} aria-hidden="true" />
+                        </span>
+                      )}
                     </div>
+                  </button>
+                  {book.isCustom && (
+                    <button className="book-delete text-ink-faint hover:text-red-500 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
                   )}
                 </div>
-              </button>
-              {book.isCustom && (
-                <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
 
-      <button
-        className="w-full mt-4 rounded-3xl border-2 border-dashed border-brand-300 bg-brand-50/50 dark:bg-brand-500/10 text-brand-500 font-display font-bold py-4 hover:-translate-y-0.5 transition-all"
-        onClick={() => setShowUpload(true)}
-      >
-        <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
-      </button>
+          <button
+            className="add-book"
+            onClick={() => setShowUpload(true)}
+          >
+            <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
+          </button>
+      </section>
 
       <CardCollection
         open={showCards}
@@ -432,7 +413,12 @@ export default function LibraryPage() {
         profile={profile}
         language={language}
         onClose={() => setShowShop(false)}
-        onChanged={() => { void getProfile(user.uid, profileId).then(setProfile); }}
+        onChanged={(avatar, purchase) => setProfile(current => {
+          if (!current) return current;
+          if (!purchase) return { ...current, avatar };
+          const unlockedAvatars = Array.from(new Set([...(current.unlockedAvatars ?? []), purchase.id]));
+          return { ...current, avatar, coins: purchase.coins, unlockedAvatars };
+        })}
       />
 
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />
@@ -474,32 +460,19 @@ export default function LibraryPage() {
       )}
 
       {showProgress && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setShowProgress(false)}>
-          <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto space-y-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
+        <RoomSheet returnFocus=".dock-progress" title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
+            <div className="sheet-toolbar">
               <div className="flex items-center gap-2">
-                <ProfileAvatar value={profile.avatar} size={38} />
+                <ProfileAvatar profileId={profile.id} value={profile.avatar} size={38} />
                 <div>
                   <h2 className="font-display font-extrabold text-xl text-ink dark:text-white leading-none">Мои успехи</h2>
                   <p className="text-sm text-ink-faint">{profile.name}</p>
                 </div>
               </div>
-              <button className="text-2xl text-ink-faint w-8 h-8" onClick={() => setShowProgress(false)} aria-label="Закрыть">×</button>
+              <CloseButton onClick={() => setShowProgress(false)} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-center">
-              {[
-                { v: profile.booksCompleted, l: "книг", bg: "from-violet-100 to-fuchsia-100 dark:from-violet-500/15 dark:to-fuchsia-500/10" },
-                { v: fmtDuration(profile.totalMs), l: "времени", bg: "from-sky-100 to-blue-100 dark:from-sky-500/15 dark:to-blue-500/10" },
-                { v: avgWpm, l: "сл/мин", bg: "from-emerald-100 to-teal-100 dark:from-emerald-500/15 dark:to-teal-500/10" },
-                { v: profile.coins ?? 0, l: "монет", bg: "from-amber-100 to-yellow-100 dark:from-amber-500/15 dark:to-yellow-500/10" },
-              ].map((s, i) => (
-                <div key={i} className={`rounded-2xl p-4 bg-gradient-to-br ${s.bg}`}>
-                  <p className="font-display font-extrabold text-xl text-ink dark:text-white leading-tight">{s.v}</p>
-                  <p className="text-xs text-ink-soft dark:text-ink-faint mt-0.5">{s.l}</p>
-                </div>
-              ))}
-            </div>
+            <ReadingMetrics books={profile.booksCompleted} time={fmtDuration(profile.totalMs)} pace={avgWpm} coins={profile.coins ?? 0} />
 
             <RewardsPanel language={language} coins={profile.coins ?? 0} />
 
@@ -508,7 +481,7 @@ export default function LibraryPage() {
               <div className="grid grid-cols-3 gap-3 text-center">
                 {LANGUAGES.map((l) => (
                   <div key={l.value} className="rounded-2xl bg-black/[0.03] dark:bg-white/5 p-3">
-                    <p className="text-xl">{l.flag}</p>
+                    <p className="text-xl"><LanguageMark language={l.value} /></p>
                     <p className="font-display font-extrabold text-lg text-ink dark:text-white">{profile.byLanguage?.[l.value]?.books ?? 0}</p>
                     <p className="text-xs text-ink-faint">{l.label}</p>
                   </div>
@@ -517,22 +490,14 @@ export default function LibraryPage() {
             </div>
 
             <div>
-              <p className="font-display font-bold text-ink dark:text-white mb-2">🏆 Награды</p>
+              <p className="font-display font-bold text-ink dark:text-white mb-2"><BookserIcon value="cup" line size={17} /> Награды</p>
               {achievements.length === 0
                 ? <p className="text-sm text-ink-faint">Пока нет наград. Начни читать!</p>
                 : (
                   <div className="grid sm:grid-cols-2 gap-2">
                     {achievements.sort((a, b) => b.earnedAt - a.earnedAt).map((a) => {
                       const def = badgeById(a.id); if (!def) return null;
-                      return (
-                        <div key={a.id} className="rounded-2xl border-2 border-amber-400/30 bg-amber-50/50 dark:bg-amber-500/5 p-3 flex items-center gap-3">
-                          <span className="text-2xl">{def.icon}</span>
-                          <div>
-                            <p className="font-display font-bold text-sm text-ink dark:text-white leading-tight">{def.title}</p>
-                            <p className="text-xs text-ink-faint">{def.description}</p>
-                          </div>
-                        </div>
-                      );
+                      return <AchievementBadge key={a.id} badge={def} />;
                     })}
                   </div>
                 )}
@@ -540,25 +505,24 @@ export default function LibraryPage() {
 
             {completedSessions.length > 0 && (
               <div>
-                <p className="font-display font-bold text-ink dark:text-white mb-2">📖 Прочитано</p>
+                <p className="font-display font-bold text-ink dark:text-white mb-2"><BookserIcon value="book" line size={17} /> Прочитано</p>
                 <div className="space-y-2">
                   {completedSessions.map((s) => (
                     <div key={s.id} className="rounded-2xl border border-black/5 dark:border-white/5 p-3 flex items-center justify-between">
                       <div>
                         <p className="font-bold text-sm text-ink dark:text-white">
-                          {LANGUAGES.find((l) => l.value === s.language)?.flag} {s.bookTitle}
+                          <LanguageMark language={s.language} announce /> {s.bookTitle}
                         </p>
                         <p className="text-xs text-ink-faint">{s.wordsRead} слов · {fmtDuration(s.durationMs)}</p>
                       </div>
-                      <span className="text-amber-500 text-xl">⭐</span>
+                      <BookserIcon value="star" size={25} />
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </RoomSheet>
       )}
-    </div>
+    </main>
   );
 }

@@ -1,3 +1,4 @@
+import { BookserIcon } from "@/components/BookserIcon";
 /**
  * MathPage — раздел «Математика»: задачи 1–4 классов с загрузкой решения
  * фотографией из тетради.
@@ -9,10 +10,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
-import { ArrowLeft, Camera, Check, Loader2, Coins, Lightbulb, X } from "lucide-react";
+import { ChevronRight, Camera, Check, Loader2, Coins, Lightbulb, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getProfile, submitMathSolution, awardMathCoins } from "@/lib/firestore";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SectionHeader, CloseButton, RoomSheet } from "@/components/RoomControls";
 import { compressImage } from "@/lib/imageCompress";
 import { inspectPhoto } from "@/lib/photoInspect";
 import {
@@ -60,22 +61,11 @@ export default function MathPage() {
   if (!user || !profile) return null;
 
   return (
-    <div className="min-h-dvh px-4 py-4 max-w-3xl mx-auto pb-16">
-      <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-6 gap-2">
-        <div className="justify-self-start">
-          <button className="btn-ghost !py-2 !px-3"
-            onClick={() => navigate(`/library?profile=${profileId}`)} aria-label="Назад">
-            <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
-          </button>
-        </div>
-        <h1 className="justify-self-center font-display font-extrabold text-lg text-ink dark:text-white">
-          Математика
-        </h1>
-        <div className="justify-self-end"><ThemeToggle /></div>
-      </header>
+    <main className="section-shell math-shell">
+      <SectionHeader title="Математика" onBack={() => navigate(`/library?profile=${profileId}`)} />
 
-      <div className="card p-3 mb-4 flex items-center gap-3">
-        <span className="text-2xl">📅</span>
+      <div className="task-intro">
+        <span className="text-2xl"><BookserIcon value="📅" size={45} /></span>
         <div className="min-w-0">
           <p className="text-sm font-bold text-ink dark:text-white">Задачи на сегодня</p>
           <p className="text-[11px] text-ink-faint">
@@ -88,7 +78,7 @@ export default function MathPage() {
       <div className="flex items-center gap-2 mb-3 overflow-x-auto pb-1">
         <span className="text-xs font-bold text-ink-faint shrink-0">Класс:</span>
         {GRADES.map((g) => (
-          <button key={g} onClick={() => setGrade(g)}
+          <button key={g} aria-pressed={grade === g} onClick={() => setGrade(g)}
             className={`chip shrink-0 ${grade === g ? "chip-on" : "chip-off"}`}>
             {g}
           </button>
@@ -98,17 +88,17 @@ export default function MathPage() {
       {/* Уровень сложности */}
       <div className="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
         <span className="text-xs font-bold text-ink-faint shrink-0">Уровень:</span>
-        <button onClick={() => setLevel("all")}
+        <button aria-pressed={level === "all"} onClick={() => setLevel("all")}
           className={`chip shrink-0 ${level === "all" ? "chip-on" : "chip-off"}`}>Все</button>
         {LEVELS.map((d) => (
-          <button key={d} onClick={() => setLevel(d)}
+          <button key={d} aria-pressed={level === d} onClick={() => setLevel(d)}
             className={`chip shrink-0 ${level === d ? "chip-on" : "chip-off"}`}>
             {d} · {DIFFICULTY_LABEL[d]}
           </button>
         ))}
       </div>
 
-      <div className="space-y-3">
+      <div className="task-list">
         {tasks.length === 0 && (
           <div className="card p-8 text-center text-ink-faint text-sm">
             Для этого класса и уровня задач пока нет.
@@ -131,6 +121,7 @@ export default function MathPage() {
                   </span>
                 </div>
               </div>
+              <ChevronRight className="row-chevron" size={17} aria-hidden="true" />
             </div>
           </button>
         ))}
@@ -140,7 +131,7 @@ export default function MathPage() {
         <TaskSheet task={active} uid={user.uid} profileId={profileId}
           onClose={() => setActive(null)} />
       )}
-    </div>
+    </main>
   );
 }
 
@@ -237,15 +228,13 @@ function TaskSheet({ task, uid, profileId, onClose }: {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}>
-      <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-3">
+    <RoomSheet title="Задача" onClose={onClose}>
+        <div className="sheet-toolbar">
           <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold text-white"
             style={{ backgroundColor: DIFFICULTY_COLOR[task.difficulty] }}>
             {task.difficulty} · {DIFFICULTY_LABEL[task.difficulty]}
           </span>
-          <button className="text-2xl text-ink-faint w-8 h-8" onClick={onClose}>×</button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <p className="text-base text-ink dark:text-white leading-relaxed mb-4">{task.text}</p>
@@ -269,7 +258,7 @@ function TaskSheet({ task, uid, profileId, onClose }: {
           <div className="text-center py-4">
             {ai ? (
               <>
-                <div className="text-5xl mb-2">{ai.correct ? "🎉" : "💪"}</div>
+                <div className="text-5xl mb-2"><BookserIcon value={ai.correct ? "star" : "💪"} size={58} /></div>
                 <p className="font-display font-bold text-xl text-ink dark:text-white">
                   {ai.correct ? "Верно!" : "Почти получилось"}
                 </p>
@@ -317,7 +306,7 @@ function TaskSheet({ task, uid, profileId, onClose }: {
               </>
             ) : (
               <>
-                <div className="text-5xl mb-2">📸</div>
+                <div className="text-5xl mb-2"><BookserIcon value="📸" size={58} /></div>
                 <p className="font-display font-bold text-lg text-ink dark:text-white">Работа отправлена</p>
                 <p className="text-sm text-ink-faint mt-1">{aiError || "Родители проверят решение."}</p>
               </>
@@ -381,7 +370,6 @@ function TaskSheet({ task, uid, profileId, onClose }: {
             </p>
           </>
         )}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

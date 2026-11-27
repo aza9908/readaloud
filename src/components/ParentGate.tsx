@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { RoomSheet } from "./RoomControls";
 import { Lock, Delete, ShieldCheck } from "lucide-react";
 import {
   isValidPin, hashPin, initialGateState, registerFailure, registerSuccess,
@@ -138,8 +139,7 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="sheet max-w-xs w-full text-center">
+    <RoomSheet title={title} onClose={onCancel} className="pin-sheet text-center">
         <div className="w-14 h-14 rounded-2xl bg-brand-500/10 grid place-items-center mx-auto mb-3">
           {stage === "enter"
             ? <Lock className="w-7 h-7 text-brand-500" strokeWidth={2.2} />
@@ -160,7 +160,7 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
           ))}
         </div>
 
-        {error && <p className="text-sm font-bold text-red-500 mb-3">{error}</p>}
+        {error && <p role="alert" className="text-sm font-bold text-red-500 mb-3">{error}</p>}
         {locked && (
           <p className="text-sm text-ink-faint mb-3">
             Подождите {lockoutSecondsLeft(gate, now)} сек.
@@ -189,7 +189,7 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
           >
             0
           </button>
-          <button onClick={back} disabled={locked}
+          <button onClick={back} aria-label="Удалить последнюю цифру" disabled={locked}
             className="h-14 rounded-2xl grid place-items-center text-ink-faint disabled:opacity-40">
             <Delete className="w-5 h-5" strokeWidth={2.2} />
           </button>
@@ -234,7 +234,6 @@ export function ParentGate({ uid, onUnlocked, onCancel }: Props) {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

@@ -1,3 +1,5 @@
+import { BookserIcon } from "@/components/BookserIcon";
+import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /**
  * RewardsStore — витрина «хотелок», которые добавил родитель.
  *
@@ -62,12 +64,8 @@ export function RewardsStore({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[66] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
+    <RoomSheet title="Мои хотелки" onClose={onClose}>
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Мои хотелки</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">Копи монеты и выбирай награду</p>
@@ -77,7 +75,7 @@ export function RewardsStore({
               <Coins className="w-4 h-4 text-amber-500" strokeWidth={2.4} />
               <span className="font-display font-bold text-amber-600 dark:text-amber-400 tabular-nums">{coins}</span>
             </span>
-            <button className="text-2xl text-ink-faint w-8 h-8" onClick={onClose} aria-label="Закрыть">×</button>
+            <CloseButton onClick={onClose} />
           </div>
         </div>
 
@@ -104,7 +102,7 @@ export function RewardsStore({
                   {r.photo ? (
                     <img src={r.photo} alt="" className="w-14 h-14 rounded-2xl object-cover shrink-0" />
                   ) : (
-                    <span className="text-4xl shrink-0 w-14 text-center">{r.emoji}</span>
+                    <span className="text-4xl shrink-0 w-14 text-center"><BookserIcon value={r.emoji} size={46} fallback="gift" /></span>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-display font-bold text-ink dark:text-white truncate">{r.title}</p>
@@ -144,7 +142,6 @@ export function RewardsStore({
           Когда монет хватит, нажми «Хочу!» — родители получат запрос и выдадут награду.
           Монеты спишутся после подтверждения.
         </p>
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

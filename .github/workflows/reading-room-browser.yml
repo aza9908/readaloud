@@ -1,0 +1,50 @@
+name: Reading room browser checks
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "index.html"
+      - "package*.json"
+      - "test/reading-room.browser.mjs"
+      - ".github/workflows/reading-room-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reading-room:
+    runs-on: macos-15
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Build for the local emulator project
+        run: npm run build
+        env:
+          VITE_FIREBASE_API_KEY: demo-key
+          VITE_FIREBASE_AUTH_DOMAIN: localhost
+          VITE_FIREBASE_PROJECT_ID: demo-bookser
+          VITE_FIREBASE_APP_ID: "1:123456789:web:001122334455"
+      - run: npx playwright-core install webkit chromium
+      - name: Check the reading flow in browsers
+        run: |
+          jq '{firestore, emulators: {auth: {host: "127.0.0.1", port: 9099}, firestore: {host: "127.0.0.1", port: 8080}, ui: {enabled: false}}}' firebase.json > firebase.browser.json
+          npx --yes firebase-tools@13 emulators:exec --config firebase.browser.json --project demo-bookser --only auth,firestore 'node test/reading-room.browser.mjs'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reading-room-screens
+          path: test-results/reading-room/
+          retention-days: 5
+          if-no-files-found: ignore

@@ -1,3 +1,4 @@
+import { BookserIcon } from "./BookserIcon";
 /**
  * RewardsPanel — explains what the coins are for.
  *
@@ -6,7 +7,7 @@
  * to a child would be misleading. The parent sets the rate and the prize.
  */
 
-import { Coins, Gift, HandCoins } from "lucide-react";
+import { Gift, HandCoins } from "lucide-react";
 import type { Language } from "@/lib/types";
 
 const COPY = {
@@ -64,7 +65,7 @@ export function RewardsPanel({
     <div className="rounded-3xl border-2 border-amber-400/30 bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/5 p-4 space-y-3">
       <div className="flex items-start gap-3">
         <span className="w-11 h-11 rounded-2xl bg-amber-400/20 grid place-items-center shrink-0">
-          <Coins className="w-5 h-5 text-amber-600" strokeWidth={2.2} />
+          <BookserIcon value="coins" size={35} />
         </span>
         <div className="min-w-0">
           <p className="font-display font-bold text-ink dark:text-white leading-tight">

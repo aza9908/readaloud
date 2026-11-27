@@ -1,3 +1,5 @@
+import { BookJacket } from "./BookJacket";
+import { BookserIcon } from "./BookserIcon";
 /**
  * BookDiscovery — shown inside the guide's results screen.
  *
@@ -18,8 +20,8 @@ import type { ChildProfile, Language } from "@/lib/types";
 const COPY = {
   ru: {
     title: "Нет подходящей? Найдём новую",
-    searchBtn: "🌐 Поискать в интернете",
-    genBtn: "✨ Придумать сказку для меня",
+    searchBtn: "Поискать в интернете",
+    genBtn: "Придумать сказку для меня",
     searching: "Ищу истории…",
     generating: "Сочиняю сказку…",
     adding: "Готовлю книгу…",
@@ -33,8 +35,8 @@ const COPY = {
   },
   kk: {
     title: "Сәйкесі жоқ па? Жаңасын табайық",
-    searchBtn: "🌐 Интернеттен іздеу",
-    genBtn: "✨ Маған ертегі ойлап тап",
+    searchBtn: "Интернеттен іздеу",
+    genBtn: "Маған ертегі ойлап тап",
     searching: "Әңгімелер іздеп жатырмын…",
     generating: "Ертегі жазып жатырмын…",
     adding: "Кітап дайындалуда…",
@@ -48,8 +50,8 @@ const COPY = {
   },
   en: {
     title: "Nothing quite right? Let's find something new",
-    searchBtn: "🌐 Search online",
-    genBtn: "✨ Write me a story",
+    searchBtn: "Search online",
+    genBtn: "Write me a story",
     searching: "Looking for stories…",
     generating: "Writing your story…",
     adding: "Preparing the book…",
@@ -169,7 +171,7 @@ export function BookDiscovery({ topics, prompt = "", language, profile, uid, onA
 
       {busy && (
         <div className="py-6 text-center">
-          <div className="text-3xl animate-float mb-2">{phase === "generating" ? "✨" : "🌐"}</div>
+          <div className="text-3xl animate-float mb-2"><BookserIcon value={phase === "generating" ? "✨" : "globe"} size={48} /></div>
           <p className="text-sm text-ink-soft dark:text-ink-faint">{busyLabel}</p>
         </div>
       )}
@@ -179,9 +181,9 @@ export function BookDiscovery({ topics, prompt = "", language, profile, uid, onA
           <p className="text-xs text-ink-faint">{c.found}</p>
           {results.map((f) => (
             <div key={f.sourceUrl} className="card p-3 flex items-center gap-3">
-              <span className="w-11 h-11 rounded-2xl bg-brand-50 dark:bg-brand-500/15 grid place-items-center text-xl shrink-0">🌐</span>
+              <BookJacket book={{ ...f, coverEmoji: "🌐" }} />
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-sm text-ink dark:text-white truncate">{f.title}</p>
+                <p className="font-bold text-sm text-ink dark:text-white break-words leading-snug">{f.title}</p>
                 {f.snippet && <p className="text-xs text-ink-faint line-clamp-2">{f.snippet}</p>}
               </div>
               <button className="chip chip-on !py-1.5 !px-3 text-xs shrink-0" onClick={() => void addFound(f)}>
@@ -199,11 +201,11 @@ export function BookDiscovery({ topics, prompt = "", language, profile, uid, onA
         <div className="grid grid-cols-1 gap-2 mt-3">
           {phase !== "results" && (
             <button className="btn-ghost w-full" onClick={() => void search()}>
-              {c.searchBtn}
+              <BookserIcon value="globe" size={17} line /> {c.searchBtn}
             </button>
           )}
           <button className="btn-primary w-full" onClick={() => void generate()}>
-            {c.genBtn}
+            <BookserIcon value="✨" size={17} line /> {c.genBtn}
           </button>
           {phase === "results" && (
             <button className="text-sm font-bold text-ink-faint py-1" onClick={() => { setPhase("idle"); setError(null); }}>

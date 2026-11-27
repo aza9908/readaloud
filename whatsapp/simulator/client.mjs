@@ -72,6 +72,7 @@ async function send(input, replay = false) {
       $("reply-announcement").lang = reply?.language ?? family.lang ?? "kk";
       $("reply-announcement").textContent = reply?.body ?? "";
     } else if (result.notice) $("reply-announcement").textContent = "";
+    return true;
   } catch { status(ui().failed); }
   finally { busy = false; }
 }
@@ -198,33 +199,54 @@ function render() {
   const thread = $("thread");
   const history = family.history;
   const c = ui();
+  const r = readerSummary(family, library), firstVisit = !history.length;
+  document.body.classList.toggle("first-visit", firstVisit);
+  document.body.classList.toggle("has-reader", !!r);
+  const cover = document.querySelector(".cover-portrait");
+  if (firstVisit && !cover.hasAttribute("src")) cover.src = document.querySelector(".portrait").src;
+  cover.classList.toggle("welcome-art", firstVisit);
+  document.querySelector(".cover-scene").hidden = !firstVisit;
   renderNotice(family.weeklyNotice);
   document.documentElement.lang = family.lang ?? "en";
   document.title = "Bookser · " + c.title + " · WhatsApp";
   thread.setAttribute("aria-label", c.chat);
   for (const node of document.querySelectorAll("[data-i]")) node.textContent = c[node.dataset.i];
-  for (const [id, key] of [["theme","theme"],["menu","choose"],["smaller","smaller"],["larger","larger"],["close-parent","close"]]) {
+  const titleWords = c.title.split(" ");
+  if (titleWords.length > 1) {
+    const last = titleWords.pop();
+    $("room-title").replaceChildren(document.createTextNode(titleWords.join(" ") + " "), make("em", "", last));
+  }
+  for (const [id, key] of [["theme","theme"],["menu","choose"],["smaller","smaller"],["larger","larger"],["close-parent","close"],["back-chat","backChat"]]) {
     $(id).setAttribute("aria-label", c[key]); $(id).title = c[key];
   }
   document.querySelector(".send-text").setAttribute("aria-label", c.send);
   $("transcript").placeholder = c.placeholder;
-  thread.classList.toggle("welcome", !history.length);
+  thread.classList.toggle("welcome", firstVisit);
   const fragment = document.createDocumentFragment();
-  if (!history.length) {
-    const portrait = make("img", "welcome-art"); portrait.alt = ""; portrait.src = document.querySelector(".portrait").src;
-    fragment.append(portrait, replyBubble(welcome(), true));
+  if (firstVisit) {
+    const greeting = welcome(), bubble = replyBubble(greeting, true);
+    bubble.querySelectorAll(".actions button").forEach((choice, i) => {
+      const language = greeting.buttons[i].id.slice(5), book = library[language];
+      choice.lang = language;
+      choice.title = book.title;
+      choice.dataset.book = book.title;
+      choice.setAttribute("aria-label", choice.textContent + " · " + book.title);
+    });
+    fragment.append(bubble);
   }
   for (const [i, row] of history.entries()) {
     if (row.incoming) fragment.append(make("div", "bubble in", row.incoming));
     fragment.append(replyBubble(row.reply, i === history.length - 1));
   }
-  thread.replaceChildren(fragment); thread.scrollTop = thread.scrollHeight;
-  const r = readerSummary(family, library);
+  thread.replaceChildren(fragment);
+  const last = thread.lastElementChild;
+  thread.scrollTop = last ? Math.max(0, thread.scrollHeight - last.offsetHeight - 20) : 0;
   const ready = !!r && ["read", "passed"].includes(family.stage);
   const key = r ? family.active + ":" + r.page : "";
   if (key !== pageKey) { loadPreset(r); pageKey = key; }
   $("mode").textContent = offline ? c.offline : c.local;
   $("lab-fields").disabled = !ready;
+  $("open-lab").hidden = !ready;
   $("lab-hint").textContent = ready ? r.title + " · " + r.page + " / " + r.pages + " · " + (r.language === "kk" ? "Қазақша" : "Русский")
     : r ? c.resume : c.first;
   $("reader-name").textContent = r?.name ?? c.noReader;
@@ -257,7 +279,7 @@ $("smaller").addEventListener("click", () => setReadSize(readSize - 2));
 $("larger").addEventListener("click", () => setReadSize(readSize + 2));
 function applyTheme(dark) {
   document.documentElement.classList.toggle("dark", dark); $("theme").setAttribute("aria-pressed", String(dark));
-  document.querySelector('meta[name="theme-color"]').content = dark ? "#17141f" : "#fbf9f4";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#211e28" : "#fbf9f4";
 }
 let dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 try {
@@ -272,10 +294,18 @@ $("theme").addEventListener("click", () => {
 });
 $("replay").addEventListener("click", () => { if (lastNote) send(lastNote, true); });
 $("preset").addEventListener("change", () => loadPreset(readerSummary(family, library)));
-$("send-note").addEventListener("click", () => {
+function reveal(id) {
+  const destination = $(id);
+  destination.focus({ preventScroll: true });
+  destination.scrollIntoView?.({ block: id === "lab-heading" ? "start" : "nearest", behavior: "auto" });
+}
+$("open-lab").addEventListener("click", () => reveal("lab-heading"));
+$("back-chat").addEventListener("click", () => reveal("thread"));
+$("send-note").addEventListener("click", async () => {
   if (!$("seconds").reportValidity() || $("seconds").value === "") return;
   const flagged = $("preset").value === "adult";
-  send({ kind: "audio", transcript: flagged ? "" : $("transcript").value, flagged, seconds: Number($("seconds").value), language: readerSummary(family, library)?.language });
+  const sent = await send({ kind: "audio", transcript: flagged ? "" : $("transcript").value, flagged, seconds: Number($("seconds").value), language: readerSummary(family, library)?.language });
+  if (sent && window.matchMedia?.("(max-width: 839px)").matches) reveal("thread");
 });
 if (offline) render();
 else api("/api/family").then(data => { family = data; render(); }).catch(e => status(e.message));

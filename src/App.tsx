@@ -1,6 +1,7 @@
 import { Route, Switch, Redirect } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { ToastProvider } from "@/components/Toast";
+import { FamilyReaders } from "@/components/FamilyReaders";
 import LandingPage from "@/pages/LandingPage";
 import ProfileSelectPage from "@/pages/ProfileSelectPage";
 import LibraryPage from "@/pages/LibraryPage";
@@ -9,14 +10,16 @@ import DashboardPage from "@/pages/DashboardPage";
 import MathPage from "@/pages/MathPage";
 import ArenaPage from "@/pages/ArenaPage";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import pagePal from "@/assets/avatars/page-pal.webp";
 
 export default function App() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-dvh grid place-items-center">
-        <div className="text-6xl animate-float">📖</div>
+      <div className="bookser-loading" role="status">
+        <img src={pagePal} width={68} height={68} alt="" />
+        <span>Открываем Bookser…</span>
       </div>
     );
   }
@@ -24,7 +27,7 @@ export default function App() {
   return (
     <ToastProvider>
       {user ? (
-        <>
+        <FamilyReaders key={user.uid} uid={user.uid}>
           <Switch>
             <Route path="/profiles" component={ProfileSelectPage} />
             <Route path="/library" component={LibraryPage} />
@@ -35,7 +38,7 @@ export default function App() {
             <Route><Redirect to="/profiles" /></Route>
           </Switch>
           <InstallPrompt />
-        </>
+        </FamilyReaders>
       ) : (
         <LandingPage />
       )}

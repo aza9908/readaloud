@@ -22,7 +22,7 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       viewBox="0 0 100 100"
       width={size}
       height={size}
-      className={className}
+      className={`collectible-portrait ${className}`}
       role="img"
       aria-label={def.name[language]}
       /* Заблокированные показываем В ЦВЕТЕ: ребёнок должен видеть награду,
@@ -31,6 +31,9 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       style={locked ? { filter: "saturate(0.82) brightness(0.97)" } : undefined}
     >
       <defs>
+        <linearGradient id={`rim-${uid}`} x2="1" y2="1" gradientUnits="objectBoundingBox">
+          <stop stopColor="#fae7c5" /><stop offset=".48" stopColor="#ab8968" /><stop offset="1" stopColor="#e7c69c" />
+        </linearGradient>
         <clipPath id={`clip-${uid}`}>
           <circle cx="50" cy="50" r="50" />
         </clipPath>
@@ -43,7 +46,7 @@ export const AvatarPortrait = memo(function AvatarPortrait({
       )}
 
       {/* ободок медальона */}
-      <circle cx="50" cy="50" r="49" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.7" />
+      <circle cx="50" cy="50" r="49" fill="none" stroke={`url(#rim-${uid})`} strokeWidth="2" />
 
       {/* значок замка — понятная метка «ещё не открыт», без выцветания */}
       {locked && (

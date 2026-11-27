@@ -1,3 +1,5 @@
+import { BookserIcon } from "@/components/BookserIcon";
+import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /**
  * Leaderboard — общий рейтинг детей по монетам.
  *
@@ -10,7 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Trophy, Medal, Coins } from "lucide-react";
+import { Medal, Coins } from "lucide-react";
 import { getLeaderboard, type LeaderboardRow } from "@/lib/firestore";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
@@ -29,15 +31,13 @@ export function Leaderboard({
   const myIndex = rows?.findIndex((r) => r.profileId === currentProfileId) ?? -1;
 
   return (
-    <div className="fixed inset-0 z-[68] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}>
-      <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
+    <RoomSheet title="Рейтинг" onClose={onClose}>
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Рейтинг</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">Лучшие читатели по монетам</p>
           </div>
-          <button className="text-2xl text-ink-faint w-8 h-8" onClick={onClose}>×</button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {rows === null ? (
@@ -61,7 +61,7 @@ export function Leaderboard({
                     <span className="w-7 text-center font-display font-extrabold text-ink-faint shrink-0">
                       {place <= 3 ? <Medal className="w-5 h-5 mx-auto text-amber-500" strokeWidth={2.2} /> : place}
                     </span>
-                    <ProfileAvatar value={r.avatar} size={32} />
+                    <ProfileAvatar profileId={r.profileId} value={r.avatar} size={32} />
                     <span className="flex-1 font-bold text-ink dark:text-white truncate">
                       {r.name}{isMe && " (ты)"}
                     </span>
@@ -82,8 +82,7 @@ export function Leaderboard({
             )}
           </>
         )}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }
 
@@ -91,12 +90,12 @@ export function Leaderboard({
 function ChampionCard({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
   return (
     <div className="rounded-3xl p-5 text-center bg-gradient-to-br from-amber-100 to-yellow-50 dark:from-amber-500/15 dark:to-yellow-500/10 border-2 border-amber-400/40">
-      <Trophy className="w-10 h-10 mx-auto text-amber-500 mb-2" strokeWidth={2} fill="currentColor" />
+      <BookserIcon value="cup" size={58} />
       <p className="text-xs font-extrabold uppercase tracking-wide text-amber-700 dark:text-amber-400">
         Чемпион
       </p>
       <div className="flex items-center justify-center gap-2 mt-2">
-        <ProfileAvatar value={row.avatar} size={44} />
+        <ProfileAvatar profileId={row.profileId} value={row.avatar} size={44} />
         <p className="font-display font-extrabold text-2xl text-ink dark:text-white">{row.name}</p>
       </div>
       <p className="flex items-center justify-center gap-1.5 mt-1 font-bold text-amber-600 dark:text-amber-400">
@@ -104,7 +103,7 @@ function ChampionCard({ row, isMe }: { row: LeaderboardRow; isMe: boolean }) {
       </p>
       {isMe && (
         <p className="mt-2 text-sm font-bold text-amber-700 dark:text-amber-300">
-          Привет, чемпион! 🏆
+          Привет, чемпион!
         </p>
       )}
     </div>
