@@ -200,7 +200,7 @@ export default function DashboardPage() {
                   <div key={s.id} className="card p-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-ink dark:text-white truncate">
-                        <LanguageMark language={s.language} /> {s.bookTitle}
+                        <LanguageMark language={s.language} announce /> {s.bookTitle}
                       </p>
                       <p className="text-xs text-ink-faint">
                         {new Date(s.updatedAt).toLocaleDateString("ru-RU")} · {s.wordsRead} слов · {fmtDuration(s.durationMs)} · {s.wpm} сл/мин

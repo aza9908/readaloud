@@ -509,7 +509,7 @@ export default function LibraryPage() {
                     <div key={s.id} className="rounded-2xl border border-black/5 dark:border-white/5 p-3 flex items-center justify-between">
                       <div>
                         <p className="font-bold text-sm text-ink dark:text-white">
-                          <LanguageMark language={s.language} /> {s.bookTitle}
+                          <LanguageMark language={s.language} announce /> {s.bookTitle}
                         </p>
                         <p className="text-xs text-ink-faint">{s.wordsRead} слов · {fmtDuration(s.durationMs)}</p>
                       </div>

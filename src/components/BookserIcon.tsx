@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Bear, Bee, Comet, Dombra, Dragon, Whale, Yurt } from "./StorySymbols";
 import { companions } from "@/lib/companions";
-import type { Language } from "@/lib/types";
+import { LANGUAGES, type Language } from "@/lib/types";
 import globe from "@/assets/objects/globe.webp";
 import book from "@/assets/objects/book.webp";
 import watch from "@/assets/objects/watch.webp";
@@ -81,6 +81,10 @@ export function BookserIcon({ value, size = 24, line = false, fallback = "book" 
   </span>;
 }
 
-export function LanguageMark({ language }: { language: Language }) {
-  return <span className="language-mark" aria-hidden="true">{language.toUpperCase()}</span>;
+export function LanguageMark({ language, announce = false }: { language?: Language; announce?: boolean }) {
+  const entry = LANGUAGES.find(item => item.value === language);
+  if (!entry) return null;
+  return <span className="language-mark" aria-hidden={announce ? undefined : true}>
+    <span aria-hidden="true">{entry.value.toUpperCase()}</span>{announce && <span className="sr-only">{entry.label}</span>}
+  </span>;
 }

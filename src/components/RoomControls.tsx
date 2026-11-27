@@ -20,7 +20,7 @@ export function SectionHeader({ title, onBack }: { title: string; onBack: () => 
 }
 
 // These sheets are often opened from a menu that has already unmounted.
-// Restore focus to the opener when it still exists, or to the library menu.
+// Restore focus to the opener when it still exists, or the control for that sheet.
 export function RoomSheet({ title, onClose, children, className = "", returnFocus }: {
   title: string; onClose?: () => void; children: ReactNode; className?: string; returnFocus?: string;
 }) {
