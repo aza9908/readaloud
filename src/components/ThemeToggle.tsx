@@ -8,8 +8,12 @@ function watchTheme(update: () => void) {
   return () => observer.disconnect();
 }
 
+export function useDarkAppearance() {
+  return useSyncExternalStore(watchTheme, isDark, () => false);
+}
+
 export function ThemeToggle() {
-  const dark = useSyncExternalStore(watchTheme, isDark, () => false);
+  const dark = useDarkAppearance();
   const label = dark ? "Включить светлую тему" : "Включить тёмную тему";
   return (
     <button type="button" className="theme-switch" aria-label={label} title={label}

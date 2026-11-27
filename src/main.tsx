@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import "./reading-room.css";
 
 // Follow the device appearance until the reader chooses a theme.
 const appearance = window.matchMedia("(prefers-color-scheme: dark)");
