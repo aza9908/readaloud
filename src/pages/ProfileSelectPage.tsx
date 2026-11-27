@@ -68,7 +68,7 @@ export default function ProfileSelectPage() {
       <main>
         <ReadingWorld scene="observatory" labelledBy="profiles-title">
           <p className="world-kicker"><Library size={16} aria-hidden="true" />Семейная библиотека</p>
-          <h1 id="profiles-title">Кто читает<br /><em>сегодня?</em></h1>
+          <h1 id="profiles-title">Кто читает <br /><em>сегодня?</em></h1>
           <p className="world-description">{profiles?.length === 0 ? "Добавь свой первый профиль, чтобы открыть книжную полку." : "Выбери свой профиль, чтобы открыть книги и продолжить с того места, где остановился."}</p>
         </ReadingWorld>
 

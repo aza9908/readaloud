@@ -56,7 +56,7 @@
 .world-copy, .world-stage { min-width: 0; }
 .world-kicker { gap: .5rem; font-size: .81rem; font-weight: 650; color: var(--stage-muted); }
 .world-kicker svg { color: var(--stage-accent); stroke-width: 1.7; }
-.world-copy h1 { margin: .9rem 0; font-family: var(--font-system); font-size: clamp(3rem, 5.9vw, 5.25rem); font-weight: 530; line-height: .99; letter-spacing: -.068em; }
+.world-copy h1 { margin: .9rem 0; font-family: var(--font-system); font-size: clamp(3rem, 5.3vw, 4.4rem); font-weight: 530; line-height: .99; letter-spacing: -.068em; }
 .world-copy h1 em { display: inline-block; font-family: var(--room-serif); color: var(--stage-accent); font-weight: 400; font-style: italic; letter-spacing: -.055em; line-height: 1.04; }
 .world-description { max-width: 38ch; margin-top: 1rem; color: var(--stage-muted); font-size: clamp(.97rem, 1.5vw, 1.13rem); line-height: 1.5; }
 .world-stage { position: relative; display: grid; place-items: center; isolation: isolate; perspective: 900px; }
@@ -66,7 +66,7 @@
 }
 .world-sky { pointer-events: none; position: absolute; z-index: -1; inset: -6% -3% -2%; }
 .world-sky::before {
-  content: ""; position: absolute; width: 15%; aspect-ratio: 1; top: 4%; right: 10%; border-radius: 50%;
+  content: ""; position: absolute; width: 11%; aspect-ratio: 1; top: 6%; right: 10%; border-radius: 50%;
   background: radial-gradient(circle at 40% 38%, #fff7db, #f6dcaa); opacity: .78; box-shadow: 0 0 40px 12px rgb(255 236 184 / .43);
 }
 .dark .world-sky::before { width: 11%; background: #e9dfc9; opacity: .84; box-shadow: 0 0 25px 5px rgb(226 223 204 / .19); }
@@ -158,6 +158,7 @@
 .age-filter button { border-radius: .75rem; }
 .shelf-books { grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); }
 .book-tile { border-radius: 1.15rem; box-shadow: var(--slate-shadow); }
+.library-shelf .text-ink-faint { color: var(--muted); }
 .book-tile-title { overflow-wrap: anywhere; line-height: 1.25; }
 .book-jacket { position: relative; display: grid; place-items: center; isolation: isolate; flex: none; width: 3.85rem; aspect-ratio: 3 / 4; overflow: hidden; font-size: 1.8rem; border-radius: .2rem .5rem .5rem .2rem; background: #9fc2ba; box-shadow: inset 0 -3px 0 #f0e1c3, 2px 3px 7px rgb(20 32 36 / .16); }
 .book-jacket[data-cloth="1"] { background: #e1bb9b; }
@@ -213,9 +214,8 @@
   .world-kicker { grid-row: 1; font-size: .76rem; }
   .world-copy h1 { grid-row: 2; margin: 0; font-size: clamp(2.65rem, 9vw, 3.55rem); }
   .world-copy h1 br { display: none; }
-  .world-copy h1 em::before { content: " "; white-space: pre; }
   .world-stage { grid-row: 3; width: 100%; height: clamp(8.5rem, 47vw, 14rem); margin-block: .2rem; }
-  .world-model { width: auto; max-width: 100%; height: 100%; object-fit: contain; }
+  .world-model { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
   .world-sky { inset: 0; }
   .world-description { margin: 0; font-size: .94rem; }
   .welcome-actions { margin-top: .25rem; gap: .4rem; }

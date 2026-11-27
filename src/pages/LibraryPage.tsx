@@ -177,7 +177,7 @@ export default function LibraryPage() {
 
       <ReadingWorld scene="observatory" labelledBy="library-title">
         <p className="world-kicker"><Library size={16} aria-hidden="true" />Книжная полка</p>
-        <h1 id="library-title">Моя<br /><em>библиотека</em></h1>
+        <h1 id="library-title">Моя <br /><em>библиотека</em></h1>
         <dl className="shelf-stats">
           <div><dt>Прочитано книг</dt><dd>{profile.booksCompleted ?? 0}</dd></div>
           <div><dt>Прочитано слов</dt><dd>{(profile.totalWords ?? 0).toLocaleString("ru")}</dd></div>

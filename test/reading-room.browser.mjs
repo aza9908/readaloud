@@ -22,7 +22,10 @@ for (const { id, ...book } of books) {
 }
 
 await mkdir(output, { recursive: true });
-const server = await preview({ logLevel: "error", preview: { host: "127.0.0.1", port: 4173, strictPort: true } });
+const server = await preview({ logLevel: "error", preview: {
+  host: "127.0.0.1", port: 4173, strictPort: true,
+  headers: { "Content-Security-Policy": "connect-src 'self' http://127.0.0.1:* http://localhost:*; frame-src 'self' http://127.0.0.1:* http://localhost:*" },
+} });
 const cases = [
   { label: "iphone", browser: webkit, options: { ...devices["iPhone 13"], deviceScaleFactor: 1 } },
   { label: "ipad", browser: webkit, options: { ...devices["iPad Pro 11"], deviceScaleFactor: 1 } },
@@ -36,13 +39,13 @@ async function check(screen) {
   await context.addInitScript(({ firestore, auth }) => {
     window.__FIREBASE_DEFAULTS__ = { emulatorHosts: { firestore, auth } };
   }, { firestore, auth });
-  await context.route("**/*", route => {
-    const host = new URL(route.request().url()).hostname;
-    return host === "127.0.0.1" || host === "localhost" ? route.continue() : route.abort();
-  });
   const page = await context.newPage();
   page.setDefaultTimeout(15000);
   const errors = [];
+  const network = [];
+  page.on("requestfailed", req => network.push([req.method(), new URL(req.url()).pathname, req.failure()?.errorText]));
+  page.on("response", res => { if (res.status() >= 400) network.push([res.status(), new URL(res.url()).pathname]); });
+  page.on("console", msg => { if (msg.type() === "error" || msg.type() === "warning") network.push(msg.text().split("?")[0].slice(0, 220)); });
   page.on("pageerror", err => errors.push(err.message));
 
   async function inspect(name) {
@@ -112,7 +115,7 @@ async function check(screen) {
     assert.deepEqual(errors, []);
     console.log(screen.label + " passed the reading flow");
   } catch (error) {
-    console.error(screen.label, new URL(page.url()).pathname, (await page.locator("body").innerText()).slice(-1400), errors);
+    console.error(screen.label, new URL(page.url()).pathname, (await page.locator("body").innerText()).slice(-1400), errors, network.slice(-15));
     await page.screenshot({ path: `${output}/${screen.label}-failure.png`, scale: "css" });
     throw error;
   } finally {
