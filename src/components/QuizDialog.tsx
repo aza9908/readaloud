@@ -1,3 +1,5 @@
+import { RoomSheet } from "./RoomControls";
+import { BookserIcon } from "@/components/BookserIcon";
 /**
  * QuizDialog — comprehension questions after the child finishes a book.
  * Questions come from the AI function; falls back to text-derived questions.
@@ -106,16 +108,15 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
   const total = questions?.length ?? 0;
 
   return (
-    <div className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4">
-      <div className="sheet max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
+    <RoomSheet title={c.title} className="guide-sheet space-y-4">
         {questions === null ? (
           <div className="py-10 text-center">
-            <div className="text-4xl animate-float mb-3">🤔</div>
+            <div className="text-4xl animate-float mb-3"><BookserIcon value="🤔" size={48} /></div>
             <p className="text-ink-soft dark:text-ink-faint">{c.loading}</p>
           </div>
         ) : total === 0 ? (
           <div className="py-8 text-center space-y-4">
-            <div className="text-5xl">🎉</div>
+            <div className="text-5xl"><BookserIcon value="star" size={60} /></div>
             <p className="text-ink-soft dark:text-ink-faint">{c.none}</p>
             <button
               className="btn-primary w-full"
@@ -127,7 +128,7 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
           </div>
         ) : done ? (
           <div className="py-6 text-center space-y-4">
-            <div className="text-5xl">{score === total ? "🏆" : score >= total / 2 ? "👏" : "📖"}</div>
+            <div className="text-5xl"><BookserIcon value={score === total ? "cup" : score >= total / 2 ? "👏" : "book"} size={64} /></div>
             <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">{c.resultTitle}</h2>
             <p className="font-display font-extrabold text-4xl text-brand-500">
               {score} <span className="text-ink-faint text-2xl font-sans font-bold">{c.of} {total}</span>
@@ -174,7 +175,7 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
                       ${show && !isCorrect && !isPicked ? "border-transparent opacity-50" : ""}
                       text-ink dark:text-white`}
                   >
-                    {opt} {show && isCorrect && "✓"}
+                    {opt} {show && isCorrect && <BookserIcon value="✅" size={16} line />}
                   </button>
                 );
               })}
@@ -185,7 +186,7 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
                 <p className={`text-sm font-bold ${picked === q.correct ? "text-emerald-600" : "text-amber-600"}`}>
                   {picked === q.correct ? c.correct : c.wrong}
                 </p>
-                {q.why && <p className="text-sm text-ink-soft dark:text-ink-faint">💡 {q.why}</p>}
+                {q.why && <p className="text-sm text-ink-soft dark:text-ink-faint"><BookserIcon value="💡" size={16} line /> {q.why}</p>}
                 <button className="btn-primary w-full" onClick={next}>
                   {index + 1 < total ? c.next : c.finish}
                 </button>
@@ -193,7 +194,6 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
             )}
           </>
         ) : null}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

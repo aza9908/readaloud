@@ -1,3 +1,4 @@
+import { BookserIcon } from "@/components/BookserIcon";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useRoute, useSearch } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +22,8 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { storyArt } from "@/lib/storyArt";
 import { StoryScene } from "@/components/StoryScene";
-import { ArrowLeft, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
+import { BackButton, RoomSheet } from "@/components/RoomControls";
+import { ChevronRight, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
 import { updateStreakAndHardWords, awardPage, grantCard } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
 import { AWARD_EXPLANATION, goldenWordIndexes, COMPREHENSION_BONUS, type PageAwardResult } from "@/lib/coins";
@@ -578,7 +580,7 @@ export default function ReadingPage() {
       {/* Header — updates ≤1×/sec, cheap */}
       <header className="reader-toolbar sticky z-20 px-4 pt-3 pb-2.5">
         <div className="reader-topline">
-          <button className="round-control" onClick={stopAndExit} aria-label="Назад"><ArrowLeft size={19} /></button>
+          <BackButton onClick={stopAndExit} />
           <div className="reader-book">
             <h1>{book.title}</h1>
             <p>Страница {pageIndex + 1} из {book.pages.length}</p>
@@ -617,7 +619,7 @@ export default function ReadingPage() {
       <footer className="reader-controls fixed bottom-0 inset-x-0 z-20">
         <div className="max-w-2xl mx-auto space-y-2.5">
           {reader.isListening && (
-            <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[#221d31]/90 backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">
+            <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[var(--surface)] backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">
               <div className="min-w-0 flex items-center gap-3">
                 <span className="w-11 h-11 rounded-2xl bg-brand-500/10 grid place-items-center shrink-0"><Ear className="w-5 h-5 text-brand-500" strokeWidth={2.2} /></span>
                 <div className="min-w-0">
@@ -658,9 +660,8 @@ export default function ReadingPage() {
 
       {/* READ-09: resume dialog */}
       {resumePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="sheet max-w-sm text-center space-y-4">
-            <div className="text-5xl">📖</div>
+        <RoomSheet title="Продолжить чтение?" onClose={stopAndExit} className="small-sheet text-center space-y-4">
+            <div className="text-5xl"><BookserIcon value="book" size={62} /></div>
             <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Продолжить чтение?</h2>
             <p className="text-sm text-ink-soft dark:text-ink-faint">
               Ты остановился на{" "}
@@ -681,8 +682,7 @@ export default function ReadingPage() {
             </div>
             <button className="btn-primary w-full" onClick={() => resume(true)}>Продолжить</button>
             <button className="btn-ghost w-full" onClick={() => resume(false)}><RotateCcw className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Начать сначала</button>
-          </div>
-        </div>
+        </RoomSheet>
       )}
 
       {/* Пересказ checkpoint after each chunk of pages */}
@@ -725,7 +725,7 @@ export default function ReadingPage() {
       {pageAward && pageAward.coins > 0 && (
         <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[70] pointer-events-none animate-pop">
           <div className="sheet !py-3 !px-5 flex items-center gap-3 !shadow-lift">
-            <span className="text-3xl">🪙</span>
+            <span className="text-3xl"><BookserIcon value="coins" size={38} /></span>
             <div>
               <p className="font-display font-extrabold text-xl text-amber-600 dark:text-amber-400 leading-none">
                 +{pageAward.coins}
@@ -746,12 +746,11 @@ export default function ReadingPage() {
         onClose={() => setWonCard(null)}
       />
 
-      {finished && (
+      {finished && !wonCard && (
         <>
           <Fireworks />
-          <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto sheet max-w-sm text-center space-y-3 !shadow-lift animate-pop">
-              <div className="text-6xl animate-float">🎉</div>
+          <RoomSheet title={`Молодец, ${profile.name}!`} className="small-sheet finish-sheet text-center space-y-3">
+              <div className="text-6xl animate-float"><BookserIcon value="cup" size={78} /></div>
               <h2 className="font-display font-extrabold text-3xl text-ink dark:text-white">Молодец, {profile.name}!</h2>
               <p className="text-ink-soft dark:text-ink-faint">
                 Книга «{book.title}» прочитана — {savedWordsRef.current} слов!
@@ -760,7 +759,7 @@ export default function ReadingPage() {
               {/* Серия дней — показываем, только когда она сегодня выросла */}
               {streakInfo && streakInfo.grew && streakInfo.streak > 1 && (
                 <div className="inline-flex items-center gap-2 rounded-2xl bg-orange-400/15 border border-orange-400/30 px-4 py-2">
-                  <span className="text-2xl">🔥</span>
+                  <span className="text-2xl"><BookserIcon value="🔥" size={27} /></span>
                   <span className="font-display font-extrabold text-lg text-orange-600 dark:text-orange-400">
                     {streakInfo.streak} {streakPlural(streakInfo.streak)} подряд!
                   </span>
@@ -791,14 +790,14 @@ export default function ReadingPage() {
               {/* Итоговые показатели */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-2xl bg-amber-400/15 border border-amber-400/30 px-3 py-2.5">
-                  <div className="text-2xl">🪙</div>
+                  <div className="text-2xl"><BookserIcon value="coins" size={36} /></div>
                   <div className="font-display font-extrabold text-lg text-amber-600 dark:text-amber-400">
                     +{awardInfo?.coins ?? 0}
                   </div>
                   <div className="text-[11px] text-ink-faint">монет</div>
                 </div>
                 <div className="rounded-2xl bg-brand-500/10 border border-brand-500/25 px-3 py-2.5">
-                  <div className="text-2xl">⚡</div>
+                  <div className="text-2xl"><BookserIcon value="pace" size={36} /></div>
                   <div className="font-display font-extrabold text-lg text-brand-600 dark:text-brand-300">
                     {reader.wpm || latestSnapRef.current.wpm || "—"}
                   </div>
@@ -828,11 +827,10 @@ export default function ReadingPage() {
                   <Share2 className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Поделиться
                 </button>
                 <button className="btn-primary flex-1 !py-2.5" onClick={() => navigate(`/library?profile=${profileId}`)}>
-                  К сказкам
+                  К сказкам <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
-            </div>
-          </div>
+          </RoomSheet>
         </>
       )}
     </div>

@@ -1,3 +1,5 @@
+import { BookserIcon, iconLabel } from "@/components/BookserIcon";
+import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /** UploadBookDialog — parents add a book from pasted text or a .txt file.
  *  Pagination runs client-side (paginateText); Firestore rules validate. */
 
@@ -107,26 +109,17 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white dark:bg-[#211d2e] p-5 space-y-4"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between">
+    <RoomSheet returnFocus=".add-book" title="Добавить свою книгу" onClose={onClose} className="space-y-4 upload-sheet">
+        <div className="sheet-toolbar">
           <div>
             <h2 className="text-xl font-display font-extrabold text-ink dark:text-white">
-              📚 Добавить свою книгу
+              Добавить свою книгу
             </h2>
             <p className="text-sm text-ink-faint dark:text-ink-faint">
               Вставьте текст или загрузите PDF / EPUB / TXT — страницы соберутся сами.
             </p>
           </div>
-          <button onClick={onClose} className="text-2xl leading-none text-ink-faint hover:text-slate-600 p-1" aria-label="Закрыть">
-            ×
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="space-y-1.5">
@@ -150,14 +143,14 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
               <button
                 key={l.value}
                 type="button"
-                onClick={() => setLanguage(l.value)}
+                aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}
                 className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
                   language === l.value
                     ? "bg-brand-500 text-white"
                     : "bg-slate-100 dark:bg-slate-700 text-ink-soft dark:text-ink-faint hover:bg-slate-200"
                 }`}
               >
-                {l.flag} {l.label}
+                {l.label}
               </button>
             ))}
           </div>
@@ -176,9 +169,9 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
                     ? "bg-brand-50 ring-2 ring-brand-500 dark:bg-brand-500/20"
                     : "hover:bg-slate-100 dark:hover:bg-slate-700"
                 }`}
-                aria-label={`Обложка ${e}`}
+                aria-label={iconLabel(e)} aria-pressed={coverEmoji === e}
               >
-                {e}
+                <BookserIcon value={e} size={31} />
               </button>
             ))}
           </div>
@@ -194,7 +187,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
               className="text-sm font-semibold text-brand-500 hover:underline"
               onClick={() => fileInputRef.current?.click()}
             >
-              📄 Загрузить .txt
+              <BookserIcon value="📄" size={16} line /> Загрузить файл
             </button>
             <input
               ref={fileInputRef}
@@ -223,9 +216,8 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
         </div>
 
         <button className="btn-primary w-full" disabled={!valid || saving} onClick={() => void submit()}>
-          {saving ? "Сохраняем…" : "⬆️ Добавить в библиотеку"}
+          {saving ? "Сохраняем…" : <><BookserIcon value="⬆" size={17} line /> Добавить в библиотеку</>}
         </button>
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

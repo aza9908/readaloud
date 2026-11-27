@@ -1,3 +1,5 @@
+import { RoomSheet } from "./RoomControls";
+import { BookserIcon } from "@/components/BookserIcon";
 /**
  * RetellDialog — «Перескажи своими словами».
  * Appears after the child finishes a chunk of pages. The child speaks a
@@ -13,8 +15,8 @@ const COPY = {
   ru: {
     title: "Перескажи своими словами",
     sub: "Что произошло в этой части? Расскажи вслух.",
-    start: "🎤 Рассказать",
-    stop: "⏹ Готово",
+    start: "Рассказать",
+    stop: "Готово",
     listening: "Слушаю…",
     skip: "Пропустить",
     continue: "Читать дальше",
@@ -27,8 +29,8 @@ const COPY = {
   kk: {
     title: "Өз сөзіңмен айтып бер",
     sub: "Бұл бөлімде не болды? Дауыстап айт.",
-    start: "🎤 Айту",
-    stop: "⏹ Дайын",
+    start: "Айту",
+    stop: "Дайын",
     listening: "Тыңдап тұрмын…",
     skip: "Өткізу",
     continue: "Әрі қарай оқу",
@@ -41,8 +43,8 @@ const COPY = {
   en: {
     title: "Retell it in your own words",
     sub: "What happened in this part? Say it out loud.",
-    start: "🎤 Start telling",
-    stop: "⏹ Done",
+    start: "Start telling",
+    stop: "Done",
     listening: "Listening…",
     skip: "Skip",
     continue: "Keep reading",
@@ -92,12 +94,11 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
     !result ? "" : result.score >= 75 ? "text-emerald-500" : result.score >= 45 ? "text-brand-500" : "text-amber-500";
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4">
-      <div className="sheet max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
+    <RoomSheet title={c.title} className="guide-sheet space-y-4">
         {!result ? (
           <>
             <div className="text-center">
-              <div className="text-5xl mb-2">🗣️</div>
+              <div className="text-5xl mb-2"><BookserIcon value="🗣" size={58} /></div>
               <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">{c.title}</h2>
               <p className="text-sm text-ink-soft dark:text-ink-faint mt-1">{c.sub}</p>
             </div>
@@ -125,7 +126,7 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
             <div className="space-y-2">
               {speech.listening ? (
                 <button className="btn-primary w-full" onClick={() => void finish()} disabled={checking}>
-                  {checking ? c.checking : c.stop}
+                  {checking ? c.checking : <><BookserIcon value="⏹" size={17} line /> {c.stop}</>}
                 </button>
               ) : (
                 <button
@@ -133,7 +134,7 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
                   onClick={speech.transcript ? () => void finish() : speech.start}
                   disabled={!speech.isSupported || checking}
                 >
-                  {checking ? c.checking : speech.transcript ? c.stop : c.start}
+                  {checking ? c.checking : <><BookserIcon value={speech.transcript ? "⏹" : "🎤"} size={17} line /> {speech.transcript ? c.stop : c.start}</>}
                 </button>
               )}
               <button className="w-full text-sm font-bold text-ink-faint py-2" onClick={onContinue}>
@@ -144,7 +145,7 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
         ) : (
           <>
             <div className="text-center">
-              <div className="text-5xl mb-2">{result.score >= 75 ? "🌟" : result.score >= 45 ? "👏" : "💪"}</div>
+              <div className="text-5xl mb-2"><BookserIcon value={result.score >= 75 ? "star" : result.score >= 45 ? "👏" : "💪"} size={62} /></div>
               <p className={`font-display font-extrabold text-4xl ${scoreColor}`}>{result.score}</p>
               <p className="text-ink-soft dark:text-ink-faint mt-2 leading-relaxed">{result.praise}</p>
             </div>
@@ -157,7 +158,7 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
             )}
 
             {result.tip && (
-              <p className="text-sm text-ink-soft dark:text-ink-faint text-center">💡 {result.tip}</p>
+              <p className="text-sm text-ink-soft dark:text-ink-faint text-center"><BookserIcon value="💡" size={16} line /> {result.tip}</p>
             )}
 
             <div className="space-y-2">
@@ -166,7 +167,6 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
             </div>
           </>
         )}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

@@ -1,5 +1,4 @@
 import type { PointerEvent, ReactNode } from "react";
-import { BookOpen } from "lucide-react";
 import coastSmall from "@/assets/worlds/golden-coast-576.webp";
 import coastLarge from "@/assets/worlds/golden-coast-1080.webp";
 import librarySmall from "@/assets/worlds/observatory-576.webp";
@@ -17,7 +16,7 @@ const scenes = {
 };
 
 export function BookserWordmark() {
-  return <span className="bookser-wordmark" lang="en"><BookOpen aria-hidden="true" />Bookser</span>;
+  return <span className="bookser-wordmark" lang="en"><img src="/icon-180.png" alt="" width={31} height={31} />Bookser</span>;
 }
 
 function tilt(event: PointerEvent<HTMLDivElement>) {

@@ -1,3 +1,5 @@
+import { BookserIcon } from "@/components/BookserIcon";
+import { RoomSheet, CloseButton } from "@/components/RoomControls";
 /**
  * CardCollection — коллекция карточек ребёнка.
  *
@@ -25,10 +27,8 @@ export function CardCollection({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[68] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4"
-      onClick={onClose}>
-      <div className="sheet max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
+    <RoomSheet title="Коллекция" onClose={onClose}>
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Коллекция</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">
@@ -36,7 +36,7 @@ export function CardCollection({
               {stats.sets > 0 && ` · наборов: ${stats.sets}`}
             </p>
           </div>
-          <button className="text-2xl text-ink-faint w-8 h-8" onClick={onClose}>×</button>
+          <CloseButton onClick={onClose} />
         </div>
 
         {CARD_SETS.map((set) => {
@@ -64,11 +64,11 @@ export function CardCollection({
                   return (
                     <div key={c.id}
                       className={`rounded-2xl p-2 text-center border-2 transition-all ${
-                        has ? "bg-white dark:bg-[#211d2e] shadow-soft" : "bg-black/[0.03] dark:bg-white/5"
+                        has ? "bg-white dark:bg-[var(--surface)] shadow-soft" : "bg-black/[0.03] dark:bg-white/5"
                       }`}
                       style={{ borderColor: has ? CARD_RARITY_COLOR[c.rarity] : "transparent" }}
                       title={has ? c.fact[language] ?? c.fact.ru : "Ещё не найдена"}>
-                      <div className="text-3xl">{has ? c.emoji : <Lock className="w-6 h-6 mx-auto text-ink-faint" strokeWidth={2} />}</div>
+                      <div className="text-3xl">{has ? <BookserIcon value={c.emoji} size={35} /> : <Lock className="w-6 h-6 mx-auto text-ink-faint" strokeWidth={2} />}</div>
                       <p className={`text-[10px] font-bold mt-1 truncate ${has ? "text-ink dark:text-white" : "text-ink-faint"}`}>
                         {has ? (c.name[language] ?? c.name.ru) : "???"}
                       </p>
@@ -84,8 +84,7 @@ export function CardCollection({
           Карточки нельзя купить — они выпадают за дочитанные книги, решённые
           задачи и выигранные матчи. Собери набор целиком и получи {SET_BONUS} монет.
         </p>
-      </div>
-    </div>
+    </RoomSheet>
   );
 }
 
@@ -95,13 +94,11 @@ export function CardReveal({
 }: { card: (typeof CARDS)[number] | null; language: Language; onClose: () => void }) {
   if (!card) return null;
   return (
-    <div className="fixed inset-0 z-[75] grid place-items-center bg-black/60 backdrop-blur-sm p-4"
-      onClick={onClose}>
-      <div className="sheet max-w-xs text-center animate-pop" onClick={(e) => e.stopPropagation()}>
+    <RoomSheet title="Новая карточка" onClose={onClose} className="small-sheet text-center">
         <p className="eyebrow mb-2">Новая карточка!</p>
         <div className="rounded-3xl p-6 border-4 mb-3"
           style={{ borderColor: CARD_RARITY_COLOR[card.rarity] }}>
-          <div className="text-6xl mb-2">{card.emoji}</div>
+          <div className="text-6xl mb-2"><BookserIcon value={card.emoji} size={80} /></div>
           <p className="font-display font-extrabold text-xl text-ink dark:text-white">
             {card.name[language] ?? card.name.ru}
           </p>
@@ -114,7 +111,6 @@ export function CardReveal({
           {card.fact[language] ?? card.fact.ru}
         </p>
         <button className="btn-primary w-full mt-4" onClick={onClose}>Здорово!</button>
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

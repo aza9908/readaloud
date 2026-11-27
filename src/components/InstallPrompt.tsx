@@ -14,7 +14,8 @@
 
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Download, Share, X } from "lucide-react";
+import { CloseButton } from "./RoomControls";
+import { Download, Share } from "lucide-react";
 
 interface InstallEvent extends Event {
   prompt: () => Promise<void>;
@@ -106,10 +107,7 @@ export function InstallPrompt() {
             Добавить
           </button>
         )}
-        <button className="w-11 h-11 grid place-items-center text-ink-faint shrink-0"
-          onClick={dismiss} aria-label="Закрыть">
-          <X className="w-4 h-4" strokeWidth={2.4} />
-        </button>
+        <CloseButton onClick={dismiss} />
       </div>
     </div>
   );

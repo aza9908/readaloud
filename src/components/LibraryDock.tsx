@@ -10,9 +10,9 @@ interface Activity {
 export function LibraryDock({ activities, onProgress }: { activities: Activity[]; onProgress: () => void }) {
   return (
     <nav className="library-dock" aria-label="Библиотека читателя">
-      <a href="#bookshelf" className="dock-current"><BookOpen />Книги</a>
+      <a href="#bookshelf" className="dock-current" aria-current="location"><BookOpen aria-hidden="true" />Книги</a>
       <Dialog.Root>
-        <Dialog.Trigger asChild><button><LayoutGrid />Занятия</button></Dialog.Trigger>
+        <Dialog.Trigger asChild><button className="dock-activities"><LayoutGrid aria-hidden="true" />Занятия</button></Dialog.Trigger>
         <Dialog.Portal>
           <Dialog.Overlay className="room-scrim" />
           <Dialog.Content className="room-sheet" aria-describedby={undefined}>
@@ -26,7 +26,7 @@ export function LibraryDock({ activities, onProgress }: { activities: Activity[]
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      <button onClick={onProgress}><ChartNoAxesColumnIncreasing />Успехи</button>
+      <button className="dock-progress" onClick={onProgress}><ChartNoAxesColumnIncreasing aria-hidden="true" />Успехи</button>
     </nav>
   );
 }
