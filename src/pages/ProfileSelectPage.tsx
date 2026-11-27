@@ -1,13 +1,24 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import * as Dialog from "@radix-ui/react-dialog";
+import { BookOpen, ChevronRight, Coins, Library, LockKeyhole, LogOut, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { createProfile, watchProfiles } from "@/lib/firestore";
 import { LANGUAGES, type ChildProfile, type Language } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { BookOpen, Coins, Plus, Settings } from "lucide-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { BookserWordmark, ReadingWorld } from "@/components/ReadingWorld";
 
-const AVATARS = ["🦁", "🐬", "🦊", "🐼", "🦄", "🐸", "🦋", "🐯", "🐨", "🦉"];
+const AVATARS = [
+  ["🦁", "Лев"], ["🐬", "Дельфин"], ["🦊", "Лиса"], ["🐼", "Панда"], ["🦄", "Единорог"],
+  ["🐸", "Лягушка"], ["🦋", "Бабочка"], ["🐯", "Тигр"], ["🐨", "Коала"], ["🦉", "Сова"],
+];
+const years = new Intl.NumberFormat("ru", { style: "unit", unit: "year", unitDisplay: "long" });
+const bookForms = new Intl.PluralRules("ru");
+function bookCount(count: number) {
+  const form = bookForms.select(count);
+  return `${count} ${form === "one" ? "книга" : form === "few" ? "книги" : "книг"}`;
+}
 
 export default function ProfileSelectPage() {
   const { user, logout } = useAuth();
@@ -19,6 +30,7 @@ export default function ProfileSelectPage() {
   const [avatar, setAvatar] = useState("🦁");
   const [language, setLanguage] = useState<Language>("ru");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -27,132 +39,95 @@ export default function ProfileSelectPage() {
 
   if (!user) return null;
 
-  const submit = async () => {
-    if (!name.trim() || saving) return;
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!user || !name.trim() || saving) return;
     setSaving(true);
+    setError("");
     try {
       await createProfile(user.uid, { name: name.trim(), age, avatar, defaultLanguage: language });
       setCreating(false);
       setName("");
+    } catch {
+      setError("Не удалось сохранить профиль. Попробуй ещё раз.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
-    <div className="profile-shell min-h-dvh mx-auto">
-      {/* Сетка 1fr auto 1fr: боковые колонки всегда равной ширины, поэтому
-          логотип стоит точно по центру страницы. При flex justify-between он
-          съезжал вправо, потому что кнопка «Выйти» шире переключателя темы. */}
-      <header className="bookser-toolbar grid grid-cols-[1fr_auto_1fr] items-center">
-        <div className="justify-self-start">
-          <button className="btn-ghost !py-2 !px-4 text-sm" onClick={() => void logout()}>
-            Выйти
-          </button>
-        </div>
-        <span className="bookser-wordmark justify-self-center">
-          <BookOpen aria-hidden="true" />Book<span>ser</span>
-        </span>
-        <div className="justify-self-end">
+    <div className="world-shell profile-shell">
+      <header className="world-bar">
+        <BookserWordmark />
+        <div className="bar-actions">
+          <button className="bar-link" onClick={() => void logout()}><LogOut size={16} aria-hidden="true" />Выйти</button>
           <ThemeToggle />
         </div>
       </header>
 
-      <div className="profile-title text-center mb-8 animate-fade-up">
-        <p className="eyebrow mb-2">Профили</p>
-        <h1 className="font-display font-extrabold text-4xl text-ink dark:text-white">
-          Кто читает сегодня?
-        </h1>
-        <p className="mt-2 text-ink-soft dark:text-ink-faint">
-          Выбери свой профиль или добавь новый
-        </p>
-      </div>
+      <main>
+        <ReadingWorld scene="observatory" labelledBy="profiles-title">
+          <p className="world-kicker"><Library size={16} aria-hidden="true" />Семейная библиотека</p>
+          <h1 id="profiles-title">Кто читает<br /><em>сегодня?</em></h1>
+          <p className="world-description">{profiles?.length === 0 ? "Добавь свой первый профиль, чтобы открыть книжную полку." : "Выбери свой профиль, чтобы открыть книги и продолжить с того места, где остановился."}</p>
+        </ReadingWorld>
 
-      <div className="profile-grid grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {(profiles ?? []).map((p, i) => (
-          <button
-            key={p.id}
-            className="card p-6 flex flex-col items-center gap-2 hover:-translate-y-1 hover:shadow-lift transition-all duration-200 animate-fade-up"
-            style={{ animationDelay: `${i * 60}ms` }}
-            onClick={() => navigate(`/library?profile=${p.id}`)}
-          >
-            <span className="mb-1 drop-shadow-sm"><ProfileAvatar value={p.avatar} size={68} /></span>
-            <span className="font-display font-bold text-xl text-ink dark:text-white">{p.name}</span>
-            <span className="text-sm text-ink-faint">{p.age} лет</span>
-            <span className="chip chip-off !py-1 !px-3 text-xs mt-1 inline-flex items-center gap-1">
-              <BookOpen className="w-3.5 h-3.5" strokeWidth={2.2} />
-              {p.booksCompleted} {p.booksCompleted === 1 ? "книга" : "книг"}
-            </span>
-            {(p.coins ?? 0) > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400">
-                <Coins className="w-3.5 h-3.5" strokeWidth={2.4} /> {p.coins}
-              </span>
-            )}
-          </button>
-        ))}
-        <button
-          className="rounded-3xl p-6 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-brand-300 bg-brand-50/60 dark:bg-brand-500/10 text-brand-500 font-display font-bold hover:-translate-y-1 transition-all duration-200"
-          onClick={() => setCreating(true)}
-        >
-          <span className="w-14 h-14 rounded-2xl bg-white dark:bg-brand-500/20 grid place-items-center shadow-soft"><Plus className="w-7 h-7" strokeWidth={2.4} /></span>
-          Новый профиль
-        </button>
-      </div>
-
-      <div className="flex justify-center mt-10">
-        <button className="btn-ghost" onClick={() => navigate("/dashboard")}>
-          <Settings className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.2} />Родительский дашборд
-        </button>
-      </div>
-
-      {creating && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4" onClick={() => setCreating(false)}>
-          <div className="sheet max-w-md space-y-5" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between">
-              <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Новый профиль</h2>
-              <button className="text-2xl text-ink-faint w-8 h-8" onClick={() => setCreating(false)} aria-label="Закрыть">×</button>
-            </div>
-
-            <div className="text-center py-2">
-              <span className="text-7xl animate-pop inline-block" key={avatar}>{avatar}</span>
-            </div>
-
-            <div className="flex flex-wrap gap-2 justify-center">
-              {AVATARS.map((a) => (
-                <button key={a} onClick={() => setAvatar(a)}
-                  className={`text-2xl w-11 h-11 rounded-2xl transition-all ${avatar === a ? "bg-brand-500/15 ring-2 ring-brand-500 scale-110" : "hover:bg-brand-50 dark:hover:bg-white/5"}`}>
-                  {a}
-                </button>
-              ))}
-            </div>
-
-            <input className="input text-center font-semibold" aria-label="Имя ребёнка" placeholder="Имя ребёнка" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-
-            <div>
-              <div className="flex justify-between text-sm font-bold text-ink-soft dark:text-ink-faint mb-1">
-                <span>Возраст</span><span className="text-brand-500">{age} лет</span>
-              </div>
-              <input type="range" aria-label="Возраст" min={5} max={12} value={age} onChange={(e) => setAge(Number(e.target.value))} className="w-full accent-brand-500" />
-            </div>
-
-            <div>
-              <p className="text-sm font-bold text-ink-soft dark:text-ink-faint mb-2">Основной язык</p>
-              <div className="flex gap-2">
-                {LANGUAGES.map((l) => (
-                  <button key={l.value} onClick={() => setLanguage(l.value)}
-                    className={`chip flex-1 ${language === l.value ? "chip-on" : "chip-off"}`}>
-                    {l.flag} {l.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button className="btn-primary w-full" disabled={!name.trim() || saving} onClick={() => void submit()}>
-              {saving ? "Создаём…" : "Создать профиль"}
-            </button>
+        <section className="reader-collection" aria-labelledby="readers-title">
+          <div className="collection-heading">
+            <h2 id="readers-title">Читатели</h2>
+            <button className="bar-link" onClick={() => navigate("/dashboard")}><LockKeyhole size={16} aria-hidden="true" />Родителям <ChevronRight size={15} aria-hidden="true" /></button>
           </div>
-        </div>
-      )}
+          <div className="profile-grid">
+            {profiles === null && <p className="profile-loading" role="status">Загружаем читателей…</p>}
+            {profiles?.map(p => (
+              <button key={p.id} className="reader-ticket" onClick={() => navigate(`/library?profile=${p.id}`)}>
+                <span className="reader-portrait" aria-hidden="true"><ProfileAvatar value={p.avatar} size={53} /></span>
+                <span className="ticket-info">
+                  <strong>{p.name}</strong>
+                  <span className="ticket-meta"><span>{years.format(p.age)}</span><span><BookOpen size={13} aria-hidden="true" />{bookCount(p.booksCompleted ?? 0)}</span>
+                    {(p.coins ?? 0) > 0 && <span aria-label={`Монет: ${p.coins}`}><Coins size={13} aria-hidden="true" />{p.coins}</span>}
+                  </span>
+                </span>
+                <ChevronRight className="ticket-chevron" size={18} aria-hidden="true" />
+              </button>
+            ))}
+            <Dialog.Root open={creating} onOpenChange={open => { setCreating(open); if (open) setError(""); }}>
+              <Dialog.Trigger asChild>
+                <button className="reader-ticket ticket-add"><span className="add-portrait"><Plus aria-hidden="true" /></span>Новый профиль</button>
+              </Dialog.Trigger>
+              <Dialog.Portal>
+                <Dialog.Overlay className="room-scrim" />
+                <Dialog.Content className="room-sheet" aria-describedby={undefined}>
+                  <div className="sheet-heading">
+                    <Dialog.Title>Новый профиль</Dialog.Title>
+                    <Dialog.Close className="round-control" aria-label="Закрыть"><X size={18} /></Dialog.Close>
+                  </div>
+                  <form onSubmit={submit} className="profile-form">
+                    <label htmlFor="reader-name">Имя ребёнка</label>
+                    <input id="reader-name" className="input" placeholder="Имя" value={name} maxLength={40} required onChange={e => setName(e.target.value)} />
+                    <fieldset><legend>Аватар</legend>
+                      <div className="avatar-choices">{AVATARS.map(([emoji, label]) => (
+                        <button key={emoji} type="button" aria-label={label} aria-pressed={avatar === emoji} onClick={() => setAvatar(emoji)}>{emoji}</button>
+                      ))}</div>
+                    </fieldset>
+                    <div>
+                      <label className="range-label" htmlFor="reader-age">Возраст <output htmlFor="reader-age">{years.format(age)}</output></label>
+                      <input id="reader-age" type="range" min={5} max={12} value={age} onChange={e => setAge(Number(e.target.value))} />
+                    </div>
+                    <fieldset><legend>Основной язык</legend>
+                      <div className="language-choices">{LANGUAGES.map(l => (
+                        <button key={l.value} type="button" aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}>{l.label}</button>
+                      ))}</div>
+                    </fieldset>
+                    {error && <p role="alert" className="welcome-error">{error}</p>}
+                    <button className="world-primary" disabled={!name.trim() || saving}>{saving ? "Создаём…" : "Создать профиль"}</button>
+                  </form>
+                </Dialog.Content>
+              </Dialog.Portal>
+            </Dialog.Root>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

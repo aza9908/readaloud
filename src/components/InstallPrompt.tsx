@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { Download, Share, X } from "lucide-react";
 
 interface InstallEvent extends Event {
@@ -38,6 +39,7 @@ const isIOS = () =>
 const DISMISS_KEY = "bookser:install-dismissed";
 
 export function InstallPrompt() {
+  const [location] = useLocation();
   const [event, setEvent] = useState<InstallEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
   const [hidden, setHidden] = useState(true);
@@ -77,10 +79,10 @@ export function InstallPrompt() {
     setHidden(true);
   };
 
-  if (hidden) return null;
+  if (hidden || location !== "/profiles") return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-[85] mx-auto max-w-md">
+    <div className="install-offer">
       <div className="sheet !py-3 !px-4 flex items-center gap-3 !shadow-lift">
         <img src="/icon-192.png" alt="" className="w-11 h-11 rounded-xl shrink-0" />
         <div className="min-w-0 flex-1">
@@ -104,7 +106,7 @@ export function InstallPrompt() {
             Добавить
           </button>
         )}
-        <button className="w-8 h-8 grid place-items-center text-ink-faint shrink-0"
+        <button className="w-11 h-11 grid place-items-center text-ink-faint shrink-0"
           onClick={dismiss} aria-label="Закрыть">
           <X className="w-4 h-4" strokeWidth={2.4} />
         </button>

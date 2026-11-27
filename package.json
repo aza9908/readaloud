@@ -23,6 +23,7 @@
     "test:whatsapp": "node --test test/whatsapp*.test.mjs"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "1.2.0",
     "@sparticuz/chromium": "^149.0.0",
     "fflate": "^0.8.3",
     "firebase": "^11.1.0",

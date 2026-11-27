@@ -9,10 +9,11 @@ import {
   LANGUAGES, type Achievement, type Book, type ChildProfile, type Language, type ReadingSession,
 } from "@/lib/types";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import sproutScout from "@/assets/avatars/sprout-scout.webp";
+import { LibraryDock } from "@/components/LibraryDock";
+import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ArrowLeft, ChevronRight, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
+import { ArrowLeft, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -163,73 +164,39 @@ export default function LibraryPage() {
     reload();
   };
 
-  const gradients = [
-    "from-rose-200 to-orange-200", "from-sky-200 to-indigo-200",
-    "from-emerald-200 to-teal-200", "from-violet-200 to-fuchsia-200",
-    "from-amber-200 to-yellow-200", "from-cyan-200 to-blue-200",
-  ];
-
   return (
-    <main className="library-shell min-h-dvh mx-auto">
-      <header className="bookser-toolbar grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-        <div className="justify-self-start">
-          <button className="btn-ghost !py-2 !px-3" onClick={() => navigate("/profiles")} aria-label="Назад">
-            <ArrowLeft className="w-5 h-5" strokeWidth={2.4} />
-          </button>
-        </div>
-        <div className="justify-self-center flex items-center gap-3 min-w-0">
-          <div className="flex items-center gap-2 font-display font-bold text-ink dark:text-white min-w-0">
-            <ProfileAvatar value={profile.avatar} size={30} />
-            <span className="truncate">{profile.name}</span>
-          </div>
+    <main className="world-shell library-shell">
+      <header className="world-bar library-bar">
+        <button className="bar-link" onClick={() => navigate("/profiles")}><ArrowLeft size={17} aria-hidden="true" />Читатели</button>
+        <div className="library-reader"><ProfileAvatar value={profile.avatar} size={30} /><span>{profile.name}</span></div>
+        <div className="bar-actions">
           <StreakBadge streak={profile.streak ?? 0} lastReadDay={profile.lastReadDay} />
-        </div>
-        <div className="justify-self-end">
           <ThemeToggle />
         </div>
       </header>
 
-      <div className="library-title animate-fade-up">
-        <p className="eyebrow mb-1">Библиотека</p>
-        <h1 className="font-display font-extrabold text-3xl text-ink dark:text-white">Выбери сказку</h1>
-      </div>
+      <ReadingWorld scene="observatory" labelledBy="library-title">
+        <p className="world-kicker"><Library size={16} aria-hidden="true" />Книжная полка</p>
+        <h1 id="library-title">Моя<br /><em>библиотека</em></h1>
+        <dl className="shelf-stats">
+          <div><dt>Прочитано книг</dt><dd>{profile.booksCompleted ?? 0}</dd></div>
+          <div><dt>Прочитано слов</dt><dd>{(profile.totalWords ?? 0).toLocaleString("ru")}</dd></div>
+        </dl>
+        <button className="world-primary library-guide" onClick={() => setShowGuide(true)}>Подобрать книгу <ArrowRight size={17} aria-hidden="true" /></button>
+      </ReadingWorld>
 
-      <div className="library-layout">
-        <nav className="library-activities" aria-label="Занятия и награды">
-          <button className="chip chip-off shrink-0" onClick={() => setShowRating(true)}>
-            <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Рейтинг
-          </button>
-          <button className="chip chip-off shrink-0"
-            onClick={() => navigate(`/arena?profile=${profile.id}`)}>
-            <Swords className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Матч
-          </button>
-          <button className="chip chip-off shrink-0"
-            onClick={() => navigate(`/math?profile=${profile.id}`)}>
-            <Calculator className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Математика
-          </button>
-          <button className="chip chip-off shrink-0" onClick={() => setShowRewards(true)}>
-            <Gift className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Хотелки
-          </button>
-          <button className="chip chip-off shrink-0" onClick={() => setShowShop(true)}>
-            <Shirt className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Герои
-          </button>
-          <button className="chip chip-off shrink-0" onClick={() => setShowProgress(true)}>
-            <Trophy className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Успехи
-          </button>
-        </nav>
-        <section className="library-shelf" aria-label="Книжная полка">
-          <button
-            onClick={() => setShowGuide(true)}
-            className="library-guide"
-          >
-            <img src={sproutScout} width={64} height={64} alt="" />
-            <span className="min-w-0">
-              <span className="block font-display font-extrabold text-lg leading-tight">Подобрать книгу</span>
-              <span className="block text-sm guide-description">Найду то, что тебе понравится</span>
-            </span>
-            <ChevronRight className="ml-auto w-6 h-6 shrink-0" strokeWidth={2.4} />
-          </button>
-
+      <section className="library-shelf" aria-labelledby="bookshelf" >
+        <div className="collection-heading">
+          <h2 id="bookshelf" tabIndex={-1}>Выбери сказку</h2>
+          <LibraryDock onProgress={() => setShowProgress(true)} activities={[
+            { label: "Рейтинг", icon: Trophy, open: () => setShowRating(true) },
+            { label: "Матч", icon: Swords, open: () => navigate(`/arena?profile=${profile.id}`) },
+            { label: "Математика", icon: Calculator, open: () => navigate(`/math?profile=${profile.id}`) },
+            { label: "Хотелки", icon: Gift, open: () => setShowRewards(true) },
+            { label: "Герои", icon: Shirt, open: () => setShowShop(true) },
+            { label: "Карточки", icon: Layers, open: () => setShowCards(true) },
+          ]} />
+        </div>
           <div className="shelf-filter" role="group" aria-label="Язык книг">
             {LANGUAGES.map((l) => (
               <button key={l.value} aria-pressed={language === l.value} onClick={() => setLanguage(l.value)}
@@ -339,20 +306,20 @@ export default function LibraryPage() {
                 <div
                   key={book.id}
                   data-book-id={book.id}
-                  className={`card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
+                  className={`book-tile card p-4 flex items-center gap-4 transition-all duration-200 animate-fade-up ${
                     block ? "opacity-60" : "hover:-translate-y-0.5 hover:shadow-lift"
                   } ${book.id === highlightId ? "ring-2 ring-brand-400 shadow-lift" : ""}`}
-                  style={{ animationDelay: `${i * 40}ms` }}
+                  style={{ animationDelay: `${Math.min(i, 5) * 35}ms` }}
                 >
                   <button className="flex items-center gap-4 flex-1 min-w-0 text-left" onClick={openBook}>
-                    <div className={`w-20 h-20 rounded-2xl grid place-items-center text-4xl shrink-0 shadow-soft bg-gradient-to-br ${gradients[i % gradients.length]}`}>
+                    <div className="book-jacket" data-cloth={(book.title.charCodeAt(0) || 0) % 5}>
                       {book.coverUrl
-                        ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover rounded-2xl" loading="lazy" />
+                        ? <img src={book.coverUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                         : book.coverEmoji}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <p className="font-display font-bold text-ink dark:text-white truncate">{book.title}</p>
+                        <p className="book-tile-title font-display font-bold text-ink dark:text-white">{book.title}</p>
                         {book.id === highlightId && (
                           <span className="shrink-0 rounded-full bg-brand-500 text-white text-[10px] font-extrabold px-2 py-0.5">
                             НОВАЯ
@@ -397,7 +364,7 @@ export default function LibraryPage() {
                     </div>
                   </button>
                   {book.isCustom && (
-                    <button className="text-ink-faint hover:text-red-500 p-2 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
+                    <button className="book-delete text-ink-faint hover:text-red-500 shrink-0" onClick={() => void handleDelete(book)} aria-label="Удалить"><Trash2 className="w-4 h-4" strokeWidth={2.2} /></button>
                   )}
                 </div>
               );
@@ -405,13 +372,12 @@ export default function LibraryPage() {
           </div>
 
           <button
-            className="w-full mt-4 rounded-3xl border-2 border-dashed border-brand-300 bg-brand-50/50 dark:bg-brand-500/10 text-brand-500 font-display font-bold py-4 hover:-translate-y-0.5 transition-all"
+            className="add-book"
             onClick={() => setShowUpload(true)}
           >
             <Plus className="w-5 h-5 inline -mt-0.5 mr-1" strokeWidth={2.6} />Добавить свою книгу
           </button>
-        </section>
-      </div>
+      </section>
 
       <CardCollection
         open={showCards}

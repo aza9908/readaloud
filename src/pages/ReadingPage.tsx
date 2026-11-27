@@ -587,7 +587,7 @@ export default function ReadingPage() {
             <span>{progressPct}% прочитано</span>
             <span>{fmtClock(baseMsRef.current + reader.elapsedMs)} · {reader.wpm} сл/мин</span>
           </div>
-          <div className="h-2 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
+          <div role="progressbar" aria-label="Прочитано" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} className="h-2 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600 transition-[width] duration-500" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
