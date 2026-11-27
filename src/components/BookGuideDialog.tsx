@@ -416,7 +416,7 @@ function StepList({
                 : "border-black/[0.06] dark:border-white/10 bg-white dark:bg-white/5 hover:-translate-y-0.5"
             }`}
           >
-            <span className="text-2xl"><BookserIcon value={l.emoji} size={36} /></span>
+            <span className="text-2xl"><BookserIcon value={l.v === "long" ? "library" : l.emoji} size={36} /></span>
             <span>
               <span className="block font-bold text-ink dark:text-white">{l.label}</span>
               <span className="block text-xs text-ink-faint">{l.sub}</span>
@@ -436,7 +436,7 @@ function Shell({
   children: ReactNode;
 }) {
   return (
-    <RoomSheet title={eyebrow} onClose={onClose} className="guide-sheet">
+    <RoomSheet returnFocus=".library-guide" title={eyebrow} onClose={onClose} className="guide-sheet">
         <div className="flex items-start justify-between mb-3">
           <p className="eyebrow"><BookserIcon value="✨" size={16} line /> {eyebrow}</p>
           <CloseButton onClick={onClose} />

@@ -26,7 +26,7 @@ export function LibraryDock({ activities, onProgress }: { activities: Activity[]
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
-      <button onClick={onProgress}><ChartNoAxesColumnIncreasing aria-hidden="true" />Успехи</button>
+      <button className="dock-progress" onClick={onProgress}><ChartNoAxesColumnIncreasing aria-hidden="true" />Успехи</button>
     </nav>
   );
 }

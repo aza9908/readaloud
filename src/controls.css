@@ -157,6 +157,7 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
 .room-scrim { background: rgb(13 29 32 / .56); }
 .content-sheet.pin-sheet, .content-sheet.small-sheet { width: min(100% - 2rem, 23rem); }
 .content-sheet.guide-sheet { width: min(100% - 2rem, 30rem); }
+.finish-sheet { z-index: 95; }
 .content-sheet:focus { outline: none; }
 .content-sheet button { min-height: 44px; }
 .content-sheet button[aria-pressed], .content-sheet .btn-primary, .content-sheet .btn-ghost { position: relative; }
@@ -185,7 +186,6 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
   .report-shell { width: min(100% - 3rem, 62rem); }
   .report-content { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
   .report-overview, .report-content > .weekly-report, .report-content > :last-child { grid-column: 1 / -1; }
-  .report-overview .reading-metric { flex-direction: column; }
 }
 @media (max-width: 39.99rem) {
   .section-shell { width: min(100% - 1.6rem, 54rem); padding-top: .65rem; }

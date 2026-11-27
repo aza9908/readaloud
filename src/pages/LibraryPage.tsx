@@ -452,7 +452,7 @@ export default function LibraryPage() {
       )}
 
       {showProgress && (
-        <RoomSheet title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
+        <RoomSheet returnFocus=".dock-progress" title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ProfileAvatar value={profile.avatar} size={38} />

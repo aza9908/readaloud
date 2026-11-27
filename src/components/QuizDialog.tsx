@@ -1,3 +1,4 @@
+import { RoomSheet } from "./RoomControls";
 import { BookserIcon } from "@/components/BookserIcon";
 /**
  * QuizDialog — comprehension questions after the child finishes a book.
@@ -107,8 +108,7 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
   const total = questions?.length ?? 0;
 
   return (
-    <div className="fixed inset-0 z-[96] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4">
-      <div className="sheet max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
+    <RoomSheet title={c.title} className="guide-sheet space-y-4">
         {questions === null ? (
           <div className="py-10 text-center">
             <div className="text-4xl animate-float mb-3"><BookserIcon value="🤔" size={48} /></div>
@@ -194,7 +194,6 @@ export function QuizDialog({ open, title, text, language, age, onClose, onFinish
             )}
           </>
         ) : null}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

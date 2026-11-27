@@ -1,3 +1,4 @@
+import { RoomSheet } from "./RoomControls";
 import { BookserIcon } from "@/components/BookserIcon";
 /**
  * RetellDialog — «Перескажи своими словами».
@@ -93,8 +94,7 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
     !result ? "" : result.score >= 75 ? "text-emerald-500" : result.score >= 45 ? "text-brand-500" : "text-amber-500";
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4">
-      <div className="sheet max-w-md space-y-4 max-h-[92vh] overflow-y-auto">
+    <RoomSheet title={c.title} className="guide-sheet space-y-4">
         {!result ? (
           <>
             <div className="text-center">
@@ -167,7 +167,6 @@ export function RetellDialog({ open, chunkText, language, age, onContinue }: Pro
             </div>
           </>
         )}
-      </div>
-    </div>
+    </RoomSheet>
   );
 }

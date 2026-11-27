@@ -267,7 +267,7 @@ export function ParentRewardsManager({ uid }: { uid: string }) {
               >
                 <span className="text-2xl"><BookserIcon value={p.emoji} size={32} fallback="gift" /></span>
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-ink dark:text-white truncate">{p.title}</p>
+                  <p className="text-sm font-bold text-ink dark:text-white leading-tight">{p.title}</p>
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     {p.price} монет · {p.books}
                   </p>

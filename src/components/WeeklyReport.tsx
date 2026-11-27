@@ -108,7 +108,7 @@ export function WeeklyReport({ profile, sessions }: Props) {
           {/* мини-календарь недели */}
           <div className="flex items-center justify-between mb-4 px-1">
             {last7.map((d, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
+              <div key={i} className="flex flex-col items-center gap-1" aria-label={d.active ? "День с чтением" : "День без чтения"}>
                 <span
                   className={`w-7 h-7 rounded-xl grid place-items-center text-xs font-bold ${
                     d.active
@@ -116,7 +116,7 @@ export function WeeklyReport({ profile, sessions }: Props) {
                       : "bg-black/[0.04] dark:bg-white/5 text-ink-faint"
                   }`}
                 >
-                  {d.active && <Check size={14} aria-label="Был урок" />}
+                  {d.active && <Check size={14} aria-hidden="true" />}
                 </span>
                 <span className="text-[10px] text-ink-faint">{d.label}</span>
               </div>

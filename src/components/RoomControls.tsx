@@ -21,13 +21,15 @@ export function SectionHeader({ title, onBack }: { title: string; onBack: () => 
 
 // These sheets are often opened from a menu that has already unmounted.
 // Restore focus to the opener when it still exists, or to the library menu.
-export function RoomSheet({ title, onClose, children, className = "" }: {
-  title: string; onClose: () => void; children: ReactNode; className?: string;
+export function RoomSheet({ title, onClose, children, className = "", returnFocus }: {
+  title: string; onClose?: () => void; children: ReactNode; className?: string; returnFocus?: string;
 }) {
   const opener = useRef<HTMLElement | null>(null);
-  return <Dialog.Root open onOpenChange={open => { if (!open) onClose(); }}>
+  return <Dialog.Root open onOpenChange={open => { if (!open) onClose?.(); }}>
     <Dialog.Portal><Dialog.Overlay className="room-scrim" />
       <Dialog.Content className={`room-sheet content-sheet ${className}`} aria-describedby={undefined}
+        onEscapeKeyDown={event => { if (!onClose) event.preventDefault(); }}
+        onInteractOutside={event => { if (!onClose) event.preventDefault(); }}
         onOpenAutoFocus={event => {
           opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           const panel = event.currentTarget;
@@ -35,7 +37,7 @@ export function RoomSheet({ title, onClose, children, className = "" }: {
         }}
         onCloseAutoFocus={event => {
           const target = opener.current;
-          const restore = target?.isConnected && target !== document.body ? target : document.querySelector<HTMLButtonElement>(".dock-activities");
+          const restore = target?.isConnected && target !== document.body ? target : document.querySelector<HTMLButtonElement>(returnFocus ?? ".dock-activities");
           if (restore) { event.preventDefault(); restore.focus({ preventScroll: true }); }
         }}>
         <Dialog.Title asChild><span className="sr-only">{title}</span></Dialog.Title>

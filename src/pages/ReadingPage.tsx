@@ -22,7 +22,7 @@ import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
 import { storyArt } from "@/lib/storyArt";
 import { StoryScene } from "@/components/StoryScene";
-import { BackButton } from "@/components/RoomControls";
+import { BackButton, RoomSheet } from "@/components/RoomControls";
 import { ChevronRight, Bookmark, Ear, Mic, Pause, SkipForward, RotateCcw, Share2 } from "lucide-react";
 import { updateStreakAndHardWords, awardPage, grantCard } from "@/lib/firestore";
 import { bandForBook } from "@/lib/readingLevel";
@@ -660,8 +660,7 @@ export default function ReadingPage() {
 
       {/* READ-09: resume dialog */}
       {resumePrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="sheet max-w-sm text-center space-y-4">
+        <RoomSheet title="Продолжить чтение?" onClose={stopAndExit} className="small-sheet text-center space-y-4">
             <div className="text-5xl"><BookserIcon value="book" size={62} /></div>
             <h2 className="font-display font-extrabold text-2xl text-ink dark:text-white">Продолжить чтение?</h2>
             <p className="text-sm text-ink-soft dark:text-ink-faint">
@@ -683,8 +682,7 @@ export default function ReadingPage() {
             </div>
             <button className="btn-primary w-full" onClick={() => resume(true)}>Продолжить</button>
             <button className="btn-ghost w-full" onClick={() => resume(false)}><RotateCcw className="w-4 h-4 inline -mt-0.5 mr-1.5" strokeWidth={2.4} />Начать сначала</button>
-          </div>
-        </div>
+        </RoomSheet>
       )}
 
       {/* Пересказ checkpoint after each chunk of pages */}
@@ -748,11 +746,10 @@ export default function ReadingPage() {
         onClose={() => setWonCard(null)}
       />
 
-      {finished && (
+      {finished && !wonCard && (
         <>
           <Fireworks />
-          <div className="fixed inset-0 z-[95] flex items-center justify-center p-4 pointer-events-none">
-            <div className="pointer-events-auto sheet max-w-sm text-center space-y-3 !shadow-lift animate-pop">
+          <RoomSheet title={`Молодец, ${profile.name}!`} className="small-sheet finish-sheet text-center space-y-3">
               <div className="text-6xl animate-float"><BookserIcon value="cup" size={78} /></div>
               <h2 className="font-display font-extrabold text-3xl text-ink dark:text-white">Молодец, {profile.name}!</h2>
               <p className="text-ink-soft dark:text-ink-faint">
@@ -833,8 +830,7 @@ export default function ReadingPage() {
                   К сказкам <ChevronRight size={16} aria-hidden="true" />
                 </button>
               </div>
-            </div>
-          </div>
+          </RoomSheet>
         </>
       )}
     </div>

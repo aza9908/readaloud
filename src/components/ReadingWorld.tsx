@@ -1,5 +1,4 @@
 import type { PointerEvent, ReactNode } from "react";
-
 import coastSmall from "@/assets/worlds/golden-coast-576.webp";
 import coastLarge from "@/assets/worlds/golden-coast-1080.webp";
 import librarySmall from "@/assets/worlds/observatory-576.webp";
