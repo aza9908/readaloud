@@ -32,7 +32,7 @@ export function Leaderboard({
 
   return (
     <RoomSheet title="Рейтинг" onClose={onClose}>
-        <div className="flex items-start justify-between mb-4">
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Рейтинг</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">Лучшие читатели по монетам</p>

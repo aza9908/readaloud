@@ -17,7 +17,7 @@ import { LibraryDock } from "@/components/LibraryDock";
 import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ChevronLeft, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -361,6 +361,12 @@ export default function LibraryPage() {
                           <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                         </div>
                       )}
+                      {!block && (
+                        <span className="shelf-read-cue">
+                          {prog?.open ? "Продолжить" : prog?.completed ? "Перечитать" : "Читать"}
+                          <ChevronRight size={14} aria-hidden="true" />
+                        </span>
+                      )}
                     </div>
                   </button>
                   {book.isCustom && (
@@ -453,7 +459,7 @@ export default function LibraryPage() {
 
       {showProgress && (
         <RoomSheet returnFocus=".dock-progress" title="Мои успехи" onClose={() => setShowProgress(false)} className="progress-sheet space-y-5">
-            <div className="flex items-center justify-between">
+            <div className="sheet-toolbar">
               <div className="flex items-center gap-2">
                 <ProfileAvatar value={profile.avatar} size={38} />
                 <div>

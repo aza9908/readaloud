@@ -28,7 +28,7 @@ export function CardCollection({
 
   return (
     <RoomSheet title="Коллекция" onClose={onClose}>
-        <div className="flex items-start justify-between mb-4">
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Коллекция</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">

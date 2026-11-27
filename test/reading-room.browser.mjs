@@ -137,6 +137,8 @@ async function check(screen) {
     await progress.locator(".reading-metric").last().waitFor();
     await inspect("progress");
     await progress.locator(".achievement-badge").last().scrollIntoViewIfNeeded();
+    const closeBox = await progress.getByRole("button", { name: "Закрыть" }).boundingBox();
+    assert.ok(closeBox && closeBox.y >= 0 && closeBox.height >= 44, "The close button stays within reach while browsing awards");
     await inspect("awards");
     await button("Закрыть").click();
     await progress.waitFor({ state: "hidden" });

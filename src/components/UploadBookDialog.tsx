@@ -110,7 +110,7 @@ export function UploadBookDialog({ uid, open, onClose, onCreated }: Props) {
 
   return (
     <RoomSheet returnFocus=".add-book" title="Добавить свою книгу" onClose={onClose} className="space-y-4 upload-sheet">
-        <div className="flex items-start justify-between">
+        <div className="sheet-toolbar">
           <div>
             <h2 className="text-xl font-display font-extrabold text-ink dark:text-white">
               Добавить свою книгу

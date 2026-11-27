@@ -229,7 +229,7 @@ function TaskSheet({ task, uid, profileId, onClose }: {
 
   return (
     <RoomSheet title="Задача" onClose={onClose}>
-        <div className="flex items-start justify-between mb-3">
+        <div className="sheet-toolbar">
           <span className="px-2.5 py-1 rounded-lg text-xs font-extrabold text-white"
             style={{ backgroundColor: DIFFICULTY_COLOR[task.difficulty] }}>
             {task.difficulty} · {DIFFICULTY_LABEL[task.difficulty]}

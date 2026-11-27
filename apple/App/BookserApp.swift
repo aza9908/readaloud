@@ -12,9 +12,9 @@ struct BookserApp: App {
     }
 }
 
-private let plum = Color(red: 101 / 255, green: 70 / 255, blue: 123 / 255)
-private let ivory = Color(red: 251 / 255, green: 249 / 255, blue: 244 / 255)
-private let ink = Color(red: 41 / 255, green: 38 / 255, blue: 51 / 255)
+private let enamel = Color(red: 32 / 255, green: 76 / 255, blue: 80 / 255)
+private let ivory = Color(red: 245 / 255, green: 245 / 255, blue: 239 / 255)
+private let ink = Color(red: 19 / 255, green: 30 / 255, blue: 41 / 255)
 
 @MainActor
 struct ReadingWindow: View {
@@ -27,7 +27,7 @@ struct ReadingWindow: View {
     @StateObject private var room = ReadingRoomSession()
 
     private var accent: Color {
-        scheme == .dark ? Color(red: 0.84, green: 0.73, blue: 0.90) : plum
+        scheme == .dark ? Color(red: 170 / 255, green: 217 / 255, blue: 226 / 255) : enamel
     }
 
     private var isCompact: Bool {
@@ -59,7 +59,7 @@ struct ReadingWindow: View {
                     NavigationSplitView {
                         List {
                             Button(action: { room.returnToReading() }) {
-                                Label("Reading room", systemImage: "book")
+                                Label("Reading room", systemImage: "books.vertical")
                             }
                             .foregroundColor(accent)
                             parentButton
@@ -80,12 +80,13 @@ struct ReadingWindow: View {
             if phase != .active || room.locking {
                 ZStack {
                     (scheme == .dark ? ink : ivory).ignoresSafeArea()
-                    Label("Bookser", systemImage: "book.closed.fill")
+                    Label("Bookser", systemImage: "book.fill")
                         .font(.title2.weight(.semibold))
-                        .foregroundColor(scheme == .dark ? .white : plum)
+                        .foregroundColor(accent)
                 }
             }
         }
+        .symbolRenderingMode(.hierarchical)
         .tint(accent)
         .onAppear { room.openExternal = { openURL(ReadingRoomSession.website) } }
         .onChange(of: phase) { next in
@@ -122,7 +123,11 @@ struct ReadingWindow: View {
                 VStack(spacing: 12) {
                     Image(systemName: "book.closed").font(.title)
                     Text("The reading room could not open.")
-                    Button("Try again") { room.load() }
+                    Button(action: { room.load() }) {
+                        Label("Try again", systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
                 }
                 .padding()
             } else {

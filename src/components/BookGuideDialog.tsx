@@ -437,7 +437,7 @@ function Shell({
 }) {
   return (
     <RoomSheet returnFocus=".library-guide" title={eyebrow} onClose={onClose} className="guide-sheet">
-        <div className="flex items-start justify-between mb-3">
+        <div className="sheet-toolbar">
           <p className="eyebrow"><BookserIcon value="✨" size={16} line /> {eyebrow}</p>
           <CloseButton onClick={onClose} />
         </div>

@@ -116,9 +116,7 @@ function Lobby({ profile, joining, onPick }: {
   return (
     <>
       <div className="arena-table match-invite">
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-400/15 border border-amber-300/30 grid place-items-center mb-3">
-          <Swords className="w-7 h-7 text-amber-300" strokeWidth={2} />
-        </div>
+        <BookserIcon value="cup" size={70} />
         <p className="font-display font-extrabold text-xl text-white">
           Приглашение за стол
         </p>
@@ -127,7 +125,7 @@ function Lobby({ profile, joining, onPick }: {
           команда из {MODE_SIZE[DEFAULT_MODE]}
         </p>
         <button disabled={joining} onClick={onPick}
-          className="btn-primary w-full mt-5 !bg-amber-400 !text-[#0a3327] hover:!bg-amber-300 disabled:opacity-60">
+          className="btn-primary mt-5 disabled:opacity-60">
           {joining
             ? <><Loader2 className="w-4 h-4 inline mr-2 animate-spin" />Садимся за стол…</>
             : <>Сесть за стол <ChevronRight size={17} aria-hidden="true" /></>}

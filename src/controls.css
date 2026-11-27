@@ -153,7 +153,7 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
 .history-heading button { min-width: 44px; }
 .reward-form-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .reward-form-actions > div { min-width: 7.8rem; }
-.content-sheet { width: min(calc(100% - 2rem), 34rem); }
+.content-sheet { --sheet-pad: 1.35rem; width: min(calc(100% - 2rem), 34rem); }
 .room-scrim { background: rgb(13 29 32 / .56); }
 .content-sheet.pin-sheet, .content-sheet.small-sheet { width: min(100% - 2rem, 23rem); }
 .content-sheet.guide-sheet { width: min(100% - 2rem, 30rem); }
@@ -189,7 +189,7 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
 }
 @media (max-width: 39.99rem) {
   .section-shell { width: min(100% - 1.6rem, 54rem); padding-top: .65rem; }
-  .content-sheet, .content-sheet.guide-sheet { width: 100%; }
+  .content-sheet, .content-sheet.guide-sheet { --sheet-pad: 1.15rem; width: 100%; }
   .content-sheet.pin-sheet, .content-sheet.small-sheet { width: 100%; }
   .reading-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .book-jacket { width: 3.55rem; }
@@ -203,3 +203,15 @@ button[aria-label="Удалить"], button[aria-label="Выдать"], button[a
   .progress-sheet .reading-metric .bookser-icon { margin-bottom: .3rem; }
   .language-caption { flex-direction: column; }
 }
+
+.shelf-read-cue { display: inline-flex; align-items: center; gap: .2rem; margin-top: .4rem; color: var(--accent-ink); font-size: .76rem; font-weight: 690; }
+.content-sheet .sheet-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: .7rem; position: sticky; top: calc(0px - var(--sheet-pad)); z-index: 2;
+  margin: calc(0px - var(--sheet-pad)) calc(0px - var(--sheet-pad)) .9rem;
+  padding: .72rem var(--sheet-pad); background: var(--surface); border-bottom: 1px solid var(--edge);
+}
+.sheet-toolbar .eyebrow { font-size: 1rem; letter-spacing: -.02em; color: var(--ink); }
+.match-invite { background: radial-gradient(ellipse at 50% 18%,#325a4e,transparent 66%),linear-gradient(150deg,#174137,#092b26); }
+.match-invite > .object-art { margin-bottom: .6rem; filter: drop-shadow(0 5px 4px #071c1b80); }
+.match-invite .btn-primary { background: linear-gradient(155deg,#f8e2a8,#dab475); color: #23382e; border-color: #d9b47a; }
+.match-invite .btn-primary > .lucide:last-child { background: #1e42351c; }

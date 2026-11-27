@@ -65,7 +65,7 @@ export function RewardsStore({
 
   return (
     <RoomSheet title="Мои хотелки" onClose={onClose}>
-        <div className="flex items-start justify-between mb-4">
+        <div className="sheet-toolbar">
           <div>
             <p className="eyebrow mb-1">Мои хотелки</p>
             <p className="text-sm text-ink-soft dark:text-ink-faint">Копи монеты и выбирай награду</p>
