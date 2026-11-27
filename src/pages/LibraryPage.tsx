@@ -407,7 +407,12 @@ export default function LibraryPage() {
         profile={profile}
         language={language}
         onClose={() => setShowShop(false)}
-        onChanged={() => { void getProfile(user.uid, profileId).then(setProfile); }}
+        onChanged={(avatar, purchase) => setProfile(current => {
+          if (!current) return current;
+          if (!purchase) return { ...current, avatar };
+          const unlockedAvatars = Array.from(new Set([...(current.unlockedAvatars ?? []), purchase.id]));
+          return { ...current, avatar, coins: purchase.coins, unlockedAvatars };
+        })}
       />
 
       <UploadBookDialog uid={user.uid} open={showUpload} onClose={() => setShowUpload(false)} onCreated={reload} />

@@ -40,7 +40,8 @@ async function check(screen) {
     window.__FIREBASE_DEFAULTS__ = { emulatorHosts: { firestore, auth } };
   }, { firestore, auth });
   const page = await context.newPage();
-  page.setDefaultTimeout(15000);
+  // Local Firestore may return a WebKit long poll at the end of its 30-second window.
+  page.setDefaultTimeout(65000);
   const errors = [];
   const network = [];
   page.on("request", req => { const url = new URL(req.url()); if (url.port === "8080") network.push([req.method(), url.pathname]); });
@@ -96,6 +97,8 @@ async function check(screen) {
     await shelf.waitFor();
     await button("Включить тёмную тему").click();
     await inspect("library-dark");
+    await shelf.scrollIntoViewIfNeeded();
+    await inspect("shelf");
     const lang = page.getByRole("group", { name: "Язык книг" });
     await lang.getByRole("button", { name: /Қазақ/ }).click();
     await page.locator('[data-book-id="hare"]').waitFor();
@@ -120,6 +123,14 @@ async function check(screen) {
     await inspect("reader");
     await button("Назад").click();
     await shelf.waitFor();
+    await button("Читатели").click();
+    await button("Родителям").click();
+    await page.getByRole("heading", { name: "Придумайте код" }).waitFor();
+    for (const digit of "2580") await button(digit).click();
+    await page.getByRole("heading", { name: "Повторите код" }).waitFor();
+    for (const digit of "2580") await button(digit).click();
+    await page.getByText("Книг прочитано", { exact: true }).waitFor();
+    await page.locator('img.companion-portrait[alt="Сова"]').waitFor();
     assert.deepEqual(errors, []);
     console.log(screen.label + " passed the reading flow");
   } catch (error) {
@@ -132,11 +143,12 @@ async function check(screen) {
 }
 
 try {
-  const failures = [];
-  for (const screen of cases) {
-    try { await check(screen); }
-    catch (error) { console.error(error); failures.push(screen.label); }
-  }
+  const outcomes = await Promise.allSettled(cases.map(check));
+  const failures = outcomes.flatMap((result, i) => {
+    if (result.status === "fulfilled") return [];
+    console.error(result.reason);
+    return [cases[i].label];
+  });
   assert.deepEqual(failures, []);
 } finally {
   server.httpServer.closeAllConnections();
