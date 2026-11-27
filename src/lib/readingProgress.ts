@@ -7,7 +7,7 @@ export function pageWordOffsets(pages: string[]) {
   return offsets;
 }
 
-export function positionPercent(offsets: number[], page: number, word: number) {
+export function positionPercent(offsets: number[], page = 0, word = 0) {
   const total = offsets[offsets.length - 1];
   if (!total) return 0;
   const index = Math.max(0, Math.min(page, offsets.length - 2));

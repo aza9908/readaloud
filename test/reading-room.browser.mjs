@@ -148,6 +148,8 @@ async function check(screen) {
     const sibling = page.getByRole("button", { name: /Дана.*7 лет/ });
     await sibling.waitFor();
     assert.notEqual(await profile.locator("img").getAttribute("src"), await sibling.locator("img").getAttribute("src"));
+    await page.locator(".profile-grid").evaluate(el => el.scrollIntoView({ block: "center" }));
+    await inspect("siblings");
     await button("Новый профиль").click();
     const suggested = dialog.locator(".companion-choices button[aria-pressed=true] img");
     const existingPortraits = await page.locator(".reader-ticket img").evaluateAll(items => items.map(img => img.src));
@@ -166,8 +168,11 @@ async function check(screen) {
     await cover("photo").scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('[data-book-id$="-photo"] .book-jacket img')?.src.endsWith("/icon-180.png"));
     await cover("atlas").evaluate(img => img.decode());
-    await cover("atlas").scrollIntoViewIfNeeded();
+    await page.locator(".shelf-books").evaluate(el => el.scrollIntoView({ block: "start" }));
     await inspect("jackets");
+    await page.getByRole("group", { name: "Возраст читателя" }).getByRole("button", { name: "10–12 лет" }).click();
+    await page.locator(".jacket-preview img").first().evaluate(img => img.decode());
+    await button("Показать все").click();
     const progress = page.getByRole("dialog", { name: "Мои успехи" });
     await button("Успехи").click();
     await progress.waitFor();
@@ -245,6 +250,7 @@ async function check(screen) {
     await button("Больше").click();
     assert.equal(await text.evaluate(p => parseFloat(getComputedStyle(p).fontSize)), initial + 2);
     await button("Включить светлую тему").click();
+    await page.getByText("Герой выбран", { exact: true }).waitFor({ state: "hidden" });
     await inspect("reader");
     await button("Назад").click();
     await shelf.waitFor();
@@ -268,6 +274,13 @@ async function check(screen) {
     await inspect("bruno");
     await button("Включить тёмную тему").click();
     await inspect("bruno-night");
+    if (screen.label === "iphone" || screen.label === "compact") {
+      await scene.evaluate(img => img.scrollIntoView({ block: "center" }));
+      const bounds = await scene.boundingBox();
+      const dock = await page.locator(".reader-controls").boundingBox();
+      assert.ok(bounds.y + bounds.height <= dock.y + 1, "The whole illustration can be viewed above the controls");
+      await inspect("bruno-illustration");
+    }
     for (let size = initial + 2; size > 16; size -= 2) await button("Меньше").click();
     assert.equal(await button("Меньше").isDisabled(), true);
     assert.ok((await button("Больше").boundingBox()).height >= 44);

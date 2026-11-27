@@ -69,14 +69,15 @@ const studio = scene("paint-studio", "Кисточки, краски и дере
 
 const motifs: Record<string, StoryArt> = {
   "🌐": atlas, "🗺️": atlas, "🎨": studio, "📖": desk, "📚": desk, "🦊": fox, "🐰": bunny,
-  "🐇": bunny, "🐻": woodland, "🦁": lion, "🏠": cottage, "🏰": castle, "🐉": dragon,
-  "🚀": rocket, "🌟": stars, "🌊": underwater, "🐟": underwater, "⚔️": steppe, "✨": stars, "⛵": underwater,
+  "🐇": bunny, "🐻": bruno[1], "🦁": lion, "🏠": cottage, "🏰": castle, "🐉": dragon,
+  "🚀": rocket, "🌟": stars, "🌊": underwater, "🐟": underwater, "⚔️": steppe, "✨": stars, "⛵": coast,
 };
 
 const subjectCovers: [RegExp, StoryArt][] = [
   [/космос|ракет|rocket|ғарыш|зымыран/i, rocket],
   [/зв[её]зд|созвезд|астроном|star |stars|constellation|жұлдыз/i, stars],
   [/океан|подвод|морск|ocean|undersea|coral|теңіз|мұхит/i, underwater],
+  [/корабл|парус|sailboat|желкен/i, coast],
   [/дракон|dragon|айдаһар/i, dragon],
   [/замок|замке|castle|қамал/i, castle],
   [/заяц|зайч|rabbit|bunny|қоян/i, bunny],
@@ -108,11 +109,22 @@ export function jacketArt(book: JacketBook): StoryArt {
 const brunoPassages = [/visit the forest library/i, /under the big oak/i, /hidden behind a tall shelf/i,
   /each star had a name/i, /that night, bruno/i, /shared the star book/i];
 
+const landscapes: [RegExp, StoryArt][] = [
+  [/лесн(?:ой|ую) троп|через лес|through the (?:woods|forest)|forest path|орман іші/i, woodland],
+  [/под водой|кораллов|кораллы|coral reef|under the sea|теңіз түбі/i, underwater],
+  [/по степи|широкая степь|across the steppe|open steppe|кең дала/i, steppe],
+];
+
 export function readingArt(book: Book, page: number): StoryArt {
-  const cover = jacketArt(book);
-  if (titles[titleKey(book.language, book.title)] !== bruno[0]) return cover;
   const passage = book.pages[page] ?? "";
-  const matched = brunoPassages.findIndex(cue => cue.test(passage));
-  const position = Math.round(page * (bruno.length - 1) / Math.max(1, book.pages.length - 1));
-  return bruno[matched >= 0 ? matched : position] ?? cover;
+  if (titles[titleKey(book.language, book.title)] === bruno[0]) {
+    const matched = brunoPassages.findIndex(cue => cue.test(passage));
+    const position = Math.round(page * (bruno.length - 1) / Math.max(1, book.pages.length - 1));
+    return bruno[matched >= 0 ? matched : position] ?? bruno[0];
+  }
+  if (page > 0 && page < book.pages.length - 1) {
+    const setting = landscapes.find(([cue]) => cue.test(passage));
+    if (setting) return setting[1];
+  }
+  return jacketArt(book);
 }
