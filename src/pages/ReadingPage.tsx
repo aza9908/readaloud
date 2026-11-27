@@ -15,7 +15,7 @@ import { useSpeechReader, type ProgressSnapshot } from "@/hooks/useSpeechReader"
 import { useSttEscalation } from "@/hooks/useSttEscalation";
 import { KaraokeText } from "@/components/KaraokeText";
 import { Fireworks } from "@/components/Fireworks";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle, useDarkAppearance } from "@/components/ThemeToggle";
 import { useToast } from "@/components/Toast";
 import { CoinCounter } from "@/components/CoinCounter";
 import { CurrentWord } from "@/components/CurrentWord";
@@ -62,6 +62,7 @@ const PageIllustration = memo(function PageIllustration({
   fallbackTitle?: string;
   fallbackEmoji?: string;
 }) {
+  const dark = useDarkAppearance();
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => { setFailed(false); setLoaded(false); }, [src]);
@@ -74,7 +75,7 @@ const PageIllustration = memo(function PageIllustration({
           title={fallbackTitle}
           emoji={fallbackEmoji ?? "📖"}
           className="w-full block aspect-[400/220]"
-          dark={document.documentElement.classList.contains("dark")}
+          dark={dark}
         />
       </figure>
     );
@@ -567,28 +568,26 @@ export default function ReadingPage() {
     <div className="reader-shell min-h-dvh flex flex-col">
       {/* Header — updates ≤1×/sec, cheap */}
       <header className="reader-toolbar sticky z-20 px-4 pt-3 pb-2.5">
-        <div className="flex items-center gap-2 max-w-2xl mx-auto">
-          <button className="w-9 h-9 shrink-0 rounded-2xl grid place-items-center bg-white/70 dark:bg-white/10 shadow-soft" onClick={stopAndExit} aria-label="Назад"><ArrowLeft className="w-5 h-5 text-ink dark:text-white" strokeWidth={2.4} /></button>
-          <div className="min-w-0 flex-1">
-            <p className="font-display font-bold truncate text-ink dark:text-white leading-tight">{book.title}</p>
-            <p className="text-[11px] text-ink-faint">Страница {pageIndex + 1} из {book.pages.length}</p>
+        <div className="reader-topline">
+          <button className="round-control" onClick={stopAndExit} aria-label="Назад"><ArrowLeft size={19} /></button>
+          <div className="reader-book">
+            <h1>{book.title}</h1>
+            <p>Страница {pageIndex + 1} из {book.pages.length}</p>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <CoinCounter coins={coins} />
-            <div className="flex items-center gap-0.5 rounded-2xl bg-white/70 dark:bg-white/10 shadow-soft p-0.5">
-              <button className="w-8 h-8 rounded-xl font-bold text-ink dark:text-white grid place-items-center" onClick={() => setFontSizePx((s) => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
-              <button className="w-8 h-8 rounded-xl font-bold text-ink dark:text-white text-sm grid place-items-center" onClick={() => setFontSizePx((s) => Math.min(30, s + 2))} aria-label="Больше">A+</button>
-            </div>
-            <ThemeToggle />
+          <div className="type-controls" role="group" aria-label="Размер текста">
+            <button disabled={fontSizePx <= 16} onClick={() => setFontSizePx(s => Math.max(16, s - 2))} aria-label="Меньше">A−</button>
+            <button disabled={fontSizePx >= 30} onClick={() => setFontSizePx(s => Math.min(30, s + 2))} aria-label="Больше">A+</button>
           </div>
+          <ThemeToggle />
         </div>
-        <div className="max-w-2xl mx-auto mt-2">
-          <div className="flex items-center justify-between text-[11px] font-bold text-ink-faint mb-1">
+        <div className="reader-meter">
+          <div className="reader-meter-stats">
             <span>{progressPct}% прочитано</span>
             <span>{fmtClock(baseMsRef.current + reader.elapsedMs)} · {reader.wpm} сл/мин</span>
+            <CoinCounter coins={coins} />
           </div>
-          <div role="progressbar" aria-label="Прочитано" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} className="h-2 rounded-full bg-black/[0.06] dark:bg-white/10 overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600 transition-[width] duration-500" style={{ width: `${progressPct}%` }} />
+          <div role="progressbar" aria-label="Прочитано" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progressPct} className="reader-progress">
+            <div style={{ width: `${progressPct}%` }} />
           </div>
         </div>
       </header>
@@ -640,8 +639,8 @@ export default function ReadingPage() {
           )}
 
           {!reader.isSupported && (
-            <p className="text-center text-sm text-red-500 bg-red-50 dark:bg-red-500/10 rounded-2xl px-4 py-3">
-              Распознавание речи недоступно в этом браузере. Откройте в Chrome или Edge.
+            <p className="reader-compatibility">
+              В этом браузере распознавание речи недоступно. Текст можно читать самостоятельно.
             </p>
           )}
         </div>

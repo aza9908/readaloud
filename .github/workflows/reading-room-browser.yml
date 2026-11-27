@@ -38,7 +38,9 @@ jobs:
           VITE_FIREBASE_APP_ID: "1:123456789:web:001122334455"
       - run: npx playwright-core install --with-deps webkit chromium
       - name: Check the reading flow in browsers
-        run: npx --yes firebase-tools@13 emulators:exec --project demo-bookser --only auth,firestore 'node test/reading-room.browser.mjs'
+        run: |
+          jq '{firestore, emulators: {auth: {host: "127.0.0.1", port: 9099}, firestore: {host: "127.0.0.1", port: 8080}, ui: {enabled: false}}}' firebase.json > firebase.browser.json
+          npx --yes firebase-tools@13 emulators:exec --config firebase.browser.json --project demo-bookser --only auth,firestore 'node test/reading-room.browser.mjs'
       - uses: actions/upload-artifact@v4
         if: always()
         with:

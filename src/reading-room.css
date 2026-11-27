@@ -172,12 +172,28 @@
 
 .reader-shell { background: radial-gradient(ellipse at top, var(--accent-panel), transparent 40rem), var(--canvas); }
 .reader-toolbar { box-shadow: 0 2px 16px -15px rgb(15 36 44 / .7); background: var(--glass); }
-.reader-toolbar .theme-switch { width: 44px; height: 44px; }
+.reader-topline, .reader-meter { width: min(100%, 42rem); margin-inline: auto; }
+.reader-topline, .reader-meter-stats, .type-controls { display: flex; align-items: center; }
+.reader-topline { gap: .5rem; }
+.reader-book { flex: 1; min-width: 0; }
+.reader-book h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; color: var(--ink); font-weight: 650; letter-spacing: -.025em; }
+.reader-book p, .reader-meter-stats { color: var(--muted); font-size: .75rem; }
+.type-controls { border: 1px solid var(--edge); border-radius: 2rem; background: var(--surface); overflow: hidden; }
+.type-controls button { font-size: .87rem; font-weight: 620; border-radius: 1.5rem; }
+.type-controls button:focus-visible { outline-offset: -3px; }
+.type-controls button:disabled { opacity: .48; }
+.type-controls button:hover:enabled { background: var(--accent-panel); }
+.reader-meter { margin-top: .45rem; }
+.reader-meter-stats { gap: .65rem; font-variant-numeric: tabular-nums; }
+.reader-meter-stats > :nth-child(2) { margin-left: auto; }
+.reader-progress { height: .35rem; overflow: hidden; border-radius: 1rem; margin-top: .35rem; background: var(--edge); }
+.reader-progress > div { height: 100%; border-radius: inherit; background: var(--accent-ink); transition: width .35s ease; }
 .reader-page .reading-canvas { position: relative; background: #fffcf4; color: #222e34; border: 1px solid #dadbd0; border-radius: .65rem 1.4rem 1.4rem .65rem; box-shadow: inset .32rem 0 #e6ddc8, 0 7px 20px -16px rgb(27 41 44 / .5); padding: clamp(1.4rem, 3.1vw, 2.5rem); }
 .dark .reader-page .reading-canvas { background: #202d37; color: #f3eee1; border-color: #364650; box-shadow: inset .32rem 0 #47575c; }
 .reader-controls { width: min(calc(100% - 1.25rem), 42.5rem); margin-inline: auto; bottom: max(.65rem, env(safe-area-inset-bottom)); padding: .65rem; border: 1px solid var(--edge); border-radius: 1.6rem; background: var(--glass); box-shadow: 0 12px 32px -12px rgb(10 27 35 / .30), inset 0 1px var(--rim); }
 .reader-controls .btn-primary { background: var(--stage-button); color: var(--stage-button-ink); }
 .reader-controls button { min-height: 44px; }
+.reader-compatibility { text-align: center; font-size: .82rem; color: var(--muted); padding: .35rem .65rem; }
 @supports ((backdrop-filter: blur(14px)) or (-webkit-backdrop-filter: blur(14px))) {
   .library-dock, .reader-controls, .reader-toolbar { -webkit-backdrop-filter: saturate(1.2) blur(14px); backdrop-filter: saturate(1.2) blur(14px); }
 }

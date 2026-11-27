@@ -185,7 +185,7 @@ export default function LibraryPage() {
         <button className="world-primary library-guide" onClick={() => setShowGuide(true)}>Подобрать книгу <ArrowRight size={17} aria-hidden="true" /></button>
       </ReadingWorld>
 
-      <section className="library-shelf" aria-labelledby="bookshelf" >
+      <section className="library-shelf" aria-labelledby="bookshelf">
         <div className="collection-heading">
           <h2 id="bookshelf" tabIndex={-1}>Выбери сказку</h2>
           <LibraryDock onProgress={() => setShowProgress(true)} activities={[

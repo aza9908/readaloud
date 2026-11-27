@@ -121,7 +121,12 @@ async function check(screen) {
 }
 
 try {
-  for (const screen of cases) await check(screen);
+  const failures = [];
+  for (const screen of cases) {
+    try { await check(screen); }
+    catch (error) { console.error(error); failures.push(screen.label); }
+  }
+  assert.deepEqual(failures, []);
 } finally {
   server.httpServer.closeAllConnections();
   await new Promise(resolve => server.httpServer.close(resolve));
