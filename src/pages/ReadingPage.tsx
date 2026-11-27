@@ -54,8 +54,9 @@ function retellCheckpoints(totalPages: number): Set<number> {
   return marks;
 }
 
-const ReadingSurface = memo(function ReadingSurface({ illustrationSrc, art, language, words, paragraphSizes, registerWordEl, fontSizePx, goldenWords }: {
+const ReadingSurface = memo(function ReadingSurface({ illustrationSrc, coverSrc, art, language, words, paragraphSizes, registerWordEl, fontSizePx, goldenWords }: {
   illustrationSrc?: string | null;
+  coverSrc?: string | null;
   art: StoryArt;
   language: Book["language"];
   words: string[];
@@ -70,7 +71,7 @@ const ReadingSurface = memo(function ReadingSurface({ illustrationSrc, art, lang
         <KaraokeText words={words} paragraphSizes={paragraphSizes} registerWordEl={registerWordEl}
           fontSizePx={fontSizePx} goldenWords={goldenWords} />
       </div>
-      <StoryScene src={illustrationSrc} art={art} />
+      <StoryScene src={illustrationSrc} coverSrc={coverSrc} art={art} />
     </main>
   );
 });
@@ -522,7 +523,8 @@ export default function ReadingPage() {
       </header>
 
       <ReadingSurface
-        illustrationSrc={book.pageImages?.[pageIndex] ?? (pageIndex === 0 ? book.coverUrl : null)}
+        illustrationSrc={book.pageImages?.[pageIndex]}
+        coverSrc={pageIndex === 0 ? book.coverUrl : undefined}
         art={readingArt(book, pageIndex)}
         language={book.language}
         words={words}
@@ -534,7 +536,7 @@ export default function ReadingPage() {
 
       {/* Controls */}
       <footer className="reader-controls fixed bottom-0 inset-x-0 z-20">
-        <div className="max-w-2xl mx-auto space-y-2.5">
+        <div className={reader.isListening || finished ? "max-w-2xl mx-auto space-y-2.5" : "reader-paused"}>
           {reader.isListening && (
             <div className="rounded-3xl border-2 border-brand-300/50 bg-white/90 dark:bg-[var(--surface)] backdrop-blur shadow-card p-4 flex items-center justify-between gap-3 animate-fade-up">
               <div className="min-w-0 flex items-center gap-3">
@@ -562,8 +564,8 @@ export default function ReadingPage() {
             ))}
 
           {!finished && !reader.isListening && (
-            <button className="w-full text-center text-sm font-bold text-ink-faint py-2 hover:text-ink-soft transition-colors" onClick={stopAndExit}>
-              <Bookmark className="w-4 h-4 inline -mt-0.5 mr-1" strokeWidth={2.4} />Остановиться и продолжить позже
+            <button className="reader-bookmark" aria-label="Остановиться и продолжить позже" title="Остановиться и продолжить позже" onClick={stopAndExit}>
+              <Bookmark size={18} aria-hidden="true" /><span>Отложить</span>
             </button>
           )}
 

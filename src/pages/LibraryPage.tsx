@@ -1,6 +1,7 @@
 import { BookserIcon, LanguageMark } from "@/components/BookserIcon";
 import { pageWordOffsets, positionPercent } from "@/lib/readingProgress";
-import { BookJacket } from "@/components/BookJacket";
+import starterBooks from "@/lib/starterBooks.json";
+import { BookJacket, JacketPreview } from "@/components/BookJacket";
 import { ReadingMetrics, AchievementBadge } from "@/components/ReadingMetrics";
 import { CloseButton, RoomSheet } from "@/components/RoomControls";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -18,7 +19,7 @@ import { LibraryDock } from "@/components/LibraryDock";
 import { ReadingWorld } from "@/components/ReadingWorld";
 import { UploadBookDialog } from "@/components/UploadBookDialog";
 import { useToast } from "@/components/Toast";
-import { ChevronLeft, ChevronRight, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, BookOpen, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight, Library, Plus, Sparkles, Trash2, Trophy, Download, Shirt, Gift, Calculator, Swords, Layers } from "lucide-react";
 import { BookGuideDialog } from "@/components/BookGuideDialog";
 import { RewardsPanel } from "@/components/RewardsPanel";
 import { AvatarShop } from "@/components/AvatarShop";
@@ -252,7 +253,7 @@ export default function LibraryPage() {
                 малышей: готовые сказки в основном для 6–7 лет и старше. */}
             {books && books.length > 0 && visible && visible.length === 0 && (
               <div className="card p-8 text-center col-span-full space-y-4">
-                <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
+                <JacketPreview books={books} />
                 <div>
                   <p className="font-display font-bold text-lg text-ink dark:text-white">
                     В категории «{bandFilter === "all" ? "" : BAND_LABEL[bandFilter as AgeBand].ru}» пока нет книг
@@ -276,7 +277,7 @@ export default function LibraryPage() {
 
             {books?.length === 0 && (
               <div className="card p-8 text-center col-span-full space-y-4">
-                <BookOpen className="w-12 h-12 mx-auto text-brand-400" strokeWidth={1.8} />
+                <JacketPreview books={starterBooks.filter(book => book.language === language).map(({ title, coverEmoji }) => ({ title, coverEmoji, language }))} />
                 <div>
                   <p className="font-display font-bold text-lg text-ink dark:text-white">Здесь пока пусто</p>
                   <p className="text-sm text-ink-faint mt-1">

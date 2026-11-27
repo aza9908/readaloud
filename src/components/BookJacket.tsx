@@ -15,3 +15,9 @@ export function BookJacket({ book, sizes = "80px" }: { book: JacketBook; sizes?:
     </span>
   );
 }
+
+export function JacketPreview({ books }: { books: JacketBook[] }) {
+  return <div className="jacket-preview" aria-hidden="true">
+    {books.slice(0, 3).map((book, i) => <BookJacket book={book} key={i + book.title} sizes="90px" />)}
+  </div>;
+}
